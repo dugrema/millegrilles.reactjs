@@ -2,7 +2,7 @@
 // import 'bootstrap/dist/css/bootstrap.min.css'
 // import 'react-bootstrap/dist/react-bootstrap.min.js'
 
-// import './styles.module.css'
+import './styles.module.css'
 
 // Components a exporter
 import { Thumbnail,  ThumbnailFooter, ThumbnailHeader, ThumbnailBoutonContexte } 
@@ -29,3 +29,6 @@ export { FilePicker }
 
 import LayoutApplication, { HeaderApplication, FooterApplication } from './LayoutApplication'
 export { LayoutApplication, HeaderApplication, FooterApplication }
+
+import { trouverLabelImage, trouverLabelVideo } from './labelsRessources'
+export { trouverLabelImage, trouverLabelVideo }

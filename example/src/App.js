@@ -1,15 +1,45 @@
-import React from 'react'
+import React, {useState} from 'react'
+import {Container, Button} from 'react-bootstrap'
 
-import { LayoutApplication, HeaderApplication, FooterApplication } from 'millegrilles.reactjs'
-import 'millegrilles.reactjs/dist/index.css'
+import Thumbnails from './Thumbnails'
+import ListeFichiers from './ListeFichiers'
+import TailleEcran from './TailleEcran'
+import Previews from './Previews'
+import FilePicker from './FilePickerExample'
+import LayoutApplication from './LayoutApplicationExemple'
 
 const App = () => {
+
+  const [page, setPage] = useState('')
+
+  if(page) {
+    let PageCls = ''
+    switch(page) {
+      case 'Thumbnails': PageCls = Thumbnails; break;
+      case 'ListeFichiers': PageCls = ListeFichiers; break;
+      case 'TailleEcran': PageCls = TailleEcran; break;
+      case 'Previews': PageCls = Previews; break
+      case 'FilePicker': PageCls = FilePicker; break;
+      case 'LayoutApplication': PageCls = LayoutApplication; break;
+      default:
+    }
+    if(PageCls) return (
+      <PageCls retour={()=>{setPage('')}} />
+    )
+  }  
+
   return (
-    <LayoutApplication>
-      <HeaderApplication>Header</HeaderApplication>
-      <p>Create React Library Example <span role="img">😄</span></p>
-      <FooterApplication>Fotter</FooterApplication>
-    </LayoutApplication>
+    <Container>
+      <h2>Choisir module</h2>
+      <ul>
+        <li><Button onClick={()=>setPage('Thumbnails')}>Thumbnails</Button></li>
+        <li><Button onClick={()=>setPage('ListeFichiers')}>ListeFichiers</Button></li>
+        <li><Button onClick={()=>setPage('TailleEcran')}>TailleEcran</Button></li>
+        <li><Button onClick={()=>setPage('Previews')}>Previews</Button></li>
+        <li><Button onClick={()=>setPage('FilePicker')}>FilePicker</Button></li>
+        <li><Button onClick={()=>setPage('LayoutApplication')}>LayoutApplication</Button></li>
+      </ul>
+    </Container>
   )
 }
 
