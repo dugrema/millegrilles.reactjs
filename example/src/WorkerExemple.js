@@ -1,8 +1,5 @@
 import React, {useEffect} from 'react'
-import { wrap } from 'comlink'
-import ChiffrageWorker from './chiffrage.worker'
-import ConnexionWorker from './connexion.worker'
-import X509Worker from './x509.worker'
+import loader from './workerLoader.js'
 
 export default function WorkersExemple(props) {
 
@@ -16,47 +13,29 @@ export default function WorkersExemple(props) {
 }
 
 async function charger() {
-    await chargerChiffrage()
-    await chargerConnexion()
-    await chargerX509()
-}
+    const {connexion, chiffrage, x509} = loader()
 
-async function chargerChiffrage() {
-    const instance = ChiffrageWorker()
-    console.debug("Instance worker chiffrage: %O", instance)
-    const worker = wrap(instance)
-    console.debug("Worker : %O", worker)
     try {
-        await worker.initialiserFormatteurMessage()
+        await chiffrage.initialiserFormatteurMessage()
         console.debug("Ok!")
     } catch(err) {
-        console.error("Erreur random : %O", err)
+        console.error("Erreur initialiserFormatteurMessage : %O", err)
     }
-}
 
-async function chargerConnexion() {
-    const instance = new ConnexionWorker()
-    console.debug("Instance worker connexion: %O", instance)
-    const worker = wrap(instance);
     try {
-        const info = await worker.getInformationMillegrille()
+        const info = await connexion.getInformationMillegrille()
         console.debug("Connexion info : %O", info)
     } catch(err) {
         console.error("Erreur info connexion : %O", err)
     }
-}
 
-async function chargerX509() {
-    const instance = new X509Worker()
-    console.debug("Instance worker x509: %O", instance)
-    const worker = wrap(instance);
-    console.debug("Wrapped worker X509 : %O", worker)
     try {
-        const info = await worker.init(CA_PEM)
+        await x509.init(CA_PEM)
         console.debug("X509 chargement OK")
     } catch(err) {
         console.error("Erreur x509 : %O", err)
     }
+
 }
 
 const CA_PEM = `
