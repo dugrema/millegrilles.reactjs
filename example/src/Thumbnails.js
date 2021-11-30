@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { Thumbnail, ThumbnailHeader, ThumbnailFooter } from 'millegrilles.reactjs'
+import { Thumbnail, ThumbnailHeader, ThumbnailFooter } from '@dugrema/millegrilles.reactjs'
 
 export default function Thumbnails(props) {
     return (

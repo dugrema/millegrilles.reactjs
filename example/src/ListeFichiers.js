@@ -1,6 +1,6 @@
 import React, {useState, useEffect, useCallback} from 'react'
 import { Container, Row, Col, Button } from 'react-bootstrap'
-import { ListeFichiers, MenuContextuel, FormatteurTaille, FormatterDate } from 'millegrilles.reactjs'
+import { ListeFichiers, MenuContextuel, FormatteurTaille, FormatterDate } from '@dugrema/millegrilles.reactjs'
 
 const ICONE_FOLDER = <i className="fa fa-folder fa-lg"/>
 const ICONE_FICHIER = <i className="fa fa-file fa-lg"/>

@@ -24,9 +24,14 @@
     "deploy": "gh-pages -d example/build"
   },
   "peerDependencies": {
+    "@dugrema/millegrilles.utiljs": "https://github.com/dugrema/millegrilles.utiljs.git#2021.1.0",
+    "axios": "^0.24.0",
     "bootstrap": "^5.1",
+    "comlink": "^4.3.1",
     "moment-duration-format": "^2.3",
     "moment-timezone": "^0.5.34",
+    "multibase": "^4.0.6",
+    "node-forge": "^0.10.0",
     "react": "^17.0",
     "react-bootstrap": "^2.0",
     "socket.io-client": "^4.4.0"

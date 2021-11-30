@@ -1,6 +1,6 @@
 import React, {useState, useCallback} from 'react'
 import { Container, Button } from 'react-bootstrap'
-import { ModalViewer, trouverLabelImage, trouverLabelVideo } from 'millegrilles.reactjs'
+import { ModalViewer, trouverLabelImage, trouverLabelVideo } from '@dugrema/millegrilles.reactjs'
 
 export default props => {
 

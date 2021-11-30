@@ -1,6 +1,6 @@
 import React from 'react'
 import { Container, Nav } from 'react-bootstrap'
-import { LayoutApplication, HeaderApplication, FooterApplication, BodyApplication } from 'millegrilles.reactjs'
+import { LayoutApplication, HeaderApplication, FooterApplication, BodyApplication } from '@dugrema/millegrilles.reactjs'
 
 export default props => {
     return (
