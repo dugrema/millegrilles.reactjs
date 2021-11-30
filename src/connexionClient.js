@@ -147,16 +147,12 @@ async function connecterSocketio(url, opts) {
     _socket = openSocket(hostname, {
       path: pathSocketio,
       reconnection: true,
-      reconnectionAttempts: 30,
-      reconnectionDelay: 500,
-      reconnectionDelayMax: 30000,
-      randomizationFactor: 0.5,
+      reconnectionDelay: 7500,
+      // reconnectionAttempts: 30,
+      // reconnectionDelayMax: 30000,
+      // randomizationFactor: 0.5,
       transports,
     })
-
-    // _socket.on('challengeAuthCertificatNavigateur', (authRequest, cb) => {
-    //   cb({err: 'nanana'})
-    // })
 
     const infoIdmg = await emitBlocking('getInfoIdmg', {}, {noformat: true})
     return infoIdmg
@@ -267,7 +263,7 @@ export async function emitBlocking(event, message, opts) {
     // Creer timeout pour echec de commande
     const timeout = setTimeout(_=>{
       reject(new Error('emitBlocking ' + event + ': Timeout socket.io'))
-    }, 7500)
+    }, 9000)
 
     const traiterReponse = reponse => {
       clearTimeout(timeout)  // Reponse recue, annuler le timeout

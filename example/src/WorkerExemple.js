@@ -2,6 +2,8 @@ import React, {useEffect} from 'react'
 import loader from './workerLoader.js'
 import { proxy } from 'comlink'
 
+const CONST_APP_URL = 'collections'
+
 export default function WorkersExemple(props) {
 
     useEffect(()=>{
@@ -41,8 +43,9 @@ async function charger() {
 
 async function connecter(connexion, workers) {
     // const info = await connexion.getInformationMillegrille()
-    const location = new URL(window.location.href)
-    location.pathname = 'grosfichiers'  // Pour test
+    // const location = new URL(window.location.href)
+    const location = new URL('https://mg-dev5.maple.maceroc.com/collections')
+    location.pathname = CONST_APP_URL  // Pour test
     console.debug("Connecter a %O", location)
 
     // Preparer callbacks

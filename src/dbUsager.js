@@ -30,7 +30,7 @@ export function ouvrirDB(opts) {
       }
     })
   } else {
-    console.debug("Ouverture DB sans upgrade usager : %s", DB_NAME)
+    // console.debug("Ouverture DB sans upgrade usager : %s", DB_NAME)
     return openDB(DB_NAME)
   }
 }
