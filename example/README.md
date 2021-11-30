@@ -8,7 +8,7 @@ You can run `npm install` and then `npm start` to test your package.
 
 Instructions pour ajouter des web workers a un projet react.
 
-* npm install --save-dev comlink rescript-worker-loader worker-loader
+* npm install --save-dev comlink worker-loader rescript-worker-loader @rescripts/cli
 * Ajouter fichier .rescriptsrc.js au projet
 * Creer un fichier *.worker.js par web worker a creer
 * Dans chaque web worker, importer le code et reexporter avec comlink.expose
@@ -18,3 +18,4 @@ Instructions pour ajouter des web workers a un projet react.
    expose(ChiffrageClient)
 ```
 * Importer le web-worker dans un loader. Voir workerLoader.js.
+* Changer script start et build pour rescripts start, rescripts build
