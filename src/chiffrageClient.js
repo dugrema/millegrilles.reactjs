@@ -49,35 +49,10 @@ export function initialiserCallbackCleMillegrille(cb) {
   _callbackCleMillegrille = cb
 }
 
-export async function initialiserFormatteurMessage(opts) {
+export async function initialiserFormatteurMessage(certificatPem, clePriveeDecrypt, clePriveeSign, opts) {
   opts = opts || {}
-  const clePriveePem = opts.clePriveePem,
-        certificatPem = opts.certificatPem,
-        DEBUG = opts.DEBUG
-
-  if(clePriveePem) {
-    if(DEBUG) console.debug("Charger cle privee PEM (en parametres)")
-    // Note : on ne peut pas combiner les usages decrypt et sign
-    clePriveeSubtleDecrypt = await importerClePriveeSubtle(clePriveePem, {usage: ['decrypt']})
-    clePriveeSubtleSign = await importerClePriveeSubtle(clePriveePem, {
-      usage: ['sign'], algorithm: 'RSA-PSS', hash: 'SHA-512'})
-  } else if(opts.clePriveeDecrypt && opts.clePriveeSign) {
-    if(DEBUG) console.debug("Chargement cle privee Subtle")
-    clePriveeSubtleDecrypt = opts.clePriveeDecrypt
-    clePriveeSubtleSign = opts.clePriveeSign
-  } else {
-    if(DEBUG) console.debug("Charger cle privee a partir de IndexedDB")
-    throw new Error("TODO : Importer cle privee a partir de IndexedDB")
-  }
-
-  if(certificatPem) {
-    if(DEBUG) console.debug("Utiliser chaine pem fournie : %O", certificatPem)
-  } else {
-    if(DEBUG) console.debug("Charger certificat a partir de IndexedDB")
-    throw new Error("TODO : Charger certificat a partir de IndexedDB")
-  }
-
-  if(DEBUG) console.debug("Cle privee subtle chargee")
+  clePriveeSubtleDecrypt = clePriveeDecrypt
+  clePriveeSubtleSign = clePriveeSign
   formatteurMessage = new FormatteurMessageSubtle(certificatPem, clePriveeSubtleSign)
   await formatteurMessage.ready  // Permet de recevoir erreur si applicable
 }

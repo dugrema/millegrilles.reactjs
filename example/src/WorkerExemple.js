@@ -1,5 +1,6 @@
 import React, {useEffect} from 'react'
 import loader from './workerLoader.js'
+import { proxy } from 'comlink'
 
 export default function WorkersExemple(props) {
 
@@ -13,29 +14,71 @@ export default function WorkersExemple(props) {
 }
 
 async function charger() {
-    const {connexion, chiffrage, x509} = loader()
+    const workers = loader()
+    const {connexion, chiffrage, x509} = workers
+
+    // try {
+    //     await chiffrage.initialiserFormatteurMessage()
+    //     console.debug("Ok!")
+    // } catch(err) {
+    //     console.error("Erreur initialiserFormatteurMessage : %O", err)
+    // }
+
+    // try {
+    //     await x509.init(CA_PEM)
+    //     console.debug("X509 chargement OK")
+    // } catch(err) {
+    //     console.error("Erreur x509 : %O", err)
+    // }
 
     try {
-        await chiffrage.initialiserFormatteurMessage()
-        console.debug("Ok!")
-    } catch(err) {
-        console.error("Erreur initialiserFormatteurMessage : %O", err)
-    }
-
-    try {
-        const info = await connexion.getInformationMillegrille()
-        console.debug("Connexion info : %O", info)
+        await connecter(connexion, workers)
     } catch(err) {
         console.error("Erreur info connexion : %O", err)
     }
 
-    try {
-        await x509.init(CA_PEM)
-        console.debug("X509 chargement OK")
-    } catch(err) {
-        console.error("Erreur x509 : %O", err)
-    }
+}
 
+async function connecter(connexion, workers) {
+    // const info = await connexion.getInformationMillegrille()
+    const location = new URL(window.location.href)
+    location.pathname = 'grosfichiers'  // Pour test
+    console.debug("Connecter a %O", location)
+
+    // Preparer callbacks
+    const setUsagerCb = proxy( usager => setUsager(workers, usager) )
+    await connexion.setCallbacks(proxy(setEtatConnexion), workers.x509, setUsagerCb)
+
+    const info = await connexion.connecter(location.href)
+    console.debug("Connexion info : %O", info)
+}
+
+function setEtatConnexion(etat) {
+    console.debug("Etat connexion : %O", etat)
+}
+
+async function setUsager(workers, nomUsager) {
+    console.debug("Usager : '%s'", nomUsager)
+    const {getUsager} = await import('@dugrema/millegrilles.reactjs')
+    const usager = await getUsager(nomUsager)
+    
+    if(usager && usager.certificat) {
+        const { connexion, chiffrage, x509 } = workers
+        const fullchain = usager.certificat
+        const caPem = [...fullchain].pop()
+
+        const certificatPem = fullchain.join('')
+
+        // Initialiser le CertificateStore
+        await chiffrage.initialiserCertificateStore(caPem, {isPEM: true, DEBUG: false})
+        await x509.init(caPem)
+        await chiffrage.initialiserFormatteurMessage(certificatPem, usager.signer, usager.dechiffrer, {DEBUG: false})
+        await connexion.initialiserFormatteurMessage(certificatPem, usager.signer, {DEBUG: false})
+    
+    } else {
+        console.warn("Pas de certificat pour l'usager '%s'", usager)
+    }
+  
 }
 
 const CA_PEM = `

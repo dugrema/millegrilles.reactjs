@@ -1,51 +1,129 @@
 import {io as openSocket} from 'socket.io-client'
-import axios from 'axios'
 import path from 'path'
+import multibase from 'multibase'
 
-import { formatteurMessage, forgecommon  } from '@dugrema/millegrilles.utiljs'
+import { formatteurMessage, forgecommon, getRandomValues } from '@dugrema/millegrilles.utiljs'
 
 const { FormatteurMessageSubtle } = formatteurMessage
 const { extraireExtensionsMillegrille } = forgecommon
 
 var _socket = null,
-    _clePriveeSubtleDecrypt = null,
-    _clePriveeSubtleSign = null,
     _formatteurMessage = null
 
-export async function getInformationMillegrille(opts) {
-  const url = path.join('/millegrilles', 'info.json')
+var _callbackSetEtatConnexion,
+    _callbackSetUsager,
+    _x509Worker,
+    _urlCourant = '',
+    _connecte = false,
+    _protege = false
 
-  var response = null
-  try {
-    response = await axios({
-      url,
-      method: 'get',
-      timeout: 3000
-    })
-  } catch(err) {
-    if(err.isAxiosError) {
-      console.error("Erreur axios : %O", err)
-      // Extraire information pour passer via message serialise
-      // throw ne serialise pas le contenu de l'erreur (e.g. response code)
-      const response = err.response
-      const errInfo = {
-        statusCode: response.status,
-        statusText: response.statusText,
-        data: response.data,
-        isAxiosError: true,
-      }
-      return({err: errInfo})
-    }
-    // Erreur generique
-    throw err
-  }
-
-  // console.debug(response)
-  const infoMillegrille = {...response.data, headers: response.headers}
-
-  return infoMillegrille
+export function setCallbacks(setEtatConnexion, x509Worker, callbackSetUsager) {
+  _callbackSetEtatConnexion = setEtatConnexion
+  _x509Worker = x509Worker
+  _callbackSetUsager = callbackSetUsager
 }
 
+export function estActif() {
+  return _urlCourant && _connecte && _protege
+}
+
+export async function connecter(urlApp, opts) {
+  opts = opts || {}
+
+  if(urlApp === _urlCourant) return
+
+  const urlSocketio = new URL(urlApp)
+  urlSocketio.pathname = path.join(urlSocketio.pathname, 'socket.io')
+  console.debug("Socket.IO connecter avec url %s", urlSocketio.href)
+
+  const connexion = connecterSocketio(urlSocketio.href, opts)
+
+  socketOn('connect', _=>{
+    // console.debug("socket.io connecte a %O", urlSocketio)
+    _connecte = true
+    _urlCourant = urlApp
+    onConnect()
+      .then(protege=>{
+        _protege = protege
+        if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(protege)
+      })
+  })
+  socketOn('reconnect', _=>{
+    // console.debug("Reconnecte")
+    _connecte = true
+    onConnect()
+      .then(protege=>{
+        _protege = protege
+        if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(protege)
+      })
+  })
+  socketOn('disconnect', _=>{
+    // console.debug("Disconnect socket.io")
+    _connecte = false
+    _protege = false
+    if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(false)
+  })
+  socketOn('connect_error', err=>{
+    // console.debug("Erreur socket.io : %O", err)
+    _connecte = false
+    _protege = false
+    if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(false)
+  })
+
+  return connexion
+}
+
+async function onConnect() {
+
+  // S'assurer que la connexion est faite avec le bon site
+  const randomBytes = new Uint8Array(64)
+  await getRandomValues(randomBytes)
+  const challenge = String.fromCharCode.apply(null, multibase.encode('base64', randomBytes))
+  const reponse = await new Promise(async (resolve, reject)=>{
+    // console.debug("Emission challenge connexion Socket.io : %O", challenge)
+    const timeout = setTimeout(_=>{
+      reject('Timeout')
+    }, 15000)
+    const reponse = await emitBlocking('challenge', {challenge, noformat: true})
+    // console.debug("Reponse challenge connexion Socket.io : %O", reponse)
+    clearTimeout(timeout)
+
+    if(reponse.reponse === challenge) {
+      resolve(reponse)
+    } else{
+      reject('Challenge mismatch')
+    }
+  })
+
+  // Initialiser les cles, stores, etc pour tous les workers avec
+  // le nom de l'usager. Le certificat doit exister et etre valide pour la
+  // millegrille a laquelle on se connecte.
+  const nomUsager = reponse.nomUsager
+  await _callbackSetUsager(nomUsager)
+
+  // Valider la reponse signee
+  // const signatureValide = await _verifierSignature(reponse)
+  const signatureValide = await _x509Worker.verifierMessage(reponse)
+  if(!signatureValide) {
+    throw new Error("Signature de la reponse invalide, serveur non fiable")
+  }
+
+  // console.debug("Signature du serveur est valide")
+  // On vient de confirmer que le serveur a un certificat valide qui correspond
+  // a la MilleGrille. L'authentification du client se fait automatiquement
+  // avec le certificat (mode prive ou protege).
+
+  // Faire l'upgrade protege
+  const resultatProtege = await upgradeProteger()
+  // console.debug("Resultat upgrade protege : %O", resultatProtege)
+
+  // Emettre l'evenement qui va faire enregistrer les evenements de mise a jour
+  // pour le mapping, siteconfig et sections
+  emit('ecouterMaj')
+
+  return resultatProtege
+}
+    
 export function getCertificatFormatteur() {
   return {
     // certificat: _formatteurMessage.cert,
@@ -53,7 +131,7 @@ export function getCertificatFormatteur() {
   }
 }
 
-export async function connecter(url, opts) {
+async function connecterSocketio(url, opts) {
   opts = opts || {}
   const DEBUG = opts.DEBUG
 
@@ -90,36 +168,9 @@ export async function connecter(url, opts) {
   }
 }
 
-export async function initialiserFormatteurMessage(opts) {
+export async function initialiserFormatteurMessage(certificatPem, clePriveeSign, opts) {
   opts = opts || {}
-  const clePriveePem = opts.clePriveePem,
-        certificatPem = opts.certificatPem,
-        DEBUG = opts.DEBUG
-
-  if(clePriveePem) {
-    if(DEBUG) console.debug("Charger cle privee PEM (en parametres)")
-    // Note : on ne peut pas combiner les usages decrypt et sign
-    _clePriveeSubtleDecrypt = await importerClePriveeSubtle(clePriveePem, {usage: ['decrypt']})
-    _clePriveeSubtleSign = await importerClePriveeSubtle(clePriveePem, {
-      usage: ['sign'], algorithm: 'RSA-PSS', hash: 'SHA-512'})
-  } else if(opts.clePriveeDecrypt && opts.clePriveeSign) {
-    if(DEBUG) console.debug("Chargement cle privee Subtle")
-    _clePriveeSubtleDecrypt = opts.clePriveeDecrypt
-    _clePriveeSubtleSign = opts.clePriveeSign
-  } else {
-    if(DEBUG) console.debug("Charger cle privee a partir de IndexedDB")
-    throw new Error("TODO : Importer cle privee a partir de IndexedDB")
-  }
-
-  if(certificatPem) {
-    if(DEBUG) console.debug("Utiliser chaine pem fournie : %O", certificatPem)
-  } else {
-    if(DEBUG) console.debug("Charger certificat a partir de IndexedDB")
-    throw new Error("TODO : Charger certificat a partir de IndexedDB")
-  }
-
-  if(DEBUG) console.debug("Cle privee subtle chargee")
-  _formatteurMessage = new FormatteurMessageSubtle(certificatPem, _clePriveeSubtleSign)
+  _formatteurMessage = new FormatteurMessageSubtle(certificatPem, clePriveeSign)
   await _formatteurMessage.ready  // Permet de recevoir erreur si applicable
 }
 
