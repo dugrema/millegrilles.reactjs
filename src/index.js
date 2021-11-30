@@ -33,5 +33,8 @@ export { LayoutApplication, HeaderApplication, FooterApplication }
 import { trouverLabelImage, trouverLabelVideo } from './labelsRessources'
 export { trouverLabelImage, trouverLabelVideo }
 
-import ChiffrageClient from './chiffrageClient.js'
+import * as ChiffrageClient from './chiffrageClient.js'
 export { ChiffrageClient }
+
+import * as ConnexionClient from './connexionClient'
+export { ConnexionClient }

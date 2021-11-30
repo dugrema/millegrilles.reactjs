@@ -1,6 +1,6 @@
 import React, {useState, useEffect, useCallback} from 'react'
 import { Container, Row, Col, Button } from 'react-bootstrap'
-import { FilePicker } from 'millegrilles.reactjs'
+import { FilePicker } from '@dugrema/millegrilles.reactjs'
 
 export default props => {
 

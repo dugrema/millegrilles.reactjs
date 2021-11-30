@@ -25,7 +25,7 @@ var formatteurMessage = null  // Formatteur de message avec signature
 var _cleMillegrilleSubtle = null
 var _callbackCleMillegrille = null  // Callback sur etat de la cle de millegrille
 
-async function initialiserCertificateStore(caCert, opts) {
+export async function initialiserCertificateStore(caCert, opts) {
   const DEBUG = opts.DEBUG
   if(DEBUG) console.debug("Initialisation du CertificateStore avec %O, opts=%O", caCert, opts)
   certificateStore = new CertificateStore(caCert, opts)
@@ -38,12 +38,12 @@ async function initialiserCertificateStore(caCert, opts) {
   }
 }
 
-function initialiserCallbackCleMillegrille(cb) {
+export function initialiserCallbackCleMillegrille(cb) {
   // console.debug("Initialisation du callback pour cle de MilleGrille")
   _callbackCleMillegrille = cb
 }
 
-async function initialiserFormatteurMessage(opts) {
+export async function initialiserFormatteurMessage(opts) {
   opts = opts || {}
   const clePriveePem = opts.clePriveePem,
         certificatPem = opts.certificatPem,
@@ -76,7 +76,7 @@ async function initialiserFormatteurMessage(opts) {
   await formatteurMessage.ready  // Permet de recevoir erreur si applicable
 }
 
-function clearInfoSecrete() {
+export function clearInfoSecrete() {
   formatteurMessage = null
   _cleMillegrilleSubtle = null
   clePriveeSubtleDecrypt = null
@@ -84,7 +84,7 @@ function clearInfoSecrete() {
   console.info("Information secrete retiree de la memoire")
 }
 
-function verifierCertificat(certificat, opts) {
+export function verifierCertificat(certificat, opts) {
   /* Expose verifierChaine du certificate store */
   if(typeof(chainePEM) === 'string') {
     certificat = forgePki.certificateFromPem(certificat)
@@ -92,7 +92,7 @@ function verifierCertificat(certificat, opts) {
   return certificateStore.verifierChaine(certificat, opts)
 }
 
-function formatterMessage(message, domaineAction, opts) {
+export function formatterMessage(message, domaineAction, opts) {
   opts = opts || {}
   opts.attacherCertificat = true  // Toujours attacher le certificat
 
@@ -101,7 +101,7 @@ function formatterMessage(message, domaineAction, opts) {
   return formatteurMessage.formatterMessage(message, domaineAction, opts)
 }
 
-function signerMessageCleMillegrille(message, opts) {
+export function signerMessageCleMillegrille(message, opts) {
   opts = opts || {}
 
   /* Expose formatterMessage du formatteur de messages */
@@ -110,7 +110,7 @@ function signerMessageCleMillegrille(message, opts) {
   return signateur.signer(message)
 }
 
-async function _validerCertificatChiffrage(certificatPem, opts) {
+export async function _validerCertificatChiffrage(certificatPem, opts) {
   /* Valide le certificat pour chiffrage et retourne la cle publique.
      Le certificat doit avoir le role 'maitrecles'. */
   opts = opts || {}
@@ -147,7 +147,7 @@ async function _validerCertificatChiffrage(certificatPem, opts) {
   return resultat
 }
 
-async function chiffrerDocument(doc, domaine, certificatChiffragePem, identificateurs_document, opts) {
+export async function chiffrerDocument(doc, domaine, certificatChiffragePem, identificateurs_document, opts) {
     opts = opts || {}
     const DEBUG = opts.DEBUG
 
@@ -166,12 +166,12 @@ async function chiffrerDocument(doc, domaine, certificatChiffragePem, identifica
   return resultat
 }
 
-function dechiffrerDocument(ciphertext, messageCle, opts) {
+export function dechiffrerDocument(ciphertext, messageCle, opts) {
   // Wrapper pour dechiffrer document, insere la cle privee locale
   return _dechiffrerDocument(ciphertext, messageCle, clePriveeSubtleDecrypt, opts)
 }
 
-async function chargerCleMillegrilleSubtle(clePrivee) {
+export async function chargerCleMillegrilleSubtle(clePrivee) {
   // console.debug("Charger cle millegrille : %O", clePrivee)
   // var cleMillegrilleSubtle = null
   if(typeof(clePrivee) === 'string') {
@@ -216,7 +216,7 @@ async function chargerCleMillegrilleSubtle(clePrivee) {
 
 }
 
-async function clearCleMillegrilleSubtle() {
+export async function clearCleMillegrilleSubtle() {
   _cleMillegrilleSubtle = null
   try {
     _callbackCleMillegrille(false)
@@ -225,7 +225,7 @@ async function clearCleMillegrilleSubtle() {
   }
 }
 
-async function rechiffrerAvecCleMillegrille(secretsChiffres, pemRechiffrage, opts) {
+export async function rechiffrerAvecCleMillegrille(secretsChiffres, pemRechiffrage, opts) {
   /*
     secretsChiffres : correlation = buffer
     pemRechiffrage : certificat a utiliser pour rechiffrer
@@ -264,7 +264,7 @@ async function rechiffrerAvecCleMillegrille(secretsChiffres, pemRechiffrage, opt
   return secretsRechiffres
 }
 
-async function preparerCleSecreteSubtle(cleSecreteChiffree, iv) {
+export async function preparerCleSecreteSubtle(cleSecreteChiffree, iv) {
   return _preparerCleSecreteSubtle(cleSecreteChiffree, iv, clePriveeSubtleDecrypt)
 }
 
@@ -278,12 +278,12 @@ async function preparerCleSecreteSubtle(cleSecreteChiffree, iv) {
 //   clearInfoSecrete, preparerCleSecreteSubtle,
 // })
 
-export default {
-  initialiserCertificateStore, initialiserFormatteurMessage,
-  initialiserCallbackCleMillegrille,
-  chargerCleMillegrilleSubtle, clearCleMillegrilleSubtle,
-  verifierCertificat, formatterMessage,
-  chiffrerDocument, dechiffrerDocument,
-  rechiffrerAvecCleMillegrille, signerMessageCleMillegrille,
-  clearInfoSecrete, preparerCleSecreteSubtle,
-}
+// export {
+//   initialiserCertificateStore, initialiserFormatteurMessage,
+//   initialiserCallbackCleMillegrille,
+//   chargerCleMillegrilleSubtle, clearCleMillegrilleSubtle,
+//   verifierCertificat, formatterMessage,
+//   chiffrerDocument, dechiffrerDocument,
+//   rechiffrerAvecCleMillegrille, signerMessageCleMillegrille,
+//   clearInfoSecrete, preparerCleSecreteSubtle,
+// }
