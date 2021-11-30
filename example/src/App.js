@@ -7,8 +7,8 @@ import TailleEcran from './TailleEcran'
 import Previews from './Previews'
 import FilePicker from './FilePickerExample'
 import LayoutApplication from './LayoutApplicationExemple'
-import ConnexionClientExemple from './ConnexionClientExemple'
-import ChiffrageWorkerExemple from './ChiffrageWorkerExemple'
+import WorkerExemple from './WorkerExemple'
+import DbUsagerExemple from './DbUsagerExemple'
 
 const App = () => {
 
@@ -23,8 +23,8 @@ const App = () => {
       case 'Previews': PageCls = Previews; break
       case 'FilePicker': PageCls = FilePicker; break;
       case 'LayoutApplication': PageCls = LayoutApplication; break;
-      case 'ConnexionClientExemple': PageCls = ConnexionClientExemple; break;
-      case 'ChiffrageWorkerExemple': PageCls = ChiffrageWorkerExemple; break;
+      case 'WorkerExemple': PageCls = WorkerExemple; break;
+      case 'DbUsagerExemple': PageCls = DbUsagerExemple; break;
       default:
     }
     if(PageCls) return (
@@ -42,8 +42,8 @@ const App = () => {
         <li><Button onClick={()=>setPage('Previews')}>Previews</Button></li>
         <li><Button onClick={()=>setPage('FilePicker')}>FilePicker</Button></li>
         <li><Button onClick={()=>setPage('LayoutApplication')}>LayoutApplication</Button></li>
-        <li><Button onClick={()=>setPage('ConnexionClientExemple')}>ConnexionClientExemple</Button></li>
-        <li><Button onClick={()=>setPage('ChiffrageWorkerExemple')}>ChiffrageWorkerExemple</Button></li>
+        <li><Button onClick={()=>setPage('WorkerExemple')}>WorkerExemple</Button></li>
+        <li><Button onClick={()=>setPage('DbUsagerExemple')}>DbUsagerExemple</Button></li>
       </ul>
     </Container>
   )

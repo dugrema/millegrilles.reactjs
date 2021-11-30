@@ -33,8 +33,25 @@ export { LayoutApplication, HeaderApplication, FooterApplication }
 import { trouverLabelImage, trouverLabelVideo } from './labelsRessources'
 export { trouverLabelImage, trouverLabelVideo }
 
+import {
+  ouvrirDB, getUsager, updateUsager, getListeUsagers, supprimerUsager,
+  saveCleDechiffree, getCleDechiffree,
+  entretienCache,
+} from './dbUsager'
+export {
+    ouvrirDB, getUsager, updateUsager, getListeUsagers, supprimerUsager,
+    saveCleDechiffree, getCleDechiffree,
+    entretienCache,
+}
+
+import { repondreRegistrationChallenge } from './webauthn'
+export { repondreRegistrationChallenge }
+
 import * as ChiffrageClient from './chiffrageClient.js'
 export { ChiffrageClient }
 
 import * as ConnexionClient from './connexionClient'
 export { ConnexionClient }
+
+import * as X509Client from './x509Client'
+export { X509Client }
