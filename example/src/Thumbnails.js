@@ -8,7 +8,7 @@ export default function Thumbnails(props) {
             {['001_200.jpg', '001_128.jpg', '002_200.jpg', '004_200.jpg'].map(item=>{
                 return (
                     <Thumbnail key={item}
-                        src={"/res/" + item}
+                        src={"/reactjs/res/" + item}
                         onClick={event=>testCall(event, item)}
                         onDoubleClick={event=>testCall2(event, item)}
                         onContextMenu={event=>{testContext(event, item)}}
@@ -46,9 +46,9 @@ function testContext(event, value) {
 function loadImage() {
     return {
         load: async setSrc => {
-            setSrc('/res/001_128.jpg')
+            setSrc('/reactjs/res/001_128.jpg')
             await new Promise(resolve=>{setTimeout(resolve, 2000)})
-            setSrc('/res/002_200.jpg')
+            setSrc('/reactjs/res/002_200.jpg')
         },
         unload: () => console.debug("Unload")
     }

@@ -118,7 +118,7 @@ function preparerColonnes() {
 
 function sampleData1() {
     return [
-        {fuuid: 'abcd-1234', nom: 'fichier1.jpg', taille: 1234, date: 1637264900, mimetype: 'image/jpg', thumbnailSrc: '/res/001_128.jpg'},
+        {fuuid: 'abcd-1234', nom: 'fichier1.jpg', taille: 1234, date: 1637264900, mimetype: 'image/jpg', thumbnailSrc: '/reactjs/res/001_128.jpg'},
         {fuuid: 'abcd-1235', nom: 'fichier2 avec un nom long.jpg', taille: 2938481, date: 1637264901, mimetype: 'image/jpg', thumbnailLoader: loadImage()},
         {fuuid: 'abcd-1236', nom: 'fichier3 avec un nom encore plus long que lautre pour depasser la limite de lecran.jpg', taille: 10023, date: 1637264902, mimetype: 'image/jpg'},
         {fuuid: 'abcd-1237', nom: 'article1.pdf', taille: 84511, date: 1637265416, mimetype: 'application/pdf'},
@@ -195,9 +195,9 @@ function onContextMenu(event, value, setContextuel) {
 function loadImage() {
     return {
         load: async setSrc => {
-            setSrc('/res/001_128.jpg')
+            setSrc('/reactjs/res/001_128.jpg')
             await new Promise(resolve=>{setTimeout(resolve, 2000)})
-            setSrc('/res/002_200.jpg')
+            setSrc('/reactjs/res/002_200.jpg')
         },
         unload: () => console.debug("Unload")
     }

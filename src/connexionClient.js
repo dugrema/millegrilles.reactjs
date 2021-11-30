@@ -24,7 +24,7 @@ export async function getInformationMillegrille(opts) {
     })
   } catch(err) {
     if(err.isAxiosError) {
-      // console.error("Erreur axios : %O", err)
+      console.error("Erreur axios : %O", err)
       // Extraire information pour passer via message serialise
       // throw ne serialise pas le contenu de l'erreur (e.g. response code)
       const response = err.response

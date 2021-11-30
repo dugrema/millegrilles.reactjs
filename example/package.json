@@ -1,10 +1,10 @@
 {
   "name": "millegrilles.reactjs-example",
-  "homepage": ".",
+  "homepage": "/reactjs",
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "rescripts start",
+    "start": "export WDS_SOCKET_PATH=/reactjs/sockjs-node && rescripts start",
     "build": "node ../node_modules/react-scripts/bin/react-scripts.js build",
     "test": "node ../node_modules/react-scripts/bin/react-scripts.js test",
     "eject": "node ../node_modules/react-scripts/bin/react-scripts.js eject"

@@ -60,33 +60,33 @@ function preparerSample1() {
         {
             tuuid: 'abcd-1234', mimetype: 'image/jpeg', nom: '001.jpg',
             loader: typeRessource => resLoader({
-                thumbnail: '/res/001_128.jpg', 
-                poster: '/res/001_200.jpg', 
-                'image/jpg;1080': '/res/001.jpg',
-                original: '/res/001.jpg',
+                thumbnail: '/reactjs/res/001_128.jpg', 
+                poster: '/reactjs/res/001_200.jpg', 
+                'image/jpg;1080': '/reactjs/res/001.jpg',
+                original: '/reactjs/res/001.jpg',
             }, typeRessource) 
         },
         {
             tuuid: 'abcd-1235', mimetype: 'application/pdf', nom: 'sample1.pdf',
             loader: typeRessource => resLoader({
-                poster: '/files/sample1.poster.jpg', 
-                'image/jpg;700': '/files/sample1.700.jpg',
-                original: '/files/sample1.pdf',
+                poster: '/reactjs/files/sample1.poster.jpg', 
+                'image/jpg;700': '/reactjs/files/sample1.700.jpg',
+                original: '/reactjs/files/sample1.pdf',
             }, typeRessource) 
         },
         {
             tuuid: 'p-403', mimetype: 'video/qt', nom: 'p-403_032.mov',
             loader: typeRessource => resLoader({
-                poster: '/files/p-403_032.poster.jpg', 
-                'image/jpg;720': '/files/p-403_032.720.jpg',
-                'video/mp4;480;1000000': '/files/p-403_032.480.mp4',
+                poster: '/reactjs/files/p-403_032.poster.jpg', 
+                'image/jpg;720': '/reactjs/files/p-403_032.720.jpg',
+                'video/mp4;480;1000000': '/reactjs/files/p-403_032.480.mp4',
                 original: '/files/p-403_032.mov'
             }, typeRessource) 
         },
         {
             tuuid: 'abcd-1236', mimetype: 'text/plain', nom: 'sampleTexte.txt',
             loader: typeRessource => resLoader({
-                original: '/files/sampleTexte.txt'
+                original: '/reactjs/files/sampleTexte.txt'
             }, typeRessource) 
         },
     ]
