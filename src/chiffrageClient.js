@@ -1,16 +1,22 @@
 import { pki as forgePki } from 'node-forge'
 
-import { forgecommon, formatteurMessage as formatteurMessageLib, hachage, chiffrage } from '@dugrema/millegrilles.utiljs'
+import { 
+  forgecommon, formatteurMessage as formatteurMessageLib, hachage, 
+  chiffrerCleSecreteSubtle, dechiffrerCleSecreteSubtle,
+  importerClePubliqueSubtle, importerClePriveeSubtle,
+  chiffrerDocument as _chiffrerDocument, dechiffrerDocument as _dechiffrerDocument,
+  preparerCleSecreteSubtle as _preparerCleSecreteSubtle,
+} from '@dugrema/millegrilles.utiljs'
 
 const { CertificateStore, validerChaineCertificats, extraireExtensionsMillegrille } = forgecommon
 const { FormatteurMessageSubtle, SignateurMessageSubtle } = formatteurMessageLib
 const { hacherCertificat } = hachage
-const {
-  chiffrerCleSecreteSubtle, dechiffrerCleSecreteSubtle,
-  importerClePubliqueSubtle, importerClePriveeSubtle,
-  chiffrerDocument: _chiffrerDocument, dechiffrerDocument: _dechiffrerDocument,
-  preparerCleSecreteSubtle: _preparerCleSecreteSubtle,
-} = chiffrage
+// const {
+//   chiffrerCleSecreteSubtle, dechiffrerCleSecreteSubtle,
+//   importerClePubliqueSubtle, importerClePriveeSubtle,
+//   chiffrerDocument: _chiffrerDocument, dechiffrerDocument: _dechiffrerDocument,
+//   preparerCleSecreteSubtle: _preparerCleSecreteSubtle,
+// } = chiffrage
 
 const TAILLE_BUFFER = 1 * 1024 * 1024
 

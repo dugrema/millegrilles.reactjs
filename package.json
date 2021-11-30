@@ -37,7 +37,7 @@
     "socket.io-client": "^4.4.0",
     "base64url": "^3.0.1",
     "idb": "^7.0.0",
-    "webpack": "^4"
+    "webpack": "^4.44"
   },
   "devDependencies": {
     "babel-eslint": "^10.0.3",
