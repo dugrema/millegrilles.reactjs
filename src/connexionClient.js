@@ -34,12 +34,12 @@ export async function connecter(urlApp, opts) {
 
   const urlSocketio = new URL(urlApp)
   urlSocketio.pathname = path.join(urlSocketio.pathname, 'socket.io')
-  console.debug("Socket.IO connecter avec url %s", urlSocketio.href)
+  if(opts.DEBUG) console.debug("Socket.IO connecter avec url %s", urlSocketio.href)
 
   const connexion = connecterSocketio(urlSocketio.href, opts)
 
   socketOn('connect', _=>{
-    // console.debug("socket.io connecte a %O", urlSocketio)
+    if(opts.DEBUG) console.debug("socket.io connecte a %O", urlSocketio)
     _connecte = true
     _urlCourant = urlApp
     onConnect()
@@ -49,7 +49,7 @@ export async function connecter(urlApp, opts) {
       })
   })
   socketOn('reconnect', _=>{
-    // console.debug("Reconnecte")
+    if(opts.DEBUG) console.debug("Reconnecte")
     _connecte = true
     onConnect()
       .then(protege=>{
@@ -58,13 +58,13 @@ export async function connecter(urlApp, opts) {
       })
   })
   socketOn('disconnect', _=>{
-    // console.debug("Disconnect socket.io")
+    if(opts.DEBUG) console.debug("Disconnect socket.io")
     _connecte = false
     _protege = false
     if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(false)
   })
   socketOn('connect_error', err=>{
-    // console.debug("Erreur socket.io : %O", err)
+    if(opts.DEBUG) console.debug("Erreur socket.io : %O", err)
     _connecte = false
     _protege = false
     if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(false)
@@ -193,7 +193,7 @@ export function deconnecter() {
   _clePriveeSubtleDecrypt = null
   _clePriveeSubtleSign = null
   _formatteurMessage = null
-  console.info("Deconnexion completee")
+  // console.info("Deconnexion completee")
 }
 
 export function subscribe(routingKeys, callback, opts) {
@@ -328,7 +328,7 @@ export function getCertificatsMaitredescles() {
 }
 
 export function genererChallengeWebAuthn(params) {
-  console.debug("Emit genererChallengeWebAuthn : %O", params)
+  // console.debug("Emit genererChallengeWebAuthn : %O", params)
   return emitBlocking('genererChallengeWebAuthn', params, {noformat: true})
 }
 

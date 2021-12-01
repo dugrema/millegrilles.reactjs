@@ -35,7 +35,7 @@ export function ListeFichiers(props) {
     }, [onDoubleClick])
     
     const contextMenuHandler = useCallback( async (event, value) => {
-        console.debug("Context event : %O", event.currentTarget)
+        // console.debug("Context event : %O", event.currentTarget)
         if(onSelection) {
             const idSelection = value.fileId || value.folderId
             if(!selectionne.includes(idSelection)) {

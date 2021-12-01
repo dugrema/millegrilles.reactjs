@@ -4,8 +4,6 @@ import Container from 'react-bootstrap/Container'
 import styles from './styles.module.css'
 
 export default props => {
-    console.debug("Container proppys : %O", props)
-
     const children = props.children || []
 
     const haut = children.filter?children.filter(item=>item.type.name!=='FooterApplication'):children

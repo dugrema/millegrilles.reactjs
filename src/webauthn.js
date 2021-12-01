@@ -23,9 +23,9 @@ export async function repondreRegistrationChallenge(nomUsager, attestationChalle
   }
 
   // Cle publique
-  console.debug("Registration options avec buffers : %O", publicKey)
+  if(DEBUG) console.debug("Registration options avec buffers : %O", publicKey)
   const newCredential = await navigator.credentials.create({publicKey})
-  console.debug("New credential : %O", newCredential)
+  if(DEBUG) console.debug("New credential : %O", newCredential)
 
   // Transmettre reponse
   const credentialResponse = newCredential.response

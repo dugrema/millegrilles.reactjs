@@ -58,6 +58,6 @@ export function FormatterDate(props) {
 export function FormatterDuree(props) {
     const { value } = props
     const momentDuree = moment.duration(value, 'seconds')
-    console.debug("Moment duree : %O", momentDuree)
+    // console.debug("Moment duree : %O", momentDuree)
     return momentDuree.format('h:mm:ss')
 }
