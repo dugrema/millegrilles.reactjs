@@ -25,9 +25,7 @@ export function HeaderApplication(props) {
 
     return (
         <div className={className}>
-            <Container>
-                {props.children}
-            </Container>
+            {props.children}
         </div>
     )
 }
@@ -43,4 +41,15 @@ export function FooterApplication(props) {
             </Container>
         </div>
     )
+}
+
+export function IconeConnexion(props) {
+    const {connecte} = props
+    let stylesConnexion = []
+    if(connecte) {
+        stylesConnexion = [styles.connecte, "fa fa-"]
+    } else {
+        stylesConnexion = [styles.deconnecte, "fa fa-plug"]
+    }
+    return <i className={stylesConnexion.join(' ')} />
 }

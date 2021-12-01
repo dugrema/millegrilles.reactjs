@@ -251,8 +251,18 @@ BODY {
   padding-right: 0.5em;
 }
 
-.header A:active, .header A:visited, .header A {
+.header A, 
+.header A:active, 
+.header A:visited, 
+.header A:focus {
   color: white;
+}
+
+.header :global .dropdown-menu A, 
+.header :global .dropdown-menu A:active, 
+.header :global .dropdown-menu A:visited,
+.header :global .dropdown-menu A:focus {
+  color: black;
 }
 
 .application-layout :global .contenu {
@@ -285,6 +295,14 @@ BODY {
 .footer A, .footer A:visited {
   color: White;
   text-decoration: underline;
+}
+
+.connecte {
+  display: none;
+}
+
+.deconnecte {
+  color: red;
 }
 
 @media screen and (max-width: 767px) {

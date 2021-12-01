@@ -27,8 +27,8 @@ export { ModalViewer }
 import FilePicker from './FilePicker'
 export { FilePicker }
 
-import LayoutApplication, { HeaderApplication, FooterApplication } from './LayoutApplication'
-export { LayoutApplication, HeaderApplication, FooterApplication }
+import LayoutApplication, { HeaderApplication, FooterApplication, IconeConnexion } from './LayoutApplication'
+export { LayoutApplication, HeaderApplication, FooterApplication, IconeConnexion }
 
 import { trouverLabelImage, trouverLabelVideo } from './labelsRessources'
 export { trouverLabelImage, trouverLabelVideo }

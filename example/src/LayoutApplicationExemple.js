@@ -1,8 +1,12 @@
 import React from 'react'
-import { Container, Nav } from 'react-bootstrap'
-import { LayoutApplication, HeaderApplication, FooterApplication, BodyApplication } from '@dugrema/millegrilles.reactjs'
+import { Container, Nav, NavDropdown } from 'react-bootstrap'
+import { LayoutApplication, HeaderApplication, FooterApplication, IconeConnexion } from '@dugrema/millegrilles.reactjs'
 
 export default props => {
+
+    const iconeConnecte = <IconeConnexion connecte={true} />
+    const iconeDeconnecte = <IconeConnexion connecte={false} />
+
     return (
         <LayoutApplication>
             <HeaderApplication>
@@ -22,6 +26,25 @@ export default props => {
                             Portail
                         </Nav.Link>
                     </Nav.Item>
+
+                    <Nav.Item>
+                        <Nav.Link title="Connexion">
+                            {iconeConnecte} / {iconeDeconnecte}
+                        </Nav.Link>
+                    </Nav.Item>
+
+                    <NavDropdown title="Drop down exemple" id="basic-nav-dropdown" drop="start" className="menu-item">
+                        <NavDropdown.Item>
+                        Changer Langue
+                        </NavDropdown.Item>
+                        <NavDropdown.Item>
+                        Compte
+                        </NavDropdown.Item>
+                        <NavDropdown.Item>
+                        Deconnecter
+                        </NavDropdown.Item>
+                    </NavDropdown>
+                                    
                 </Nav>
             </HeaderApplication>
 
