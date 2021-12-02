@@ -55,3 +55,6 @@ export { ConnexionClient }
 
 import * as X509Client from './x509Client'
 export { X509Client }
+
+import * as FiletransferDownloadClient from './filetransferDownloadClient.js'
+export { FiletransferDownloadClient }

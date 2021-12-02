@@ -356,6 +356,14 @@ export function downgradePrive() {
   return emit('downgradePrive', {}, {noformat: true})
 }
 
+export async function getCleFichierProtege(fuuid) {
+  return connexionClient.emitBlocking(
+    'maitrecles/getCleFichierProtege',
+    { liste_hachage_bytes: [fuuid] },
+    { domaine: 'MaitreDesCles', action: 'dechiffrage', attacherCertificat: true }
+  )
+}
+
 // module.exports = {
 //   connecter, deconnecter,
 //   initialiserFormatteurMessage, isFormatteurReady,

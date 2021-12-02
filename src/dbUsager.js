@@ -48,12 +48,13 @@ function createObjectStores(db, oldVersion) {
   }
 }
 
-export async function saveCleDechiffree(nomUsager, hachage_bytes, cleSecrete, cleInfo) {
-  const nomDB = 'millegrilles.' + nomUsager
+export async function saveCleDechiffree(hachage_bytes, cleSecrete, cleInfo) {
+  const nomDB = 'millegrilles'
   const db = await openDB(nomDB)
 
   // Preparer une cle secrete non-exportable
   const data = {
+    hachage_bytes,
     cleSecrete,
     iv: cleInfo.iv,
     tag: cleInfo.tag,
@@ -61,15 +62,14 @@ export async function saveCleDechiffree(nomUsager, hachage_bytes, cleSecrete, cl
     date: new Date(),
   }
 
-  // console.debug("Conserver cle secrete pour fuuid %s : %O", hachage_bytes, data)
+  console.debug("Conserver cle secrete pour fuuid %s : %O", hachage_bytes, data)
 
   return db.transaction(STORE_CLES_DECHIFFREES, 'readwrite')
     .objectStore(STORE_CLES_DECHIFFREES)
-    .put(data, hachage_bytes)
+    .put(data)
 }
 
-export async function getCleDechiffree(nomUsager, hachage_bytes) {
-  // const nomDB = 'millegrilles.' + nomUsager
+export async function getCleDechiffree(hachage_bytes) {
   try {
     const db = await ouvrirDB()
     const store = db.transaction(STORE_CLES_DECHIFFREES, 'readonly').objectStore(STORE_CLES_DECHIFFREES)
