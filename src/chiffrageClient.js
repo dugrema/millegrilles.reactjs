@@ -6,6 +6,7 @@ import {
   importerClePubliqueSubtle, importerClePriveeSubtle,
   chiffrerDocument as _chiffrerDocument, dechiffrerDocument as _dechiffrerDocument,
   preparerCleSecreteSubtle as _preparerCleSecreteSubtle,
+  dechiffrerSubtle,
 } from '@dugrema/millegrilles.utiljs'
 
 const { CertificateStore, validerChaineCertificats, extraireExtensionsMillegrille } = forgecommon
@@ -248,6 +249,9 @@ export async function rechiffrerAvecCleMillegrille(secretsChiffres, pemRechiffra
 export async function preparerCleSecreteSubtle(cleSecreteChiffree, iv) {
   return _preparerCleSecreteSubtle(cleSecreteChiffree, iv, clePriveeSubtleDecrypt)
 }
+
+// Re-export des imports
+export { dechiffrerSubtle }
 
 // comlinkExpose({
 //   initialiserCertificateStore, initialiserFormatteurMessage,

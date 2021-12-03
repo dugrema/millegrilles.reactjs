@@ -1,5 +1,7 @@
 import path from 'path'
 
+import { dechiffrer } from '@dugrema/millegrilles.utiljs'
+
 var URL_DOWNLOAD = '/fichiers'
 const CACHE_TEMP_NAME = 'fichiersDechiffresTmp',
       CACHE_DURABLE_NAME = 'fichiersSauvegardes',
@@ -225,6 +227,7 @@ function _creerDownloadStream(reader, contentLength, opts) {
 
 async function preparerDataProcessor(iv, tag, opts) {
   opts = opts || {}
+  const DEBUG = opts.DEBUG || false
   let {password, passwordChiffre} = opts
   const tailleLimiteSubtle = opts.tailleLimiteSubtle || TAILLE_LIMITE_SUBTLE
   const clePriveePem = opts.clePriveePem
@@ -246,7 +249,7 @@ async function preparerDataProcessor(iv, tag, opts) {
     }
   }
 
-  dataProcessor = {
+  const dataProcessor = {
     start: async response => {
       // On active le blockCipher si le fichier depasse le seuil pour utiliser subtle
       const size = Number(response.headers.get('content-length'))
@@ -270,16 +273,17 @@ async function preparerDataProcessor(iv, tag, opts) {
     },
   }
 
+  return dataProcessor
 }
 
 /** Download un fichier, effectue les transformations (e.g. dechiffrage) et
  *  conserve le resultat dans cache storage */
 export async function downloadCacheFichier(downloadEnCours, opts) {
   opts = opts || {}
-  progressCb = opts.progressCb || function() {}  // Par defaut fonction vide
+  const progressCb = opts.progressCb || function() {}  // Par defaut fonction vide
 
   console.debug("downloadCacheFichier %O, Options : %O", downloadEnCours, opts)
-  const DEBUG = opts.DEBUG
+  const DEBUG = opts.DEBUG || false
 
   var blockCipher = null
   var dataProcessor = null
@@ -354,8 +358,9 @@ export async function downloadCacheFichier(downloadEnCours, opts) {
     }
     if(DEBUG) console.debug("Fuuid a mettre dans le cache : %s", pathname)
 
-    console.debug("Caches : %O, CacheStorage: %O", caches, CacheStorage)
 
+
+    console.debug("Caches : %O, CacheStorage: %O", caches, CacheStorage)
     const cache = await caches.open(CACHE_TEMP_NAME)
     if(DEBUG) console.debug("Cache instance : %O", cache)
     const promiseCache = cache.put(pathname, response)
@@ -376,7 +381,7 @@ export async function downloadCacheFichier(downloadEnCours, opts) {
     throw err
   } finally {
     downloadEnCours.termine = true
-    _downloadsEnCours = null
+    _downloadEnCours = null
   }
 }
 
