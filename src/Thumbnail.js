@@ -3,6 +3,7 @@ import {Button, Card} from 'react-bootstrap'
 import styles from './styles.module.css'
 
 export function Thumbnail(props) {
+    const { mini } = props
     const styleBase = props.mini?styles.thumbnailmini:styles.thumbnail
     const className = [styleBase, (props.className || '')].join(' ')
     const {src, loader, placeholder} = props
@@ -15,11 +16,11 @@ export function Thumbnail(props) {
         if(!loader) return  // Rien a faire
 
         // Executer le loader
-        loader.load(setImgSrc).catch(err => console.error("Thumbnail Erreur chargement image : %O", err))
+        loader.load(setImgSrc, {mini}).catch(err => console.error("Thumbnail Erreur chargement image : %O", err))
 
         // Retourne unloader pour nettoyer le composant
         if(loader.unload) return () => loader.unload()
-    }, [loader])
+    }, [loader, mini])
 
     return (
         <Card 
