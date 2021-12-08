@@ -12,11 +12,11 @@ export default props => {
     const {tuuidSelectionne, fichiers} = props
 
     const handle = useFullScreenHandle()
-    const [fichiersFiltres, setFichiersFiltres] = useState('')
+    // const [fichiersFiltres, setFichiersFiltres] = useState('')
     const [afficherHeaderFooter, setAfficherHeaderFooter] = useState(true)
     const [nomFichier, setNomFichier] = useState('')
     const [downloadSrc, setDownloadSrc] = useState('')
-    const [idxFichier, setIdxFichier] = useState(0)
+    const [idxFichier, setIdxFichier] = useState('')
     const onClick = useCallback(event=>{
         event.stopPropagation()
         setAfficherHeaderFooter(handle.active)
@@ -37,18 +37,18 @@ export default props => {
     }, [handle])
 
     const onSelect = useCallback(idx=>{
-        const fichier = fichiersFiltres[idx]
+        const fichier = fichiers[idx]
         setNomFichier(fichier.nom)
         setIdxFichier(idx)
-    }, [fichiersFiltres])
+    }, [fichiers])
 
     const setDownloadSrcAction = useCallback(src=>{
-        console.debug("SET source download : %O", src)
+        // console.debug("SET source download : %O", src)
         setDownloadSrc(src)
     }, [])
 
     const items = preparerItems({
-        fichiers: fichiersFiltres, 
+        fichiers, 
         onClick, 
         setDownloadSrc: setDownloadSrcAction, 
         fullscreenHandle: handle, 
@@ -58,33 +58,23 @@ export default props => {
     const defaultActiveIndex = fichiers.reduce((idxDefault, item, idx)=>{
         if(item.tuuid === tuuidSelectionne) return idx
         return idxDefault
-    }, 0)
+    }, '')
 
     useEffect(()=>{
-        // Filtrer la liste des fichiers pour conserver types supportes durant navigation
-        const fichiersFiltres = fichiers.filter(item=>{
-            // Conserver les types supportes (pdf, image ou video)
-            const mimetype = item.mimetype?item.mimetype.split(';').shift():''
-            const mimetypeBase = mimetype.split('/').shift()
-            return mimetype === 'application/pdf' || mimetypeBase === 'video' || mimetypeBase === 'image'
-        })
-        setFichiersFiltres(fichiersFiltres)
-
-        // Utiliser liste non filtree pour fichier initial, faire un match par tuuid sur la liste filtree
-        const fichier = fichiers[defaultActiveIndex]
-        const indexAjuste = fichiersFiltres.reduce((idxTrouve, item, idx)=>{
-            if(item.tuuid === fichier.tuuid) return idx
-            return idxTrouve
-        }, -1)
+        const fichier = defaultActiveIndex!==''?fichiers[defaultActiveIndex]:''
         if(fichier) {
-            setIdxFichier(indexAjuste)
+            setIdxFichier(defaultActiveIndex)
             setNomFichier(fichier.nom)
+        } else if(defaultActiveIndex==='') {
+            // Reset
+            setIdxFichier('')
+            setNomFichier('')
         }
-    }, [defaultActiveIndex, fichiers, tuuidSelectionne])
+    }, [defaultActiveIndex, fichiers])
 
     const downloadSrcClick = useCallback( event => {
         // https://www.delftstack.com/howto/javascript/javascript-download/
-        console.debug("Download %O", downloadSrc)
+        // console.debug("Download %O", downloadSrc)
         // const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a')
         link.href = downloadSrc
@@ -95,7 +85,7 @@ export default props => {
     }, [downloadSrc, nomFichier])
 
     const viewSrcClick = useCallback( event => {
-        console.debug("View %O", downloadSrc)
+        // console.debug("View %O", downloadSrc)
         const link = document.createElement('a')
         link.href = downloadSrc
         link.setAttribute('target', '_blank')
@@ -107,7 +97,7 @@ export default props => {
     return (
         <Modal 
             variant="dark" 
-            show={props.show} 
+            show={props.show && items?true:false} 
             onHide={handleCloseModal} 
             fullscreen={true} 
             animation={false}
@@ -145,7 +135,7 @@ export default props => {
 
             {afficherHeaderFooter?
                 <Modal.Footer>
-                    {idxFichier+1} de {fichiersFiltres.length}
+                    {idxFichier+1} de {fichiers.length}
                 </Modal.Footer>
                 :''
             }
@@ -157,11 +147,11 @@ export default props => {
 function preparerItems(props) {
     const {fichiers, onClick, idxCourant, setDownloadSrc} = props
 
-    if(!fichiers) return ''  // Rien a faire
+    if(!fichiers || idxCourant==='') return ''  // Rien a faire
 
     return fichiers
         .map((item, idx)=>{
-            console.debug("Mapping fichier : %O", item)
+            // console.debug("Mapping fichier : %O", item)
             let Viewer = ''
             
             const mimetype = item.mimetype?item.mimetype.split(';').shift():''
@@ -202,7 +192,7 @@ function preparerItems(props) {
 
 function PreviewImage(props) {
 
-    console.debug("PreviewImage PROPPYS : %O", props)
+    // console.debug("PreviewImage PROPPYS : %O", props)
     const {loader, onClick, setDownloadSrc, idxItem, idxCourant} = props
 
     const [srcImage, setSrcImage] = useState('')
@@ -245,13 +235,13 @@ function PreviewVideo(props) {
             const {srcPromise: srcImagePromise, clean: cleanImage} = loader('image')
             srcImagePromise
                 .then(src=>{
-                    console.debug("Image chargee : %O", src)
+                    // console.debug("Image chargee : %O", src)
                     setSrcImage(src)
                 })
                 .catch(err=>{console.error("Erreur chargement image : %O", err)})
             return () => {
                 // Executer sur exit
-                console.debug("Cleanup video (image)")
+                // console.debug("Cleanup video (image)")
                 if(cleanImage) cleanImage()
             }
         }
@@ -262,12 +252,12 @@ function PreviewVideo(props) {
             const {srcPromise: srcVideoPromise, clean: cleanVideo} = loader('video')
             // Charger video
             srcVideoPromise.then(src=>{
-                console.debug("Video charge : %O", src)
+                // console.debug("Video charge : %O", src)
                 setSrcVideo(src)
             }).catch(err=>{console.error("Erreur chargement video : %O", err)})
             return () => {
                 // Executer sur exit
-                console.debug("Cleanup video")
+                // console.debug("Cleanup video")
                 if(cleanVideo) cleanVideo()
             }
         }
@@ -304,7 +294,7 @@ function PreviewVideo(props) {
 function PreviewFile(props) {
     const { loader, mimetype, setDownloadSrc, idxItem, idxCourant } = props
 
-    console.debug("PreviewFile proppys : %O", props)
+    // console.debug("PreviewFile proppys : %O", props)
 
     const [src, setSrc] = useState('')
     useEffect(()=>{
