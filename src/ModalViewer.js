@@ -3,7 +3,7 @@ import Modal from 'react-bootstrap/Modal'
 import { FullScreen, useFullScreenHandle } from 'react-full-screen'
 import Button from 'react-bootstrap/Button'
 import Carousel from 'react-bootstrap/Carousel'
-// import VideoViewer from './VideoViewer'
+import VideoViewer from './VideoViewer'
 
 import styles from './styles.module.css'
 
@@ -283,10 +283,9 @@ function PreviewVideo(props) {
     }, [srcVideo, idxItem, idxCourant])
 
     if(srcVideo) {
-        throw new Error("fix me")
-        // return (
-        //     <VideoViewer src={srcVideo} poster={srcImage} />
-        // )
+        return (
+            <VideoViewer src={srcVideo} poster={srcImage} />
+        )
     }
 
     if(srcImage) {

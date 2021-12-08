@@ -16,7 +16,7 @@ export default props => {
 
     return (
         <Container>
-            <h1>Previews</h1>
+            <h1>Video player</h1>
 
             <AfficherSample fichiers={fichiers} showViewer={showViewerAction} />
 
@@ -58,26 +58,12 @@ function AfficherSample(props) {
 function preparerSample1() {
     return [
         {
-            tuuid: 'abcd-1234', mimetype: 'image/jpeg', nom: '001.jpg',
+            tuuid: 'p-403', mimetype: 'video/qt', nom: 'p-403_032.mov',
             loader: typeRessource => resLoader({
-                thumbnail: '/reactjs/res/001_128.jpg', 
-                poster: '/reactjs/res/001_200.jpg', 
-                'image/jpg;1080': '/reactjs/res/001.jpg',
-                original: '/reactjs/res/001.jpg',
-            }, typeRessource) 
-        },
-        {
-            tuuid: 'abcd-1235', mimetype: 'application/pdf', nom: 'sample1.pdf',
-            loader: typeRessource => resLoader({
-                poster: '/reactjs/files/sample1.poster.jpg', 
-                'image/jpg;700': '/reactjs/files/sample1.700.jpg',
-                original: '/reactjs/files/sample1.pdf',
-            }, typeRessource) 
-        },
-        {
-            tuuid: 'abcd-1236', mimetype: 'text/plain', nom: 'sampleTexte.txt',
-            loader: typeRessource => resLoader({
-                original: '/reactjs/files/sampleTexte.txt'
+                poster: '/reactjs/files/p-403_032.poster.jpg', 
+                'image/jpg;720': '/reactjs/files/p-403_032.720.jpg',
+                'video/mp4;480;1000000': '/reactjs/files/p-403_032.480.mp4',
+                original: '/files/p-403_032.mov'
             }, typeRessource) 
         },
     ]
