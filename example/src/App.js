@@ -9,6 +9,7 @@ import FilePicker from './FilePickerExample'
 import LayoutApplication from './LayoutApplicationExemple'
 import WorkerExemple from './WorkerExemple'
 import DbUsagerExemple from './DbUsagerExemple'
+import DetecterSupport from './DetecterSupport'
 
 const App = () => {
 
@@ -25,6 +26,7 @@ const App = () => {
       case 'LayoutApplication': PageCls = LayoutApplication; break;
       case 'WorkerExemple': PageCls = WorkerExemple; break;
       case 'DbUsagerExemple': PageCls = DbUsagerExemple; break;
+      case 'DetecterSupport': PageCls = DetecterSupport; break;
       default:
     }
     if(PageCls) return (
@@ -44,6 +46,7 @@ const App = () => {
         <li><Button onClick={()=>setPage('LayoutApplication')}>LayoutApplication</Button></li>
         <li><Button onClick={()=>setPage('WorkerExemple')}>WorkerExemple</Button></li>
         <li><Button onClick={()=>setPage('DbUsagerExemple')}>DbUsagerExemple</Button></li>
+        <li><Button onClick={()=>setPage('DetecterSupport')}>DetecterSupport</Button></li>
       </ul>
     </Container>
   )

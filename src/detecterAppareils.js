@@ -19,17 +19,35 @@ function gotDevices(deviceInfos) {
 }
 
 /* https://stackoverflow.com/questions/5573096/detecting-webp-support */
-export function supporteFormatWebp() {
-  const elem = document.createElement('canvas');
+export async function supporteFormatWebp() {
+  const resultat = await check_webp_feature('lossy')
+  // console.debug("Resultat : %O", resultat)
+  return resultat.result
+}
 
-  if (!!(elem.getContext && elem.getContext('2d'))) {
-    // was able or not to get WebP representation
-    return elem.toDataURL('image/webp').indexOf('data:image/webp') == 0;
-  }
-  else {
-    // very old browser like IE 8, canvas not supported
-    return false;
-  }
+// check_webp_feature:
+//   'feature' can be one of 'lossy', 'lossless', 'alpha' or 'animation'.
+//   'callback(feature, isSupported)' will be passed back the detection result (in an asynchronous way!)
+function check_webp_feature(feature) {
+  var kTestImages = {
+      lossy: "UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA",
+      lossless: "UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==",
+      alpha: "UklGRkoAAABXRUJQVlA4WAoAAAAQAAAAAAAAAAAAQUxQSAwAAAARBxAR/Q9ERP8DAABWUDggGAAAABQBAJ0BKgEAAQAAAP4AAA3AAP7mtQAAAA==",
+      animation: "UklGRlIAAABXRUJQVlA4WAoAAAASAAAAAAAAAAAAQU5JTQYAAAD/////AABBTk1GJgAAAAAAAAAAAAAAAAAAAGQAAABWUDhMDQAAAC8AAAAQBxAREYiI/gcA"
+  };
+  var img = new Image();
+  const result = new Promise(resolve=>{
+    img.onload = function () {
+      var result = (img.width > 0) && (img.height > 0);
+      resolve({feature, result});
+    };
+    img.onerror = function () {
+      resolve({feature, result: false});
+    };
+  })
+  img.src = "data:image/webp;base64," + kTestImages[feature];
+
+  return result
 }
 
 export function supporteFormatWebm() {
