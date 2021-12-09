@@ -523,7 +523,7 @@ async function emettreEtat(flags) {
   }
 }
 
-export function down_annulerDownload(fuuid) {
+export async function down_annulerDownload(fuuid) {
 
   const etatAnnule = {complete: true, status: STATUS_ERREUR, annuler: true, dateComplete: new Date()}
 
@@ -589,6 +589,7 @@ export async function down_supprimerDownloads(params) {
   } else if(completes === true || filtre) {
     const verifierItem = params.filtre?params.filtre:value=>value.complete
     // Supprimer tout les downloads completes
+    console.debug("down_supprimerDownloads: ouvrir curseur readwrite")
     const store = db.transaction(STORE_DOWNLOADS, 'readwrite').objectStore(STORE_DOWNLOADS)
     let cursor = await store.openCursor()
     while(cursor) {
@@ -604,6 +605,7 @@ export async function down_supprimerDownloads(params) {
       cursor = await cursor.continue()
     }
   }
+  console.debug("down_supprimerDownloads: fermer curseur readwrite")
 
   // Met a jour le client
   emettreEtat()
