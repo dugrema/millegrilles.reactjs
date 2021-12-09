@@ -192,14 +192,16 @@ async function uploadFichier() {
 }
 
 async function terminerTraitementFichier(uploadEnCours) {
-    const partitionMaitreDesCles = uploadEnCours.commandeMaitreDesCles._partition
-    delete uploadEnCours.commandeMaitreDesCles._partition
+    console.debug("terminerTraitementFichier %O", uploadEnCours)
+    const { commandeMaitreDesCles, transaction } = uploadEnCours
+    const partitionMaitreDesCles = commandeMaitreDesCles._partition
+    delete commandeMaitreDesCles._partition
     const maitreDesClesSignees = await _chiffrage.formatterMessage(
-        uploadEnCours.commandeMaitrecles, 'MaitreDesCles', {partition: partitionMaitreDesCles, action: 'sauvegarderCle'})
+        commandeMaitreDesCles, 'MaitreDesCles', {partition: partitionMaitreDesCles, action: 'sauvegarderCle', DEBUG: true})
     uploadEnCours.commandeMaitreDesCles = maitreDesClesSignees
     
     const transactionSignee = await _chiffrage.formatterMessage(
-        uploadEnCours.transaction, 'GrosFichiers', {action: 'nouvelleVersion'})
+        transaction, 'GrosFichiers', {action: 'nouvelleVersion'})
     uploadEnCours.transaction = transactionSignee
 
     console.debug("Etat fichier uploadEnCours : %O", uploadEnCours)

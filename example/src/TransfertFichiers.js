@@ -1,7 +1,9 @@
 import React, {useEffect, useCallback, useState} from 'react'
 import path from 'path'
+import axios from 'axios'
 import { proxy } from 'comlink'
-import {Button, Row, Col} from 'react-bootstrap'
+import {Container, Button, Row, Col, Badge} from 'react-bootstrap'
+import { useDropzone } from 'react-dropzone'
 
 import loader from './workerLoader.js'
 import { getUsager } from '@dugrema/millegrilles.reactjs'
@@ -15,6 +17,7 @@ function TransfertFichiers(props) {
 
     const [workers, setWorkers] = useState('')
     const [etatDownload, setEtatDownload] = useState('')
+    const [certMaitredescles, setCertMaitredescles] = useState('')
     const { transfertFichiers } = workers
 
     useEffect(()=>{
@@ -25,6 +28,8 @@ function TransfertFichiers(props) {
 
     useEffect(()=>{
         if(!transfertFichiers) return 
+
+        chargerCertMaitredescles(setCertMaitredescles)
 
         transfertFichiers.down_entretienCache()
         // const intervalId = setInterval(()=>{transfertFichiers.down_entretienCache()}, 30000)
@@ -38,6 +43,11 @@ function TransfertFichiers(props) {
         }
     }, [transfertFichiers])
 
+    useEffect(()=>{
+        if(!transfertFichiers) return
+        transfertFichiers.up_setCertificat(certMaitredescles)
+    }, [transfertFichiers, certMaitredescles])
+
     if(!workers) return <p>Chargements workers en cours</p>
 
     return (
@@ -45,6 +55,7 @@ function TransfertFichiers(props) {
             <h1>Transfert fichiers</h1>
             <Button onClick={props.retour}>Retour</Button>
             <DownloadManager workers={workers} etatDownload={etatDownload} />
+            <UploadManager workers={workers} />
         </div>
     )
 
@@ -94,9 +105,13 @@ async function setUsager(workers, nomUsager) {
         // Initialiser le CertificateStore
         await chiffrage.initialiserCertificateStore(caPem, {isPEM: true, DEBUG: false})
         await x509.init(caPem)
-        await chiffrage.initialiserFormatteurMessage(certificatPem, usager.signer, usager.dechiffrer, {DEBUG: false})
+        await chiffrage.initialiserFormatteurMessage(certificatPem, usager.dechiffrer, usager.signer, {DEBUG: false})
         
-    
+        // transfertFichiers.up_setCertificat(fullchain)
+        // transfertFichiers.up_setCallbackUpload(caPem)
+        // transfertFichiers.up_setDomaine(caPem)
+        transfertFichiers.up_setChiffrage(chiffrage)
+
     } else {
         console.warn("Pas de certificat pour l'usager '%s'", nomUsager)
     }
@@ -408,3 +423,226 @@ function FichiersCache(props) {
         </>
     )
 }
+
+function UploadManager(props) {
+    // console.debug("UploadManager proppys : %O", props)
+    const { transfertFichiers } = props.workers
+
+    const onDrop = useCallback(async acceptedFiles => {
+        console.debug("Accepted files : %O", acceptedFiles)
+        // const proxyAcceptedFiles = comlinkProxy(acceptedFiles)
+        await transfertFichiers.up_ajouterFichiersUpload(acceptedFiles)
+      }, [transfertFichiers])
+    const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop})
+
+    const classNameDrag = isDragActive?'dragActive':''
+
+    return (
+        <Container {...getRootProps()}>
+            <h1>Upload manager</h1>
+
+            <input {...getInputProps()} />
+            <Row className={classNameDrag}>
+                <Col>Upload un fichier</Col>
+                <Col>
+                    <Button className="individuel" variant="secondary">
+                        Upload
+                    </Button>
+                </Col>
+            </Row>
+
+            <h2>Etat upload</h2>
+            <EtatUpload workers={props.workers} etatUpload={props.etatUpload} />
+
+            <p></p>
+
+            <Row>
+                <Col>
+                    <Button onClick={()=>props.retour()}>Retour</Button>
+                </Col>
+            </Row>
+        </Container>
+    )
+}
+
+function EtatUpload(props) {
+    const etatUpload = props.etatUpload
+    console.debug("EtatUpload proppys : %O", props.etatUpload)
+    const { transfertFichiers } = props.workers
+
+    const [etatComplet, setEtatComplet] = useState('')
+    useEffect(()=>{
+        if(!transfertFichiers || !etatUpload) return
+        transfertFichiers.up_getEtatCourant()
+            .then(etatCourant=>{
+                console.debug("Etat complet : %O", etatCourant)
+                setEtatComplet(etatCourant)
+            }).catch(err=>{console.warn("Erreur maj etat courant : %O", err)})
+    }, [transfertFichiers, etatUpload])
+
+    const cancel = useCallback(()=>{
+        console.debug("Annuler transfer courant")
+        transfertFichiers.up_annulerUpload()
+    }, [transfertFichiers])
+
+    if(!etatUpload) return ''
+
+    const encours = etatUpload.flags?etatUpload.flags.encours:'' || ''
+    const pctEnCours = etatUpload.pctFichierEnCours
+    const uploadsPending = (etatComplet?etatComplet.uploadsPending:null) || []
+    const uploadsCompletes = (etatComplet?etatComplet.uploadsCompletes:null) || []
+
+    return (
+        <>
+            <Row>
+                <Col>Etat upload</Col>
+            </Row>
+            <Row>
+                <Col>Icone/bouton info upload</Col>
+                <Col>
+                    <IconeInfoUpload etatUpload={etatUpload}/>
+                </Col>
+            </Row>
+
+            <UploadsPending workers={props.workers} uploadsPending={uploadsPending} />
+
+            <p></p>
+            {encours?
+                <Row>
+                    <Col>Fichier courant</Col>
+                    <Col>{encours}</Col>
+                    <Col>{pctEnCours}%</Col>
+                    <Col><Button onClick={cancel}>Annuler</Button></Col>
+                </Row>
+                :''
+            }
+
+            <UploadsSucces workers={props.workers} uploadsCompletes={uploadsCompletes} />
+
+            <UploadsErreurs workers={props.workers} uploadsCompletes={uploadsCompletes} />
+            
+        </>
+    )
+}
+
+function UploadsPending(props) {
+    if(!props.uploadsPending || props.uploadsPending.length === 0) return ''
+
+    return (
+        <>
+            <h2>Uploads pending</h2>
+            {props.uploadsPending.map(item=>{
+                const correlation = item.correlation
+                return (
+                    <Row key={correlation}>
+                        <Col>{correlation}</Col>
+                    </Row>
+                )
+            })}
+        </>
+    )
+}
+
+function UploadsSucces(props) {
+    const filetransferUpload = props.workers.filetransferUpload
+    const nettoyer = useCallback(event=>{
+        filetransferUpload.clearCompletes({status: 3})
+    }, [filetransferUpload])
+
+    if(!props.uploadsCompletes) return <p>Pas uploads completes</p>
+    const uploadsSucces = props.uploadsCompletes.filter(item=>item.status===3)
+    if(uploadsSucces.length === 0) return <p>Aucuns upload succes</p>
+
+    return (
+        <>
+            <h2>Uploads succes</h2>
+            <Row>
+                <Col>
+                    <Button onClick={nettoyer}>Clear</Button>
+                </Col>
+            </Row>
+            {uploadsSucces.map(item=>{
+                const correlation = item.correlation
+                return (
+                    <Row key={correlation}>
+                        <Col>{correlation}</Col>
+                    </Row>
+                )
+            })}
+        </>
+    )
+}
+
+function UploadsErreurs(props) {
+    const transfertFichiers = props.workers.transfertFichiers
+    const nettoyerErreurs = useCallback(event=>{
+        transfertFichiers.up_clearCompletes({status: 4})
+    }, [transfertFichiers])
+
+    const retirer = useCallback(event=>{
+        const correlation = event.currentTarget.value
+        transfertFichiers.up_clearCompletes({correlation})
+    }, [transfertFichiers])
+
+    const nettoyerTous = useCallback(event=>{
+        transfertFichiers.up_clearCompletes({status: 4})
+        transfertFichiers.up_clearCompletes({status: 5})
+    }, [transfertFichiers])
+
+    const retry = useCallback(event=>{
+        const correlation = event.currentTarget.value
+        transfertFichiers.up_retryErreur({correlation})
+    }, [transfertFichiers])
+
+    if(!props.uploadsCompletes) return <p>Pas uploads completes</p>
+    const uploadsErreurs = props.uploadsCompletes.filter(item=>item.status!==3)
+    if(uploadsErreurs.length === 0) return <p>Aucuns upload en erreur/non confirme</p>
+
+    return (
+        <>
+            <h2>Uploads erreurs</h2>
+            <Row>
+                <Col>
+                    <Button onClick={nettoyerErreurs}>Clear erreurs</Button>
+                    <Button onClick={nettoyerTous}>Clear tous</Button>
+                    <Button onClick={retry}>Retry tous</Button>
+                </Col>
+            </Row>
+            {uploadsErreurs.map(item=>{
+                const correlation = item.correlation
+                return (
+                    <Row key={correlation}>
+                        <Col>{correlation}</Col>
+                        <Col>
+                            <Button onClick={retirer} value={correlation}>Retirer</Button>
+                            <Button onClick={retry} value={correlation}>Retry</Button>
+                        </Col>
+                    </Row>
+                )
+            })}
+        </>
+    )
+}
+
+function IconeInfoUpload(props) {
+    const etatUpload = props.etatUpload || {}
+    const flags = etatUpload.flags
+    const pending = (flags.encours?1:0) + etatUpload.nbFichiersPending
+    return (
+        <span>
+            Upload
+            {pending>0?
+                <Badge>{pending}</Badge>
+                :''
+            }
+        </span>
+    )
+}
+
+async function chargerCertMaitredescles(setCertificat) {
+    const reponse = await axios.get('/reactjs/pki.maitrecles.cert.pem')
+    const certificat = reponse.data
+    console.debug("Certificat maitredescles\n%s", certificat)
+    setCertificat(certificat)
+  }
+  

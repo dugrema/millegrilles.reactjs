@@ -558,7 +558,6 @@ async function majIdb(filtre, values) {
   }
 }
 
-
 function ouvrirIdb() {
   return openDB(_nomIdb)
 }
@@ -639,7 +638,9 @@ export async function down_entretienCache() {
   // Cleanup fichiers downloades de plus de 24h
   const dateExpiration = new Date().getTime() - EXPIRATION_CACHE_MS
   // const dateExpiration = new Date().getTime() - (60 * 1000)
-  await down_supprimerDownloads({filtre: item=>item.dateComplete.getTime()<dateExpiration})
+  await down_supprimerDownloads({
+    filtre: item => item.dateComplete.getTime() < dateExpiration
+  })
   
   // Cleanup entrees de download cache inutilisees
   await cleanupCacheOrphelin()
