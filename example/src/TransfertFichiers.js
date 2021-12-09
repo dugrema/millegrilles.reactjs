@@ -15,6 +15,7 @@ function TransfertFichiers(props) {
 
     const [workers, setWorkers] = useState('')
     const [etatDownload, setEtatDownload] = useState('')
+    const { transfertFichiers } = workers
 
     useEffect(()=>{
         if(setWorkers && setEtatDownload) {
@@ -22,12 +23,27 @@ function TransfertFichiers(props) {
         }
     }, [setWorkers, setEtatDownload])
 
+    useEffect(()=>{
+        if(!transfertFichiers) return 
+
+        transfertFichiers.down_entretienCache()
+        // const intervalId = setInterval(()=>{transfertFichiers.down_entretienCache()}, 30000)
+        
+        // Faire premiere maj
+        handleDownloadUpdate(transfertFichiers, {})
+
+        return () => {
+            // clearInterval(intervalId)
+            transfertFichiers.down_entretienCache()
+        }
+    }, [transfertFichiers])
+
     if(!workers) return <p>Chargements workers en cours</p>
 
     return (
         <div>
             <h1>Transfert fichiers</h1>
-
+            <Button onClick={props.retour}>Retour</Button>
             <DownloadManager workers={workers} etatDownload={etatDownload} />
         </div>
     )
@@ -122,7 +138,6 @@ function DownloadManager(props) {
     return (
         <>
             <p>Download manager</p>
-            <Button onClick={()=>props.retour()}>Retour</Button>
 
             <ListeDownloads workers={props.workers}/>
 
@@ -171,6 +186,8 @@ function EtatDownload(props) {
     const [etatComplet, setEtatComplet] = useState('')
 
     useEffect(()=>{
+        if(!transfertFichiers) return // Rien a faire
+
         transfertFichiers.down_getEtatCourant()
             .then(etatComplet=>{
                 console.debug("Etat complet download : %O", etatComplet)
@@ -183,7 +200,7 @@ function EtatDownload(props) {
             <h2>Etat Download</h2>
             <DownloadPending workers={props.workers} etat={etatComplet} />
             <DownloadEnCours workers={props.workers} courant={etatDownload} etat={etatComplet} />
-            <DownloadFichiersPrets etat={etatComplet} />
+            <DownloadFichiersPrets workers={props.workers} etat={etatComplet} />
         </>
     )
 }
@@ -256,26 +273,47 @@ function DownloadEnCours(props) {
 }
 
 function DownloadFichiersPrets(props) {
-    const downloadsCompletes = props.downloadsCompletes || []
-    
+    const { workers, etat } = props
+
+    const downloads = etat.downloads || []
+    const downloadsCompletes = downloads.filter(item=>item.complete)
+    const { transfertFichiers } = workers
+
     const promptDownload = useCallback(event=>{
         console.debug("Prompt %O", event.currentTarget)
         const fuuid = event.currentTarget.value
         const {filename} = event.currentTarget.dataset
-        downloadCache(fuuid, filename).catch(err=>{console.warn("Erreur prompt download : %O", err)})
+        downloadCache(fuuid, {filename}).catch(err=>{console.warn("Erreur prompt download : %O", err)})
     }, [])
+
+    const supprimer = useCallback(event => {
+        const fuuid = event.currentTarget.value
+        console.debug("Supprimer fuuid %s", fuuid)
+        transfertFichiers.down_supprimerDownloads({hachage_bytes: fuuid})
+    }, [transfertFichiers])
+
+    const supprimerTous = useCallback(async event => {
+        console.debug("Supprimer downloads completes")
+        await transfertFichiers.down_supprimerDownloads({completes: true})
+        console.debug("Downloads completes ont ete supprimes")
+
+    }, [transfertFichiers])
 
     if(downloadsCompletes === 0) return <p>Aucuns fichiers prets</p>
 
     return (
         <>
             <h2>Fichiers prets</h2>
+
+            <Button onClick={supprimerTous}>Supprimer tous</Button>
+
             {downloadsCompletes.map(item=>{
                 return (
                     <Row key={item.fuuid}>
                         <Col>{item.filename}</Col>
                         <Col>
                             <Button onClick={promptDownload} value={item.fuuid} data-filename={item.filename}>Download</Button>
+                            <Button onClick={supprimer} value={item.fuuid}>Supprimer</Button>
                         </Col>
                     </Row>
                 )

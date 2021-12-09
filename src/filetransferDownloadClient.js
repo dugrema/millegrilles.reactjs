@@ -11,7 +11,8 @@ const CACHE_TEMP_NAME = 'fichiersDechiffresTmp',
       TAILLE_LIMITE_SUBTLE = 100 * 1024 * 1024,  // La limite de dechiffrage vient de tests sur iPhone 7
       DECHIFFRAGE_TAILLE_BLOCK = 256 * 1024,
       STORE_DOWNLOADS = 'downloads',
-      STORE_UPLOADS = 'uploads'
+      STORE_UPLOADS = 'uploads',
+      EXPIRATION_CACHE_MS = 24 * 60 * 60 * 1000
 
 // Globals
 var _chiffrage = null
@@ -551,6 +552,73 @@ export function down_setCallbackDownload(cb) {
 
 export function down_setUrlDownload(urlDownload) {
   _urlDownload = urlDownload
+}
+
+export async function down_supprimerDownloads(params) {
+  params = params || {}
+  const { hachage_bytes, completes, filtre } = params
+
+  const [cache, db] = await Promise.all([caches.open(CACHE_TEMP_NAME), ouvrirIdb()])
+  if(hachage_bytes) {
+    console.debug("Supprimer download/cache pour %s", hachage_bytes)
+    const store = db.transaction(STORE_DOWNLOADS, 'readwrite').objectStore(STORE_DOWNLOADS)
+    await store.delete(hachage_bytes)
+    await cache.delete('/' + hachage_bytes)
+  } else if(completes === true || filtre) {
+    const verifierItem = params.filtre?params.filtre:value=>value.complete
+    // Supprimer tout les downloads completes
+    const store = db.transaction(STORE_DOWNLOADS, 'readwrite').objectStore(STORE_DOWNLOADS)
+    let cursor = await store.openCursor()
+    while(cursor) {
+      const { key, value } = cursor
+      try {
+        if(verifierItem(value)) {
+          cache.delete('/' + value.hachage_bytes).catch(err=>{console.warn("Erreur suppression cache entry %s : %O", value.hachage_bytes, err)})
+          await cursor.delete()
+        }
+      } catch(err) {
+        console.warn("Erreur suppression entree cache %s : %O", key, err)
+      }
+      cursor = await cursor.continue()
+    }
+  }
+
+  // Met a jour le client
+  emettreEtat()
+}
+
+/** Nettoie les entrees dans le cache de download qui ne correspondent a aucune entree de la IndexedDB */
+export async function cleanupCacheOrphelin() {
+  const [cache, db] = await Promise.all([caches.open(CACHE_TEMP_NAME), ouvrirIdb()])
+  const keysCache = await cache.keys()
+  const dbKeys = await db.transaction(STORE_DOWNLOADS, 'readonly').objectStore(STORE_DOWNLOADS).getAllKeys()
+  console.debug("DB Keys : %O", dbKeys)
+
+  for(let idx in keysCache) {
+    const req = keysCache[idx]
+    console.debug("KEY %s", req.url)
+    const urlKey = new URL(req.url)
+    const fuuid = urlKey.pathname.split('/').pop()
+    console.debug("FUUID : %O", fuuid)
+    if(!dbKeys.includes(fuuid)) {
+      console.debug("Cle cache inconnue, on va supprimer %s", fuuid)
+      cache.delete(req).catch(err=>{console.warn("Erreur suppression entree cache %s", fuuid)})
+    }
+  }
+
+}
+
+/** Effectue l'entretie du cache et IndexedDb */
+export async function down_entretienCache() {
+  console.debug("Entretien cache/idb de download")
+  
+  // Cleanup fichiers downloades de plus de 24h
+  const dateExpiration = new Date().getTime() - EXPIRATION_CACHE_MS
+  // const dateExpiration = new Date().getTime() - (60 * 1000)
+  await down_supprimerDownloads({filtre: item=>item.dateComplete.getTime()<dateExpiration})
+  
+  // Cleanup entrees de download cache inutilisees
+  await cleanupCacheOrphelin()
 }
 
 // comlinkExpose({
