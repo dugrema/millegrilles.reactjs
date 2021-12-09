@@ -118,14 +118,18 @@ async function traiterDownloads() {
           _downloadEnCours.status = STATUS_ERREUR
           await majDownload(_downloadEnCours.hachage_bytes, {complete: true, status: STATUS_ERREUR, dateComplete: new Date()})
       } finally {
-          console.debug("!!!FINALLY _downloadEnCours = %O", _downloadEnCours)
-          // if(!_downloadEnCours.annuler) {
-          //     _downloadsCompletes.push(_downloadEnCours)
-          // }
+          //if(!_downloadEnCours.annuler) {
+              // _downloadsCompletes.push(_downloadEnCours)
+          //}
           complete = _downloadEnCours.correlation
           // _downloadEnCours.complete = true
           if(_downloadEnCours.status !== STATUS_ERREUR) {
-            await majDownload(_downloadEnCours.hachage_bytes, {complete: true, status: STATUS_SUCCES, dateComplete: new Date()})
+            await majDownload(_downloadEnCours.hachage_bytes, {
+              complete: true, 
+              status: STATUS_SUCCES, 
+              dateComplete: new Date(),
+              annuler: _downloadEnCours.annuler,
+            })
           }
 
           _downloadEnCours = null
@@ -146,10 +150,10 @@ async function getDownloadsPending() {
   while(cursor) {
     const { key, value } = cursor
     console.log(key, value)
-    cursor = await cursor.continue()
     if(value.status === STATUS_NOUVEAU) {
       downloadsPending.push(value)
     }
+    cursor = await cursor.continue()
   }
 
   // Trier par dateQueining
@@ -520,19 +524,37 @@ async function emettreEtat(flags) {
 }
 
 export function down_annulerDownload(fuuid) {
+
+  const etatAnnule = {complete: true, status: STATUS_ERREUR, annuler: true, dateComplete: new Date()}
+
   if(!fuuid) {
     console.debug("Annuler tous les downloads")
-    _downloadsPending = []
+    await majIdb(item=>item.status===STATUS_NOUVEAU, etatAnnule)
     if(_downloadEnCours) _downloadEnCours.annuler = true
   } else {
     console.warn("Annuler download %s", fuuid)
     if(_downloadEnCours && _downloadEnCours.fuuid === fuuid) {
       _downloadEnCours.annuler = true
     } else {
-      _downloadsPending.forEach(item=>{
-        if(item.fuuid === fuuid) item.annuler = true
-      })
+      await majDownload(fuuid, etatAnnule)
     }
+  }
+
+  // Met a jour le client
+  emettreEtat()
+}
+
+/** Maj des downloads avec filtre/values */
+async function majIdb(filtre, values) {
+  const db = await ouvrirIdb()
+  const store = db.transaction(STORE_DOWNLOADS, 'readwrite').objectStore(STORE_DOWNLOADS)
+  let cursor = await store.openCursor()
+  while(cursor) {
+    const { key, value } = cursor
+    if(filtre(value)) {
+      cursor.update({...value, ...values})
+    }
+    cursor = await cursor.continue()
   }
 }
 

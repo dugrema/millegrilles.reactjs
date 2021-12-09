@@ -240,11 +240,13 @@ function DownloadEnCours(props) {
 
     const annulerDownload = useCallback(()=>{
         const fuuid = downloadEnCours.fuuid
-        transfertFichiers.down_annulerDownload(fuuid)
+        console.debug("Annuler download %s", fuuid)
+        transfertFichiers.down_annulerDownload(fuuid).catch(err=>{console.error("Erreur annuler download %O", err)})
     }, [downloadEnCours, transfertFichiers])
 
     const annulerTousDownloads = useCallback(()=>{
-        transfertFichiers.down_annulerDownload()
+        console.debug("Annuler tous les downloads")
+        transfertFichiers.down_annulerDownload().catch(err=>{console.error("Erreur annuler download %O", err)})
     }, [transfertFichiers])
 
     if(!downloadEnCours) return <p>Aucun download en cours</p>
@@ -312,7 +314,11 @@ function DownloadFichiersPrets(props) {
                     <Row key={item.fuuid}>
                         <Col>{item.filename}</Col>
                         <Col>
-                            <Button onClick={promptDownload} value={item.fuuid} data-filename={item.filename}>Download</Button>
+                            {item.status===STATUS_SUCCES?
+                                <Button onClick={promptDownload} value={item.fuuid} data-filename={item.filename}>Download</Button>
+                                :
+                                <p>Erreur de preparation</p>
+                            }
                             <Button onClick={supprimer} value={item.fuuid}>Supprimer</Button>
                         </Col>
                     </Row>
