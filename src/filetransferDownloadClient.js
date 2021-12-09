@@ -1,58 +1,91 @@
 import path from 'path'
+import { openDB } from 'idb'
 
 import { dechiffrer } from '@dugrema/millegrilles.utiljs'
 
-var URL_DOWNLOAD = '/fichiers'
+var _urlDownload = '/fichiers',
+    _nomIdb = 'collections'
+
 const CACHE_TEMP_NAME = 'fichiersDechiffresTmp',
       CACHE_DURABLE_NAME = 'fichiersSauvegardes',
       TAILLE_LIMITE_SUBTLE = 100 * 1024 * 1024,  // La limite de dechiffrage vient de tests sur iPhone 7
-      DECHIFFRAGE_TAILLE_BLOCK = 256 * 1024
+      DECHIFFRAGE_TAILLE_BLOCK = 256 * 1024,
+      STORE_DOWNLOADS = 'downloads',
+      STORE_UPLOADS = 'uploads'
 
 // Globals
 var _chiffrage = null
 
 // Structure downloads : {}
-var _downloadsPending = [],
-    _downloadEnCours = null,
-    _downloadsCompletes = []
+var _downloadEnCours = null,
+    _callbackEtatDownload = null
 
 const STATUS_NOUVEAU = 1,
   STATUS_ENCOURS = 2,
   STATUS_SUCCES = 3,
   STATUS_ERREUR = 4
 
-export function getEtatCourant() {
+export async function down_getEtatCourant() {
+  const db = await ouvrirIdb()
+
+  const store = db.transaction(STORE_DOWNLOADS, 'readonly').objectStore(STORE_DOWNLOADS)
+  let cursor = await store.openCursor()
+  console.debug("!!! Cursor : %O", cursor)
+
+  const downloads = []
+
+  while(cursor) {
+    const {key, value} = cursor
+    console.log(key, value)
+    downloads.push(value)
+    // if(value.status === STATUS_NOUVEAU) {
+    //   downloadsPending.push(value )
+    // } else if([STATUS_SUCCES, STATUS_ERREUR].includes(value.status)) {
+    //   downloadsCompletes.push(value)
+    // }
+    cursor = await cursor.continue()
+  }
+
+  // Trier pending, completes par date queuing
+  downloads.sort(trierPending)
+
   const etat = {
-      downloadsPending: _downloadsPending,
+      downloads,
       downloadEnCours: _downloadEnCours,
-      downloadsCompletes: _downloadsCompletes,
   }
   console.debug("Retourner etat : %O", etat)
   return etat
 }
 
-export async function ajouterDownload(fuuid, opts) {
+export async function down_ajouterDownload(fuuid, opts) {
   opts = opts || {}
   // Note: opts doit avoir iv, tag et password/passwordChiffre pour les fichiers chiffres
-  const url = path.join(URL_DOWNLOAD, ''+fuuid+'.mgs2')  // Peut etre override dans opts
+  const url = path.join(_urlDownload, ''+fuuid+'.mgs2')  // Peut etre override dans opts
 
   console.debug("ajouterDownload %s, %O", fuuid, opts)
 
   const infoDownload = {
     url,
-    size: '',
+    taille: '',
     conserver: false,  // Indique de conserver le fichier dans un cache longue duree (offline viewing)
     ...opts,  // Overrides et params
 
     fuuid,
+    hachage_bytes: fuuid,  // Cle de la collection
 
     annuler: false,
     status: STATUS_NOUVEAU,
-    loaded: 0,
+    dateQueuing: new Date(),
+    dateComplete: '',
   }
 
   console.debug("ajouterDownload push %O", infoDownload)
-  _downloadsPending.push(infoDownload)
+
+  const db = await ouvrirIdb()
+  await db.transaction(STORE_DOWNLOADS, 'readwrite')
+    .objectStore(STORE_DOWNLOADS)
+    .put(infoDownload)
+
   traiterDownloads()
 }
 
@@ -65,33 +98,80 @@ async function traiterDownloads() {
   }
 
   let complete = ''
-  for(_downloadEnCours = _downloadsPending.shift(); _downloadEnCours; _downloadEnCours = _downloadsPending.shift()) {
+  let downloadsPending = await getDownloadsPending()
+  //for(_downloadEnCours = downloadsPending.shift(); _downloadEnCours; _downloadEnCours = downloadsPending.shift()) {
+  while(downloadsPending.length > 0) {
+      _downloadEnCours = downloadsPending.shift()
       console.debug("Traitement fichier %O", _downloadEnCours)
-      _downloadEnCours.status = STATUS_ENCOURS
+      
+      //_downloadEnCours.status = STATUS_ENCOURS
+      await majDownload(_downloadEnCours.hachage_bytes, {status: STATUS_ENCOURS})
       emettreEtat({complete}).catch(err=>(console.warn("Erreur maj etat : %O", err)))
+      
       try {
           // Download le fichier.
           await downloadCacheFichier(_downloadEnCours, {DEBUG: true, progressCb})
           emettreEtat({fuuidReady: _downloadEnCours.fuuid}).catch(err=>(console.warn("Erreur maj etat apres download complet : %O", err)))
       } catch(err) {
-          console.error("Erreur GET fichier : %O", err)
+          console.error("Erreur GET fichier : %O (downloadEnCours : %O)", err, _downloadEnCours)
           _downloadEnCours.status = STATUS_ERREUR
+          await majDownload(_downloadEnCours.hachage_bytes, {complete: true, status: STATUS_ERREUR, dateComplete: new Date()})
       } finally {
-          if(!_downloadEnCours.annuler) {
-              _downloadsCompletes.push(_downloadEnCours)
-          }
+          console.debug("!!!FINALLY _downloadEnCours = %O", _downloadEnCours)
+          // if(!_downloadEnCours.annuler) {
+          //     _downloadsCompletes.push(_downloadEnCours)
+          // }
           complete = _downloadEnCours.correlation
-          _downloadEnCours.complete = true
+          // _downloadEnCours.complete = true
+          if(_downloadEnCours.status !== STATUS_ERREUR) {
+            await majDownload(_downloadEnCours.hachage_bytes, {complete: true, status: STATUS_SUCCES, dateComplete: new Date()})
+          }
 
           _downloadEnCours = null
           emettreEtat({complete}).catch(err=>(console.warn("Erreur maj etat : %O", err)))
       }
+
+      downloadsPending = await getDownloadsPending()
   }
 
 }
 
+async function getDownloadsPending() {
+  const db = await ouvrirIdb()
+  const store = db.transaction(STORE_DOWNLOADS, 'readonly').objectStore(STORE_DOWNLOADS)
+  let cursor = await store.openCursor()
+
+  const downloadsPending = []
+  while(cursor) {
+    const { key, value } = cursor
+    console.log(key, value)
+    cursor = await cursor.continue()
+    if(value.status === STATUS_NOUVEAU) {
+      downloadsPending.push(value)
+    }
+  }
+
+  // Trier par dateQueining
+  downloadsPending.sort(trierPending)
+  return downloadsPending
+}
+
+function trierPending(a, b) {
+  if(a===b) return 0
+  const aDate = a.dateQueuing, bDate = b.dateQueuing
+  return aDate.getTime() - bDate.getTime()
+}
+
+async function majDownload(hachage_bytes, value) {
+  const db = await ouvrirIdb()
+  const data = await db.transaction(STORE_DOWNLOADS, 'readonly').objectStore(STORE_DOWNLOADS).get(hachage_bytes)
+  await db.transaction(STORE_DOWNLOADS, 'readwrite')
+    .objectStore(STORE_DOWNLOADS)
+    .put({...data, ...value})
+}
+
 /** Fetch fichier, permet d'acceder au reader */
-export async function fetchAvecProgress(url, opts) {
+async function fetchAvecProgress(url, opts) {
   opts = opts || {}
   const progressCb = opts.progressCb,
         downloadEnCours = opts.downloadEnCours,
@@ -278,7 +358,7 @@ async function preparerDataProcessor(iv, tag, opts) {
 
 /** Download un fichier, effectue les transformations (e.g. dechiffrage) et
  *  conserve le resultat dans cache storage */
-export async function downloadCacheFichier(downloadEnCours, opts) {
+async function downloadCacheFichier(downloadEnCours, opts) {
   opts = opts || {}
   const progressCb = opts.progressCb || function() {}  // Par defaut fonction vide
 
@@ -292,14 +372,29 @@ export async function downloadCacheFichier(downloadEnCours, opts) {
     dataProcessor = await preparerDataProcessor(iv, tag, {password, passwordChiffre})
   }
 
+  let urlDownload = new URL(_urlDownload)
+  try {
+    // Verifier si URL fourni est valide/global
+    urlDownload = new URL(url)
+  } catch(err) {
+    // Ajouter url au path
+    urlDownload.pathname = path.join(urlDownload.pathname, url)
+  }
+  console.debug("URL de download de fichier : %O", urlDownload)
+
   let pathname
   try {
     const {reader: stream, headers, status} = await fetchAvecProgress(
-      url,
+      urlDownload,
       {progressCb, dataProcessor, DEBUG}
     )
 
-    if(DEBUG) console.debug("Stream recu : %O", stream)
+    if(DEBUG) console.debug("Stream url %s recu (status: %d): %O", url, status, stream)
+    if(status>299) {
+      const err = new Error(`Erreur download fichier ${url} (code ${status})`)
+      err.status = status
+      throw err
+    }
 
     const size = Number(headers.get('content-length'))
     const headerList = await Promise.all(headers.entries())
@@ -328,7 +423,7 @@ export async function downloadCacheFichier(downloadEnCours, opts) {
       const reader = stream.getReader()
       while(downloadEnCours.annuler !== true) {
         const {done, value} = await reader.read()
-        if(DEBUG) console.debug("Chiffrage.worker reader : done=%s, value=%O", done, value)
+        if(DEBUG) console.debug("TransfertFichiers.worker reader : done=%s, value=%O", done, value)
         if(done) break
         buffer.set(value, position)
         position += value.length
@@ -358,8 +453,6 @@ export async function downloadCacheFichier(downloadEnCours, opts) {
     }
     if(DEBUG) console.debug("Fuuid a mettre dans le cache : %s", pathname)
 
-
-
     console.debug("Caches : %O, CacheStorage: %O", caches, CacheStorage)
     const cache = await caches.open(CACHE_TEMP_NAME)
     if(DEBUG) console.debug("Cache instance : %O", cache)
@@ -381,31 +474,51 @@ export async function downloadCacheFichier(downloadEnCours, opts) {
     throw err
   } finally {
     downloadEnCours.termine = true
-    _downloadEnCours = null
+    // _downloadEnCours = null
   }
 }
 
 async function emettreEtat(flags) {
   flags = flags || {}
   if(_callbackEtatDownload) {
-      console.debug("Emettre etat")
 
-      let pctFichierEnCours = 0
       if(_downloadEnCours) {
           flags.enCoursFuuid = _downloadEnCours.fuuid
-          flags.enCoursSize = isNaN(_downloadEnCours.size)?0:_downloadEnCours.size
+          flags.enCoursTaille = isNaN(_downloadEnCours.taille)?0:_downloadEnCours.taille
           flags.enCoursLoaded = isNaN(_downloadEnCours.loaded)?0:_downloadEnCours.loaded
       }
 
+      const loadedEnCours = flags.loaded || flags.enCoursLoaded
+
+      // Calculer information pending
+      const etatCourant = await down_getEtatCourant()
+      let {total, loaded, pending} = etatCourant.downloads.reduce((compteur, item)=>{
+        const { taille, complete, status } = item
+        if(complete) compteur.loaded += taille
+        else {
+          compteur.pending += 1
+          if(status === STATUS_ENCOURS && item.hachage_bytes === _downloadEnCours.fuuid) {
+            compteur.loaded += loadedEnCours
+          }
+        }
+        compteur.total += taille
+        return compteur
+      }, {total: 0, loaded: 0, pending: 0})
+
+      flags.total = total
+
+      const pctFichiersEnCours = Math.floor(loaded * 100 / total)
+      console.debug("Emettre etat : pending %O, pctFichiersEnCours : %O, flags: %O", pending, pctFichiersEnCours, flags)
+
       _callbackEtatDownload(
-          _downloadsPending.length, 
-          pctFichierEnCours,
+          pending,
+          pctFichiersEnCours,
           flags,
       )
   }
 }
 
-export function annulerDownload(fuuid) {
+export function down_annulerDownload(fuuid) {
   if(!fuuid) {
     console.debug("Annuler tous les downloads")
     _downloadsPending = []
@@ -422,13 +535,22 @@ export function annulerDownload(fuuid) {
   }
 }
 
+
+function ouvrirIdb() {
+  return openDB(_nomIdb)
+}
+
 /** Set le chiffrage worker */
-export function setChiffrage(chiffrage) {
+export function down_setChiffrage(chiffrage) {
   _chiffrage = chiffrage
 }
 
-export function setCallbackDownload(cb) {
+export function down_setCallbackDownload(cb) {
   _callbackEtatDownload = cb
+}
+
+export function down_setUrlDownload(urlDownload) {
+  _urlDownload = urlDownload
 }
 
 // comlinkExpose({

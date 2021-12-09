@@ -11,6 +11,7 @@ import LayoutApplication from './LayoutApplicationExemple'
 import WorkerExemple from './WorkerExemple'
 import DbUsagerExemple from './DbUsagerExemple'
 import DetecterSupport from './DetecterSupport'
+import TransfertFichiers from './TransfertFichiers'
 
 const App = () => {
 
@@ -29,6 +30,7 @@ const App = () => {
       case 'WorkerExemple': PageCls = WorkerExemple; break;
       case 'DbUsagerExemple': PageCls = DbUsagerExemple; break;
       case 'DetecterSupport': PageCls = DetecterSupport; break;
+      case 'TransfertFichiers': PageCls = TransfertFichiers; break;
       default:
     }
     if(PageCls) return (
@@ -50,6 +52,7 @@ const App = () => {
         <li><Button onClick={()=>setPage('WorkerExemple')}>WorkerExemple</Button></li>
         <li><Button onClick={()=>setPage('DbUsagerExemple')}>DbUsagerExemple</Button></li>
         <li><Button onClick={()=>setPage('DetecterSupport')}>DetecterSupport</Button></li>
+        <li><Button onClick={()=>setPage('TransfertFichiers')}>TransfertFichiers</Button></li>
       </ul>
     </Container>
   )

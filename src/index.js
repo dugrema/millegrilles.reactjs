@@ -58,3 +58,6 @@ export { X509Client }
 
 import * as FiletransferDownloadClient from './filetransferDownloadClient.js'
 export { FiletransferDownloadClient }
+
+import * as FiletransferUploadClient from './filetransferUploadClient.js'
+export { FiletransferUploadClient }
