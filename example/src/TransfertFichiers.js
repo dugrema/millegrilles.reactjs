@@ -17,14 +17,15 @@ function TransfertFichiers(props) {
 
     const [workers, setWorkers] = useState('')
     const [etatDownload, setEtatDownload] = useState('')
+    const [etatUpload, setEtatUpload] = useState('')
     const [certMaitredescles, setCertMaitredescles] = useState('')
     const { transfertFichiers } = workers
 
     useEffect(()=>{
-        if(setWorkers && setEtatDownload) {
-            charger(setWorkers, setEtatDownload)
+        if(setWorkers && setEtatDownload && setEtatUpload) {
+            charger(setWorkers, setEtatDownload, setEtatUpload)
         }
-    }, [setWorkers, setEtatDownload])
+    }, [setWorkers, setEtatDownload, setEtatUpload])
 
     useEffect(()=>{
         if(!transfertFichiers) return 
@@ -55,7 +56,7 @@ function TransfertFichiers(props) {
             <h1>Transfert fichiers</h1>
             <Button onClick={props.retour}>Retour</Button>
             <DownloadManager workers={workers} etatDownload={etatDownload} />
-            <UploadManager workers={workers} />
+            <UploadManager workers={workers} etat={etatUpload} />
         </div>
     )
 
@@ -63,7 +64,7 @@ function TransfertFichiers(props) {
 
 export default TransfertFichiers
 
-async function charger(setWorkers, setEtatDownload) {
+async function charger(setWorkers, setEtatDownload, setEtatUpload) {
     const workers = loader()
     setUsager(workers, 'proprietaire')
     setWorkers(workers)
@@ -73,7 +74,7 @@ async function charger(setWorkers, setEtatDownload) {
     // Re-hook setters au besoin
     const proxySetEtatUpload = proxy((nbFichiersPending, pctFichierEnCours, flags)=>{
         console.debug("Set nouvel etat upload. nbPending:%d, pctEnCours:%d, flags: %O", nbFichiersPending, pctFichierEnCours, flags)
-        // setEtatUpload({nbFichiersPending, pctFichierEnCours, flags})
+        setEtatUpload({nbFichiersPending, pctFichierEnCours, ...flags})
     })
     transfertFichiers.up_setCallbackUpload(proxySetEtatUpload)
 
@@ -452,7 +453,7 @@ function UploadManager(props) {
             </Row>
 
             <h2>Etat upload</h2>
-            <EtatUpload workers={props.workers} etatUpload={props.etatUpload} />
+            <EtatUpload workers={props.workers} etat={props.etat} />
 
             <p></p>
 
@@ -466,29 +467,32 @@ function UploadManager(props) {
 }
 
 function EtatUpload(props) {
-    const etatUpload = props.etatUpload
-    console.debug("EtatUpload proppys : %O", props.etatUpload)
-    const { transfertFichiers } = props.workers
+    console.debug("Etat proppys : %O", props)
+    const { etat, workers } = props
+    const { transfertFichiers } = workers
 
     const [etatComplet, setEtatComplet] = useState('')
     useEffect(()=>{
-        if(!transfertFichiers || !etatUpload) return
+        if(!transfertFichiers || !etat) return
         transfertFichiers.up_getEtatCourant()
             .then(etatCourant=>{
                 console.debug("Etat complet : %O", etatCourant)
-                setEtatComplet(etatCourant)
+                setEtatComplet({...etat, ...etatCourant})
             }).catch(err=>{console.warn("Erreur maj etat courant : %O", err)})
-    }, [transfertFichiers, etatUpload])
+    }, [transfertFichiers, etat])
 
-    const cancel = useCallback(()=>{
+    const cancel = useCallback(event=>{
+        event.stopPropagation()
+
         console.debug("Annuler transfer courant")
         transfertFichiers.up_annulerUpload()
     }, [transfertFichiers])
 
-    if(!etatUpload) return ''
+    if(!etat) return ''
 
-    const encours = etatUpload.flags?etatUpload.flags.encours:'' || ''
-    const pctEnCours = etatUpload.pctFichierEnCours
+    const encours = etatComplet.encours || ''
+    const pctEnCours = etatComplet.pctFichierEnCours
+    const pctTotal = isNaN(etatComplet.pctTotal)?100:etatComplet.pctTotal
     const uploadsPending = (etatComplet?etatComplet.uploadsPending:null) || []
     const uploadsCompletes = (etatComplet?etatComplet.uploadsCompletes:null) || []
 
@@ -500,8 +504,13 @@ function EtatUpload(props) {
             <Row>
                 <Col>Icone/bouton info upload</Col>
                 <Col>
-                    <IconeInfoUpload etatUpload={etatUpload}/>
+                    <IconeInfoUpload etat={etat}/>
                 </Col>
+            </Row>
+
+            <Row>
+                <Col>Progres total</Col>
+                <Col>{pctTotal} %</Col>
             </Row>
 
             <UploadsPending workers={props.workers} uploadsPending={uploadsPending} />
@@ -526,6 +535,16 @@ function EtatUpload(props) {
 }
 
 function UploadsPending(props) {
+    const { workers } = props
+    const { transfertFichiers } = workers
+
+    const annuler = useCallback(event=>{
+        const correlation = event.currentTarget.value
+        event.stopPropagation()
+        console.debug("Annuler transfer %s", correlation)
+        transfertFichiers.up_annulerUpload(correlation)
+    }, [transfertFichiers])
+
     if(!props.uploadsPending || props.uploadsPending.length === 0) return ''
 
     return (
@@ -536,6 +555,9 @@ function UploadsPending(props) {
                 return (
                     <Row key={correlation}>
                         <Col>{correlation}</Col>
+                        <Col>
+                            <Button onClick={annuler} value={correlation}>Annuler</Button>
+                        </Col>
                     </Row>
                 )
             })}
@@ -625,9 +647,9 @@ function UploadsErreurs(props) {
 }
 
 function IconeInfoUpload(props) {
-    const etatUpload = props.etatUpload || {}
-    const flags = etatUpload.flags
-    const pending = (flags.encours?1:0) + etatUpload.nbFichiersPending
+    const etatUpload = props.etat || {}
+    const { encours, nbFichiersPending } = etatUpload
+    const pending = (encours?1:0) + nbFichiersPending
     return (
         <span>
             Upload

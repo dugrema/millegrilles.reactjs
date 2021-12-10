@@ -30,10 +30,24 @@ const STATUS_NOUVEAU = 1,
       STATUS_NONCONFIRME = 5
 
 export function up_getEtatCourant() {
+
+    const loadedCourant = _uploadEnCours?_uploadEnCours.batchLoaded:0
+
+    const totalBytes = [..._uploadsPending, _uploadEnCours, ..._uploadsCompletes].reduce((total, item)=>{
+        if(!item) return total
+        return total + item.size
+    }, 0)
+    const loadedBytes = _uploadsCompletes.reduce((total, item)=>{
+        return total + item.size
+    }, loadedCourant)
+
+    const pctTotal = Math.floor(loadedBytes * 100 / totalBytes)
+
     const etat = {
         uploadsPending: _uploadsPending.map(filtrerEntreeFichier),
         uploadEnCours: filtrerEntreeFichier(_uploadEnCours),
-        uploadsCompletes: _uploadsCompletes.map(filtrerEntreeFichier)
+        uploadsCompletes: _uploadsCompletes.map(filtrerEntreeFichier),
+        totalBytes, loadedBytes, pctTotal,
     }
     console.debug("Retourner etat : %O", etat)
     return etat
