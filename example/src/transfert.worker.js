@@ -1,5 +1,6 @@
 import { expose } from 'comlink'
-import { FiletransferDownloadClient, FiletransferUploadClient } from '@dugrema/millegrilles.reactjs'
+import * as FiletransferDownloadClient from '@dugrema/millegrilles.reactjs/src/filetransferDownloadClient'
+import * as FiletransferUploadClient from '@dugrema/millegrilles.reactjs/src/filetransferUploadClient'
 expose({
     ...FiletransferDownloadClient,
     ...FiletransferUploadClient

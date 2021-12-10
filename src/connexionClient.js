@@ -2,10 +2,14 @@ import {io as openSocket} from 'socket.io-client'
 import path from 'path'
 import multibase from 'multibase'
 
-import { formatteurMessage, forgecommon, getRandomValues } from '@dugrema/millegrilles.utiljs'
+// import { formatteurMessage, forgecommon, getRandomValues } from '@dugrema/millegrilles.utiljs'
 
-const { FormatteurMessageSubtle } = formatteurMessage
-const { extraireExtensionsMillegrille } = forgecommon
+// const { FormatteurMessageSubtle } = formatteurMessage
+// const { extraireExtensionsMillegrille } = forgecommon
+
+import { getRandomValues } from '@dugrema/millegrilles.utiljs/src/chiffrage.js'
+import { FormatteurMessageSubtle } from '@dugrema/millegrilles.utiljs/src/formatteurMessage.js'
+import { extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
 
 var _socket = null,
     _formatteurMessage = null

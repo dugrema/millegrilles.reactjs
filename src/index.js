@@ -47,17 +47,17 @@ export {
 import { repondreRegistrationChallenge } from './webauthn'
 export { repondreRegistrationChallenge }
 
-import * as ChiffrageClient from './chiffrageClient.js'
-export { ChiffrageClient }
+// import * as ChiffrageClient from './chiffrageClient.js'
+// export { ChiffrageClient }
 
-import * as ConnexionClient from './connexionClient'
-export { ConnexionClient }
+// import * as ConnexionClient from './connexionClient'
+// export { ConnexionClient }
 
-import * as X509Client from './x509Client'
-export { X509Client }
+// import * as X509Client from './x509Client'
+// export { X509Client }
 
-import * as FiletransferDownloadClient from './filetransferDownloadClient.js'
-export { FiletransferDownloadClient }
+// import * as FiletransferDownloadClient from './filetransferDownloadClient.js'
+// export { FiletransferDownloadClient }
 
-import * as FiletransferUploadClient from './filetransferUploadClient.js'
-export { FiletransferUploadClient }
+// import * as FiletransferUploadClient from './filetransferUploadClient.js'
+// export { FiletransferUploadClient }

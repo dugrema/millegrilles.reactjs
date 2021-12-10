@@ -1,17 +1,29 @@
 import { pki as forgePki } from 'node-forge'
 
-import { 
-  forgecommon, formatteurMessage as formatteurMessageLib, hachage, 
-  chiffrerCleSecreteSubtle, dechiffrerCleSecreteSubtle,
+import {hacherCertificat} from '@dugrema/millegrilles.utiljs/src/hachage'
+import {CertificateStore, validerChaineCertificats, extraireExtensionsMillegrille} from '@dugrema/millegrilles.utiljs/src/forgecommon'
+import {FormatteurMessageSubtle, SignateurMessageSubtle} from '@dugrema/millegrilles.utiljs/src/formatteurMessage'
+import {chiffrerCleSecreteSubtle, dechiffrerCleSecreteSubtle,
   importerClePubliqueSubtle, importerClePriveeSubtle,
   chiffrerDocument as _chiffrerDocument, dechiffrerDocument as _dechiffrerDocument,
   preparerCleSecreteSubtle as _preparerCleSecreteSubtle,
-  dechiffrerSubtle,
-} from '@dugrema/millegrilles.utiljs'
+  dechiffrerSubtle
+} from '@dugrema/millegrilles.utiljs/src/chiffrage'
 
-const { CertificateStore, validerChaineCertificats, extraireExtensionsMillegrille } = forgecommon
-const { FormatteurMessageSubtle, SignateurMessageSubtle } = formatteurMessageLib
-const { hacherCertificat } = hachage
+// import { 
+//   forgecommon, formatteurMessage as formatteurMessageLib, hachage, 
+
+//   chiffrerCleSecreteSubtle, dechiffrerCleSecreteSubtle,
+//   importerClePubliqueSubtle, importerClePriveeSubtle,
+//   chiffrerDocument as _chiffrerDocument, dechiffrerDocument as _dechiffrerDocument,
+//   preparerCleSecreteSubtle as _preparerCleSecreteSubtle,
+//   dechiffrerSubtle,
+
+// } from '@dugrema/millegrilles.utiljs'
+
+// const { CertificateStore, validerChaineCertificats, extraireExtensionsMillegrille } = forgecommon
+// const { FormatteurMessageSubtle, SignateurMessageSubtle } = formatteurMessageLib
+// const { hacherCertificat } = hachage
 // const {
 //   chiffrerCleSecreteSubtle, dechiffrerCleSecreteSubtle,
 //   importerClePubliqueSubtle, importerClePriveeSubtle,
