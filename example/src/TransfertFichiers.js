@@ -434,19 +434,37 @@ function UploadManager(props) {
         // const proxyAcceptedFiles = comlinkProxy(acceptedFiles)
         await transfertFichiers.up_ajouterFichiersUpload(acceptedFiles)
       }, [transfertFichiers])
-    const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop})
+    const dzHook = useDropzone({onDrop})
+    console.debug("DZ Hook : %O", dzHook)
+    const {getRootProps, getInputProps, isDragActive, open: openDropzone} = dzHook
+
+    const inputProps = getInputProps()
+    console.debug("Input props : %O", inputProps)
+
+    const onClickBack = useCallback(event=>{
+        event.stopPropagation()
+        event.preventDefault()
+        console.debug("Bloquer event click dropzone : %O", event)
+    }, [])
+
+    const onClickBouton = useCallback(event=>{
+        event.stopPropagation()
+        event.preventDefault()
+        console.debug("Click bouton : %O, openDropzone : %O", event, openDropzone)
+        openDropzone()
+    }, [openDropzone])
 
     const classNameDrag = isDragActive?'dragActive':''
 
     return (
-        <Container {...getRootProps()}>
+        <Container {...getRootProps({onClick: onClickBack})}>
             <h1>Upload manager</h1>
 
-            <input {...getInputProps()} />
+            <input {...inputProps} />
             <Row className={classNameDrag}>
                 <Col>Upload un fichier</Col>
                 <Col>
-                    <Button className="individuel" variant="secondary">
+                    <Button className="individuel" variant="secondary" onClick={onClickBouton}>
                         Upload
                     </Button>
                 </Col>
