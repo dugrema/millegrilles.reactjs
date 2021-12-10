@@ -21,9 +21,12 @@ var _callbackSetEtatConnexion,
     _connecte = false,
     _protege = false
 
-export function setCallbacks(setEtatConnexion, x509Worker, callbackSetUsager) {
-  _callbackSetEtatConnexion = setEtatConnexion
+export function setX509Worker(x509Worker) {
   _x509Worker = x509Worker
+}
+    
+export function setCallbacks(setEtatConnexion, callbackSetUsager) {
+  _callbackSetEtatConnexion = setEtatConnexion
   _callbackSetUsager = callbackSetUsager
 }
 
