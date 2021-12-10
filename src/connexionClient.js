@@ -19,7 +19,8 @@ var _callbackSetEtatConnexion,
     _x509Worker,
     _urlCourant = '',
     _connecte = false,
-    _protege = false
+    _protege = false,
+    _certificatsMaitreDesCles = ''
 
 export function setX509Worker(x509Worker) {
   _x509Worker = x509Worker
@@ -122,6 +123,7 @@ async function onConnect() {
 
   // Faire l'upgrade protege
   const resultatProtege = await upgradeProteger()
+  if(resultatProtege) getCertificatsMaitredescles()  // Met en cache le certificat
   // console.debug("Resultat upgrade protege : %O", resultatProtege)
 
   // Emettre l'evenement qui va faire enregistrer les evenements de mise a jour
@@ -130,7 +132,7 @@ async function onConnect() {
 
   return resultatProtege
 }
-    
+
 export function getCertificatFormatteur() {
   return {
     // certificat: _formatteurMessage.cert,
@@ -330,8 +332,15 @@ export function isFormatteurReady() {
   return false
 }
 
-export function getCertificatsMaitredescles() {
-  return emitBlocking('getCertificatsMaitredescles', null, {noformat: true})
+export async function getCertificatsMaitredescles() {
+  if(_certificatsMaitreDesCles) return _certificatsMaitreDesCles
+  const reponse = await emitBlocking('getCertificatsMaitredescles', null, {noformat: true})
+  if(!reponse.err) {
+    // Cacher la reponse
+    console.debug("Cert maitre des cles mis en cache : %O", reponse)
+    _certificatsMaitreDesCles = reponse
+  }
+  return reponse
 }
 
 export function genererChallengeWebAuthn(params) {
