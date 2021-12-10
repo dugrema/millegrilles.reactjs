@@ -92,6 +92,7 @@ export function formatterMessage(message, domaineAction, opts) {
 
   /* Expose formatterMessage du formatteur de messages */
   if(opts.DEBUG) console.debug("Formatter domaine=%s, message : %O", domaineAction, message)
+
   return formatteurMessage.formatterMessage(message, domaineAction, opts)
 }
 

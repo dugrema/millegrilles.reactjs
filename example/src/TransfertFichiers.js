@@ -2,7 +2,7 @@ import React, {useEffect, useCallback, useState} from 'react'
 import path from 'path'
 import axios from 'axios'
 import { proxy } from 'comlink'
-import {Container, Button, Row, Col, Badge} from 'react-bootstrap'
+import {Container, Button, Row, Col, Badge, FormControl, InputGroup} from 'react-bootstrap'
 import { useDropzone } from 'react-dropzone'
 
 import loader from './workerLoader.js'
@@ -15,15 +15,24 @@ const STATUS_NOUVEAU = 1,
 
 function TransfertFichiers(props) {
 
+    const [nomUsager, setNomUsager] = useState('proprietaire')
     const [workers, setWorkers] = useState('')
     const [etatDownload, setEtatDownload] = useState('')
     const [etatUpload, setEtatUpload] = useState('')
     const [certMaitredescles, setCertMaitredescles] = useState('')
     const { transfertFichiers } = workers
 
+    const userOnChange = useCallback(event=>{
+        setNomUsager(event.currentTarget.value)
+    }, [setNomUsager])
+
+    const userLoad = useCallback(event=>{
+        charger(nomUsager, setWorkers, setEtatDownload, setEtatUpload)
+    }, [nomUsager, setWorkers, setEtatDownload, setEtatUpload])
+
     useEffect(()=>{
         if(setWorkers && setEtatDownload && setEtatUpload) {
-            charger(setWorkers, setEtatDownload, setEtatUpload)
+            charger(nomUsager, setWorkers, setEtatDownload, setEtatUpload)
         }
     }, [setWorkers, setEtatDownload, setEtatUpload])
 
@@ -55,6 +64,23 @@ function TransfertFichiers(props) {
         <div>
             <h1>Transfert fichiers</h1>
             <Button onClick={props.retour}>Retour</Button>
+            <Row>
+                <Col>Usager</Col>
+                <Col>
+                    <InputGroup className="mb-3">
+                        <FormControl
+                            placeholder="Nom Usager"
+                            aria-label="Nom Usager"
+                            aria-describedby="basic-addon2"
+                            value={nomUsager}
+                            onChange={userOnChange}
+                        />
+                        <Button variant="secondary" id="button-addon2" onClick={userLoad}>
+                            Charger
+                        </Button>
+                    </InputGroup>
+                </Col>
+            </Row>
             <DownloadManager workers={workers} etatDownload={etatDownload} />
             <UploadManager workers={workers} etat={etatUpload} />
         </div>
@@ -64,9 +90,9 @@ function TransfertFichiers(props) {
 
 export default TransfertFichiers
 
-async function charger(setWorkers, setEtatDownload, setEtatUpload) {
+async function charger(nomUsager, setWorkers, setEtatDownload, setEtatUpload) {
     const workers = loader()
-    setUsager(workers, 'proprietaire')
+    setUsager(workers, nomUsager)
     setWorkers(workers)
 
     const { transfertFichiers } = workers
@@ -651,13 +677,37 @@ function UploadsErreurs(props) {
             {uploadsErreurs.map(item=>{
                 const correlation = item.correlation
                 return (
-                    <Row key={correlation}>
-                        <Col>{correlation}</Col>
-                        <Col>
-                            <Button onClick={retirer} value={correlation}>Retirer</Button>
-                            <Button onClick={retry} value={correlation}>Retry</Button>
-                        </Col>
-                    </Row>
+                    <>
+                        <Row key={correlation}>
+                            <Col>{correlation}</Col>
+                            <Col>
+                                <Button onClick={retirer} value={correlation}>Retirer</Button>
+                                <Button onClick={retry} value={correlation}>Retry</Button>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col>
+                                <pre>
+                                    {JSON.stringify(item).replaceAll('\\n', '\n')}
+                                </pre>
+                                <hr/>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col>
+                                {item.err?
+                                    <>
+                                        {item.err.msg}
+                                        <hr/>
+                                        <pre>
+                                            {JSON.stringify(item.err.stack).replaceAll('\\n', '\n')}
+                                        </pre>
+                                    </>    
+                                    :''
+                                }
+                            </Col>
+                        </Row>
+                    </>
                 )
             })}
         </>

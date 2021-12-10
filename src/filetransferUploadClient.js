@@ -62,6 +62,8 @@ function filtrerEntreeFichier(entree) {
 }
 
 export async function up_ajouterFichiersUpload(acceptedFiles, opts) {
+    if(!_chiffrage) throw new Error("_chiffrage non initialise")
+
     opts = opts || {}
     const cuuid = opts.cuuid    // Collection de destination
 
@@ -105,6 +107,7 @@ export async function up_ajouterFichiersUpload(acceptedFiles, opts) {
 
 async function traiterUploads() {
     if(_uploadEnCours) return  // Rien a faire
+    if(!_chiffrage) throw new Error("_chiffrage non initialise")
 
     let complete = ''
     for(_uploadEnCours = _uploadsPending.shift(); _uploadEnCours; _uploadEnCours = _uploadsPending.shift()) {
@@ -117,6 +120,7 @@ async function traiterUploads() {
         } catch(err) {
             console.error("Erreur PUT fichier : %O", err)
             _uploadEnCours.status = STATUS_ERREUR
+            _uploadEnCours.err = {msg: ''+err, stack: err.stack}
         } finally {
             if(!_uploadEnCours.annuler) {
                 _uploadsCompletes.push(_uploadEnCours)
@@ -133,6 +137,7 @@ async function traiterUploads() {
 
 /** Effectue l'upload d'un fichier. */
 async function uploadFichier() {
+    if(!_chiffrage) throw new Error("_chiffrage non initialise")
 
     const correlation = _uploadEnCours.correlation
 
@@ -202,14 +207,18 @@ async function uploadFichier() {
         } else {
             console.warn("Erreur traitement upload fichier mais aucun fichier en cours : %O", err)
         }
+        throw err
     }
 }
 
 async function terminerTraitementFichier(uploadEnCours) {
+    if(!_chiffrage) throw new Error("_chiffrage non initialise")
+
     console.debug("terminerTraitementFichier %O", uploadEnCours)
     const { commandeMaitreDesCles, transaction } = uploadEnCours
     const partitionMaitreDesCles = commandeMaitreDesCles._partition
     delete commandeMaitreDesCles._partition
+
     const maitreDesClesSignees = await _chiffrage.formatterMessage(
         commandeMaitreDesCles, 'MaitreDesCles', {partition: partitionMaitreDesCles, action: 'sauvegarderCle', DEBUG: true})
     uploadEnCours.commandeMaitreDesCles = maitreDesClesSignees
