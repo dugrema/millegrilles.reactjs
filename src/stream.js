@@ -14,7 +14,7 @@ export function getAcceptedFileReader(file) {
       // Tenter d'utiliser le stream pour l'upload
       const stream = file.stream()
       const reader = stream.getReader()
-      console.debug("Utilisation stream.getReader()")
+      // console.debug("Utilisation stream.getReader()")
       return reader
     } catch(err) {
       // Echec stream, tenter de proceder par slice
@@ -36,7 +36,7 @@ function sliceReader(file, opts) {
   const read = async (len) => {
     const tailleBuffer = len || TAILLE_BUFFER
 
-    console.debug("sliceReader Read invoque, position %d, done %s", position, done)
+    // console.debug("sliceReader Read invoque, position %d, done %s", position, done)
     done = position === file.size
     if(done) return {done, value: null}
 
@@ -67,7 +67,7 @@ export async function* streamAsyncIterable(reader, opts) {
   try {
       var tempBuffer = null
       while (true) {
-          console.debug("streamAsyncIterable Call reader.read")
+          // console.debug("streamAsyncIterable Call reader.read")
           let resultat = null
           try {
             resultat = await reader.read()
@@ -77,9 +77,9 @@ export async function* streamAsyncIterable(reader, opts) {
           }
           const done = resultat.done
           let value = resultat.value
-          console.debug("streamAsyncIterable Lecture (done?%s) len %s", done, value?value.length:'NA')
+          // console.debug("streamAsyncIterable Lecture (done?%s) len %s", done, value?value.length:'NA')
           if (done && !tempBuffer) {
-              console.debug("streamAsyncIterable Termine sur block")
+              // console.debug("streamAsyncIterable Termine sur block")
               return
           }
 
@@ -95,16 +95,16 @@ export async function* streamAsyncIterable(reader, opts) {
           }
 
           if(done) {
-              console.debug("streamAsyncIterable Done, traitement final de %s bytes", tempBuffer.length)
+              // console.debug("streamAsyncIterable Done, traitement final de %s bytes", tempBuffer.length)
               if(tempBuffer) {
-                  console.debug("streamAsyncIterable yield final")
+                  // console.debug("streamAsyncIterable yield final")
                   yield tempBuffer
               }
               // Invocation finale
-              console.debug("streamAsyncIterable Termine apres yield")
+              // console.debug("streamAsyncIterable Termine apres yield")
               return
           } else if(tempBuffer.length >= batchSize) {
-              console.debug("Yield buffer de %d bytes", tempBuffer.length)
+              // console.debug("Yield buffer de %d bytes", tempBuffer.length)
               yield tempBuffer
               tempBuffer = null
           }

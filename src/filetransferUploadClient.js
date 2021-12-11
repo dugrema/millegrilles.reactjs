@@ -49,7 +49,7 @@ export function up_getEtatCourant() {
         uploadsCompletes: _uploadsCompletes.map(filtrerEntreeFichier),
         totalBytes, loadedBytes, pctTotal,
     }
-    console.debug("Retourner etat : %O", etat)
+    // console.debug("Retourner etat : %O", etat)
     return etat
 }
 
@@ -69,7 +69,7 @@ export async function up_ajouterFichiersUpload(acceptedFiles, opts) {
 
     for(let i=0; i<acceptedFiles.length; i++) {
         const file = acceptedFiles[i]
-        console.debug("Ajouter upload : %O", file)
+        // console.debug("Ajouter upload : %O", file)
 
         let dateFichier = null
         try {
@@ -100,7 +100,7 @@ export async function up_ajouterFichiersUpload(acceptedFiles, opts) {
         })
     }
 
-    console.info("Uploads pending : %O", _uploadsPending)
+    // console.info("Uploads pending : %O", _uploadsPending)
     emettreEtat()
     traiterUploads()  // Demarrer traitement si pas deja en cours
 }
@@ -111,7 +111,7 @@ async function traiterUploads() {
 
     let complete = ''
     for(_uploadEnCours = _uploadsPending.shift(); _uploadEnCours; _uploadEnCours = _uploadsPending.shift()) {
-        console.debug("Traitement fichier %O", _uploadEnCours)
+        // console.debug("Traitement fichier %O", _uploadEnCours)
         _uploadEnCours.status = STATUS_ENCOURS
         emettreEtat({complete}).catch(err=>(console.warn("Erreur maj etat : %O", err)))
         try {
@@ -141,7 +141,7 @@ async function uploadFichier() {
 
     const correlation = _uploadEnCours.correlation
 
-    console.debug("Traiter upload en cours : %O", _uploadEnCours)
+    // console.debug("Traiter upload en cours : %O", _uploadEnCours)
     const transformHandler = await preparerTransform()
     const transform = data => transformHandler.update(data)
     
@@ -169,18 +169,18 @@ async function uploadFichier() {
             _uploadEnCours.position = position
             _uploadEnCours.batchLoaded = 0  // Position ajustee, on reset loaded immediatement (evite promenage % progres)
             _uploadEnCours.pctFichierEnCours = Math.floor(position/_uploadEnCours.size * 100)
-            console.debug("Reponse upload %s position %d Pct: %d put block %O", correlation, position, _uploadEnCours.pctFichierEnCours, reponse)
+            // console.debug("Reponse upload %s position %d Pct: %d put block %O", correlation, position, _uploadEnCours.pctFichierEnCours, reponse)
             emettreEtat().catch(err=>(console.warn("Erreur maj etat : %O", err)))
         }
 
         // Preprarer commande maitre des cles
         const resultatChiffrage = await transformHandler.finish()
         const {hachage_bytes, iv, tag} = resultatChiffrage.meta
-        console.debug("Resultat chiffrage : %O", resultatChiffrage)
+        // console.debug("Resultat chiffrage : %O", resultatChiffrage)
         const identificateurs_document = { fuuid: hachage_bytes }
         const commandeMaitreDesCles = await preparerCommandeMaitrecles(
             [_certificat, [_certificat[2]]], resultatChiffrage.password, _domaine, hachage_bytes, iv, tag, identificateurs_document)
-        console.debug("Commande maitre des cles : %O", commandeMaitreDesCles)
+        // console.debug("Commande maitre des cles : %O", commandeMaitreDesCles)
         _uploadEnCours.commandeMaitreDesCles = commandeMaitreDesCles
 
         _uploadEnCours.transaction.fuuid = hachage_bytes
@@ -188,10 +188,10 @@ async function uploadFichier() {
         // Emettre la commande POST pour conserver le fichier
         const reponsePost = await terminerTraitementFichier(_uploadEnCours)
         if(reponsePost.status === 201) {
-            console.debug("Fichier %s complete", correlation)
+            // console.debug("Fichier %s complete", correlation)
             _uploadEnCours.status = STATUS_SUCCES
         } else if(reponsePost.status === 202 ) {
-            console.debug("Fichier %s valide mais sans confirmation (pending)", correlation)
+            // console.debug("Fichier %s valide mais sans confirmation (pending)", correlation)
             _uploadEnCours.status = STATUS_NONCONFIRME
         }
 
@@ -214,7 +214,7 @@ async function uploadFichier() {
 async function terminerTraitementFichier(uploadEnCours) {
     if(!_chiffrage) throw new Error("_chiffrage non initialise")
 
-    console.debug("terminerTraitementFichier %O", uploadEnCours)
+    // console.debug("terminerTraitementFichier %O", uploadEnCours)
     const { commandeMaitreDesCles, transaction } = uploadEnCours
     const partitionMaitreDesCles = commandeMaitreDesCles._partition
     delete commandeMaitreDesCles._partition
@@ -227,7 +227,7 @@ async function terminerTraitementFichier(uploadEnCours) {
         transaction, 'GrosFichiers', {action: 'nouvelleVersion'})
     uploadEnCours.transaction = transactionSignee
 
-    console.debug("Etat fichier uploadEnCours : %O", uploadEnCours)
+    // console.debug("Etat fichier uploadEnCours : %O", uploadEnCours)
 
     const confirmationResultat = {
         commandeMaitrecles: maitreDesClesSignees, 
@@ -256,7 +256,7 @@ async function preparerTransform() {
 
 function onUploadProgress(progress) {
     const {loaded, total} = progress
-    console.debug("Axios progress sur %s : %d/%d", _uploadEnCours.correlation, loaded, total)
+    // console.debug("Axios progress sur %s : %d/%d", _uploadEnCours.correlation, loaded, total)
     _uploadEnCours.batchLoaded = loaded
     _uploadEnCours.batchTotal = total
     if( !isNaN(loaded) && !isNaN(total) ) {
@@ -268,14 +268,14 @@ function onUploadProgress(progress) {
 
 export async function up_annulerUpload(correlation) {
     if(_uploadEnCours && (!correlation || _uploadEnCours.correlation === correlation)) {
-        console.debug("Annuler l'upload en cours (%s)", correlation)
+        // console.debug("Annuler l'upload en cours (%s)", correlation)
         _uploadEnCours.annuler = true
         if(_uploadEnCours.cancelTokenSource) {
             // Toggle annulation dans Axios
             _uploadEnCours.cancelTokenSource.cancel('Usager annule upload')
         }
     } else {
-        console.debug("Retirer upload %s de la liste des pendings", correlation)
+        // console.debug("Retirer upload %s de la liste des pendings", correlation)
         const pending = _uploadsPending.filter(item=>item.correlation!==correlation)
         _uploadsPending = pending
     }
@@ -284,7 +284,7 @@ export async function up_annulerUpload(correlation) {
 async function emettreEtat(flags) {
     flags = flags || {}
     if(_callbackEtatUpload) {
-        console.debug("Emettre etat")
+        // console.debug("Emettre etat")
 
         // const flags = {}
         let pctFichierEnCours = 0
@@ -326,14 +326,14 @@ export function up_setDomaine(domaine) {
 }
 
 export function up_setChiffrage(chiffrage) {
-    console.debug("ChiffrageWorker : %O", chiffrage)
+    // console.debug("ChiffrageWorker : %O", chiffrage)
     _chiffrage = chiffrage
 }
 
 export function up_clearCompletes(opts) {
     opts = opts || {}
     const {status, correlation} = opts
-    console.debug("Clear completes : %O", opts)
+    // console.debug(Clear completes : %O", opts)
     if(correlation) {
         const nouvelleListe = _uploadsCompletes.filter(item=>item.correlation!==correlation)
         _uploadsCompletes = nouvelleListe
@@ -341,7 +341,7 @@ export function up_clearCompletes(opts) {
         const nouvelleListe = _uploadsCompletes.filter(item=>item.status!==status)
         _uploadsCompletes = nouvelleListe
     } else {
-        _uploadsCompletes.clear()
+        _uploadsCompletes = []
     }
 
     emettreEtat()
@@ -354,13 +354,13 @@ export function up_retryErreur(opts) {
     
     let critere = null
     if(correlation) {
-        console.debug("Retry correlation %s", correlation)
+        // console.debug("Retry correlation %s", correlation)
         critere = item => item.correlation === correlation
     } else {
         // Defaut, en erreur seulement (4)
-        console.debug("Filtre erreur (status 4) de %O", _uploadsCompletes)
+        // console.debug("Filtre erreur (status 4) de %O", _uploadsCompletes)
         critere = item => {
-            console.debug("Comparer item %O", item)
+            // console.debug("Comparer item %O", item)
             return item.status === 4
         }
     }
@@ -375,12 +375,12 @@ export function up_retryErreur(opts) {
                 status: 1, position: 0, 
                 batchLoaded: 0, pctBatchProgres: 0,
             }
-            console.debug("Resoumettre %O", updatedItem)
+            // console.debug("Resoumettre %O", updatedItem)
             _uploadsPending.push(updatedItem)
         })
 
     const completes = _uploadsCompletes.filter(item=>!correlationsRetry.includes(item.correlation))
-    console.debug("Update liste completes: %O", completes)
+    // console.debug("Update liste completes: %O", completes)
     _uploadsCompletes = completes
     emettreEtat()
     traiterUploads()  // Demarrer traitement si pas deja en cours

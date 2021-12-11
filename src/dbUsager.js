@@ -36,7 +36,7 @@ export function ouvrirDB(opts) {
 }
 
 function createObjectStores(db, oldVersion) {
-  console.debug("dbUsagers upgrade, DB object (version %s): %O", oldVersion, db)
+  // console.debug("dbUsagers upgrade, DB object (version %s): %O", oldVersion, db)
   switch(oldVersion) {
     case 0:
       db.createObjectStore(STORE_USAGERS, {keyPath: 'nomUsager'})
@@ -62,7 +62,7 @@ export async function saveCleDechiffree(hachage_bytes, cleSecrete, cleInfo) {
     date: new Date(),
   }
 
-  console.debug("Conserver cle secrete pour fuuid %s : %O", hachage_bytes, data)
+  // console.debug("Conserver cle secrete pour fuuid %s : %O", hachage_bytes, data)
 
   return db.transaction(STORE_CLES_DECHIFFREES, 'readwrite')
     .objectStore(STORE_CLES_DECHIFFREES)
@@ -91,7 +91,7 @@ export async function updateUsager(nomUsager, params, opts) {
   let usager = await lireUsager(db, nomUsager)
   if(!usager) usager = {}
   const updateUsager = {...usager, ...params, nomUsager}
-  console.debug("Update usager %s: %O", nomUsager, updateUsager)
+  // console.debug("Update usager %s: %O", nomUsager, updateUsager)
   const tx = await db.transaction(STORE_USAGERS, 'readwrite')
   const store = tx.objectStore(STORE_USAGERS)
   const resultats = await Promise.all([
@@ -99,7 +99,7 @@ export async function updateUsager(nomUsager, params, opts) {
     store.put(updateUsager),
     tx.done
   ])
-  console.debug("Resultats update DB : %O", resultats)
+  // console.debug("Resultats update DB : %O", resultats)
   return resultats[0]
 }
 
