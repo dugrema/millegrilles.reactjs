@@ -334,7 +334,7 @@ export function isFormatteurReady() {
 
 export async function getCertificatsMaitredescles() {
   if(_certificatsMaitreDesCles) return _certificatsMaitreDesCles
-  const reponse = await emitBlocking('getCertificatsMaitredescles', null, {noformat: true})
+  const reponse = await emitBlocking('getCertificatsMaitredescles', null, {noformat: true, ajouterCertificat: true})
   if(!reponse.err) {
     // Cacher la reponse
     // console.debug("Cert maitre des cles mis en cache : %O", reponse)
