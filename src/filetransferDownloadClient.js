@@ -399,7 +399,7 @@ async function downloadCacheFichier(downloadEnCours, opts) {
       headersModifies.set('content-type', mimetype)
     }
     if(filename) {
-      headersModifies.set('content-disposition', `attachment; filename="${filename}"`)
+      headersModifies.set('content-disposition', `attachment; filename="${encodeURIComponent(filename)}"`)
     }
 
     var response = null
@@ -560,6 +560,32 @@ export function down_setCallbackDownload(cb) {
 
 export function down_setUrlDownload(urlDownload) {
   _urlDownload = urlDownload
+}
+
+export async function down_retryDownload(fuuid) {
+  const [cache, db] = await Promise.all([caches.open(CACHE_TEMP_NAME), ouvrirIdb()])
+
+  const data = await db.transaction(STORE_DOWNLOADS, 'readonly').objectStore(STORE_DOWNLOADS).get(fuuid)
+  await db.transaction(STORE_DOWNLOADS, 'readwrite')
+    .objectStore(STORE_DOWNLOADS)
+    .put({
+      ...data, 
+      status: 1, 
+      err: null, 
+      annuler: false, 
+      complete: false, 
+      dateComplete: '', 
+      dateQueuing: new Date(),
+    })
+  
+  try {
+    await cache.delete('/' + fuuid)
+  } catch(err) {
+    console.debug("Erreur suppression cache : %O", err)
+  }
+
+  // Demarrer download
+  traiterDownloads()
 }
 
 export async function down_supprimerDownloads(params) {
