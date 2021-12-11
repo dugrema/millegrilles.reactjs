@@ -31,19 +31,14 @@ export async function down_getEtatCourant() {
 
   const store = db.transaction(STORE_DOWNLOADS, 'readonly').objectStore(STORE_DOWNLOADS)
   let cursor = await store.openCursor()
-  console.debug("!!! Cursor : %O", cursor)
+  // console.debug("!!! Cursor : %O", cursor)
 
   const downloads = []
 
   while(cursor) {
     const {key, value} = cursor
-    console.log(key, value)
+    // console.log(key, value)
     downloads.push(value)
-    // if(value.status === STATUS_NOUVEAU) {
-    //   downloadsPending.push(value )
-    // } else if([STATUS_SUCCES, STATUS_ERREUR].includes(value.status)) {
-    //   downloadsCompletes.push(value)
-    // }
     cursor = await cursor.continue()
   }
 
@@ -54,16 +49,16 @@ export async function down_getEtatCourant() {
       downloads,
       downloadEnCours: _downloadEnCours,
   }
-  console.debug("Retourner etat : %O", etat)
+  // console.debug("Retourner etat : %O", etat)
   return etat
 }
 
 export async function down_ajouterDownload(fuuid, opts) {
   opts = opts || {}
   // Note: opts doit avoir iv, tag et password/passwordChiffre pour les fichiers chiffres
-  const url = path.join(_urlDownload, ''+fuuid+'.mgs2')  // Peut etre override dans opts
+  const url = path.join(_urlDownload, ''+fuuid)  // Peut etre override dans opts
 
-  console.debug("ajouterDownload %s, %O", fuuid, opts)
+  // console.debug("ajouterDownload %s, %O", fuuid, opts)
 
   const infoDownload = {
     url,
@@ -80,7 +75,7 @@ export async function down_ajouterDownload(fuuid, opts) {
     dateComplete: '',
   }
 
-  console.debug("ajouterDownload push %O", infoDownload)
+  // console.debug("ajouterDownload push %O", infoDownload)
 
   const db = await ouvrirIdb()
   await db.transaction(STORE_DOWNLOADS, 'readwrite')
@@ -103,7 +98,7 @@ async function traiterDownloads() {
   //for(_downloadEnCours = downloadsPending.shift(); _downloadEnCours; _downloadEnCours = downloadsPending.shift()) {
   while(downloadsPending.length > 0) {
       _downloadEnCours = downloadsPending.shift()
-      console.debug("Traitement fichier %O", _downloadEnCours)
+      // console.debug("Traitement fichier %O", _downloadEnCours)
       
       //_downloadEnCours.status = STATUS_ENCOURS
       await majDownload(_downloadEnCours.hachage_bytes, {status: STATUS_ENCOURS})
@@ -111,7 +106,7 @@ async function traiterDownloads() {
       
       try {
           // Download le fichier.
-          await downloadCacheFichier(_downloadEnCours, {DEBUG: true, progressCb})
+          await downloadCacheFichier(_downloadEnCours, {progressCb})
           emettreEtat({fuuidReady: _downloadEnCours.fuuid}).catch(err=>(console.warn("Erreur maj etat apres download complet : %O", err)))
       } catch(err) {
           console.error("Erreur GET fichier : %O (downloadEnCours : %O)", err, _downloadEnCours)
@@ -149,7 +144,7 @@ async function getDownloadsPending() {
   const downloadsPending = []
   while(cursor) {
     const { key, value } = cursor
-    console.log(key, value)
+    // console.log(key, value)
     if(value.status === STATUS_NOUVEAU) {
       downloadsPending.push(value)
     }
@@ -186,7 +181,7 @@ async function fetchAvecProgress(url, opts) {
 
   const reponse = await fetch(url)
 
-  if(DEBUG) console.debug("Reponse object : %O", reponse)
+  // if(DEBUG) console.debug("Reponse object : %O", reponse)
   const reader = reponse.body.getReader()
   const contentLength = Number(reponse.headers.get('Content-Length'))
 
@@ -321,17 +316,8 @@ async function preparerDataProcessor(iv, tag, opts) {
   
   // Charger cle privee subtle, dechiffrer mot de passe
   if(!password) {
-    // Dechiffrer le mot de passe
-    if( clePriveePem ) {
-      if(DEBUG) console.debug("Charger cle privee PEM sous format subtle")
-      password = await _chiffrage.dechiffrerCleSecreteSubtle(clePriveePem, passwordChiffre, {DEBUG})
-    } else if(clePriveeSubtleDecrypt) {
-      if(DEBUG) console.debug("Dechiffrer avec cle privee subtle deja chargee")
-      password = await _chiffrage.dechiffrerCleSecreteSubtle(clePriveeSubtleDecrypt, passwordChiffre, {DEBUG})
-    } else {
-      // Charger la cle a partir de IndexedDB
-      throw new Error("Cle privee non chargee pour dechiffrage")
-    }
+    // Dechiffrage du password - agit comme validation si subtle est utilise (on ne sauvegarde pas le password)
+    password = await _chiffrage.dechiffrerCleSecrete(passwordChiffre)
   }
 
   const dataProcessor = {
@@ -367,7 +353,7 @@ async function downloadCacheFichier(downloadEnCours, opts) {
   opts = opts || {}
   const progressCb = opts.progressCb || function() {}  // Par defaut fonction vide
 
-  console.debug("downloadCacheFichier %O, Options : %O", downloadEnCours, opts)
+  // console.debug("downloadCacheFichier %O, Options : %O", downloadEnCours, opts)
   const DEBUG = opts.DEBUG || false
 
   var blockCipher = null
@@ -385,7 +371,7 @@ async function downloadCacheFichier(downloadEnCours, opts) {
     // Ajouter url au path
     urlDownload.pathname = path.join(urlDownload.pathname, url)
   }
-  console.debug("URL de download de fichier : %O", urlDownload)
+  // console.debug("URL de download de fichier : %O", urlDownload)
 
   let pathname
   try {
@@ -438,6 +424,7 @@ async function downloadCacheFichier(downloadEnCours, opts) {
         // On avait un processor, finir le dechiffrage
         if(DEBUG) console.debug("Dechiffrer avec subtle")
         progressCb(size-1, size, {flag: 'Dechiffrage en cours'})
+        const password = await _chiffrage.preparerCleSecreteSubtle(passwordChiffre, iv)
         buffer = await dechiffrer(buffer, password, iv, tag)
         if(DEBUG) console.debug("Dechiffrage avec subtle termine")
         progressCb(size, size, {flag: 'Mise en cache'})
@@ -458,7 +445,7 @@ async function downloadCacheFichier(downloadEnCours, opts) {
     }
     if(DEBUG) console.debug("Fuuid a mettre dans le cache : %s", pathname)
 
-    console.debug("Caches : %O, CacheStorage: %O", caches, CacheStorage)
+    // console.debug("Caches : %O, CacheStorage: %O", caches, CacheStorage)
     const cache = await caches.open(CACHE_TEMP_NAME)
     if(DEBUG) console.debug("Cache instance : %O", cache)
     const promiseCache = cache.put(pathname, response)
@@ -513,7 +500,7 @@ async function emettreEtat(flags) {
       flags.total = total
 
       const pctFichiersEnCours = Math.floor(loaded * 100 / total)
-      console.debug("Emettre etat : pending %O, pctFichiersEnCours : %O, flags: %O", pending, pctFichiersEnCours, flags)
+      // console.debug("Emettre etat : pending %O, pctFichiersEnCours : %O, flags: %O", pending, pctFichiersEnCours, flags)
 
       _callbackEtatDownload(
           pending,
@@ -528,11 +515,11 @@ export async function down_annulerDownload(fuuid) {
   const etatAnnule = {complete: true, status: STATUS_ERREUR, annuler: true, dateComplete: new Date()}
 
   if(!fuuid) {
-    console.debug("Annuler tous les downloads")
+    // console.debug("Annuler tous les downloads")
     await majIdb(item=>item.status===STATUS_NOUVEAU, etatAnnule)
     if(_downloadEnCours) _downloadEnCours.annuler = true
   } else {
-    console.warn("Annuler download %s", fuuid)
+    // console.warn("Annuler download %s", fuuid)
     if(_downloadEnCours && _downloadEnCours.fuuid === fuuid) {
       _downloadEnCours.annuler = true
     } else {
@@ -581,14 +568,14 @@ export async function down_supprimerDownloads(params) {
 
   const [cache, db] = await Promise.all([caches.open(CACHE_TEMP_NAME), ouvrirIdb()])
   if(hachage_bytes) {
-    console.debug("Supprimer download/cache pour %s", hachage_bytes)
+    // console.debug("Supprimer download/cache pour %s", hachage_bytes)
     const store = db.transaction(STORE_DOWNLOADS, 'readwrite').objectStore(STORE_DOWNLOADS)
     await store.delete(hachage_bytes)
     await cache.delete('/' + hachage_bytes)
   } else if(completes === true || filtre) {
     const verifierItem = params.filtre?params.filtre:value=>value.complete
     // Supprimer tout les downloads completes
-    console.debug("down_supprimerDownloads: ouvrir curseur readwrite")
+    // console.debug("down_supprimerDownloads: ouvrir curseur readwrite")
     const store = db.transaction(STORE_DOWNLOADS, 'readwrite').objectStore(STORE_DOWNLOADS)
     let cursor = await store.openCursor()
     while(cursor) {
@@ -604,7 +591,7 @@ export async function down_supprimerDownloads(params) {
       cursor = await cursor.continue()
     }
   }
-  console.debug("down_supprimerDownloads: fermer curseur readwrite")
+  // console.debug("down_supprimerDownloads: fermer curseur readwrite")
 
   // Met a jour le client
   emettreEtat()
@@ -615,16 +602,16 @@ export async function cleanupCacheOrphelin() {
   const [cache, db] = await Promise.all([caches.open(CACHE_TEMP_NAME), ouvrirIdb()])
   const keysCache = await cache.keys()
   const dbKeys = await db.transaction(STORE_DOWNLOADS, 'readonly').objectStore(STORE_DOWNLOADS).getAllKeys()
-  console.debug("DB Keys : %O", dbKeys)
+  // console.debug("DB Keys : %O", dbKeys)
 
   for(let idx in keysCache) {
     const req = keysCache[idx]
-    console.debug("KEY %s", req.url)
+    // console.debug("KEY %s", req.url)
     const urlKey = new URL(req.url)
     const fuuid = urlKey.pathname.split('/').pop()
-    console.debug("FUUID : %O", fuuid)
+    // console.debug("FUUID : %O", fuuid)
     if(!dbKeys.includes(fuuid)) {
-      console.debug("Cle cache inconnue, on va supprimer %s", fuuid)
+      // console.debug("Cle cache inconnue, on va supprimer %s", fuuid)
       cache.delete(req).catch(err=>{console.warn("Erreur suppression entree cache %s", fuuid)})
     }
   }
@@ -633,7 +620,7 @@ export async function cleanupCacheOrphelin() {
 
 /** Effectue l'entretie du cache et IndexedDb */
 export async function down_entretienCache() {
-  console.debug("Entretien cache/idb de download")
+  // console.debug("Entretien cache/idb de download")
   
   // Cleanup fichiers downloades de plus de 24h
   const dateExpiration = new Date().getTime() - EXPIRATION_CACHE_MS

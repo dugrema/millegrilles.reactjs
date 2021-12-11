@@ -373,8 +373,8 @@ export function downgradePrive() {
 }
 
 export async function getCleFichierProtege(fuuid) {
-  return connexionClient.emitBlocking(
-    'maitrecles/getCleFichierProtege',
+  return emitBlocking(
+    'getClesFichiers',
     { liste_hachage_bytes: [fuuid] },
     { domaine: 'MaitreDesCles', action: 'dechiffrage', attacherCertificat: true }
   )

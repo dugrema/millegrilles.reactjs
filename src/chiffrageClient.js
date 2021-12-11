@@ -263,6 +263,10 @@ export async function preparerCleSecreteSubtle(cleSecreteChiffree, iv) {
   return _preparerCleSecreteSubtle(cleSecreteChiffree, iv, clePriveeSubtleDecrypt)
 }
 
+export function dechiffrerCleSecrete(cleSecreteChiffree) {
+  return dechiffrerCleSecreteSubtle(clePriveeSubtleDecrypt, cleSecreteChiffree)
+}
+
 // Re-export des imports
 export { dechiffrerSubtle }
 
