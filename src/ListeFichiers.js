@@ -3,14 +3,18 @@ import {Container, Row, Col, Button, Modal} from 'react-bootstrap'
 
 import {Thumbnail, ThumbnailHeader, ThumbnailFooter, ThumbnailBoutonContexte} from './Thumbnail'
 import { isTouchEnabled } from './detecterAppareils'
-import { FormatterDuree } from './Formatters'
+import { FormatterDate, FormatterDuree } from './Formatters'
 
 import styles from './styles.module.css'
+
+const MIMETYPE_PDF = 'application/pdf'
 
 export function ListeFichiers(props) {
 
     let ClasseViewer = ListeFichiersLignes
     if(props.modeView === 'thumbnails') ClasseViewer = ListeFichiersThumbnails
+    if(props.modeView === 'thumbnails-small') ClasseViewer = ListeFichiersThumbnails
+    if(props.modeView === 'recents') ClasseViewer = ListeFichiersRecents
 
     // Gerer comportement selection
     const [selectionne, setSelectionne] = useState([])
@@ -309,8 +313,11 @@ function ListeFichiersRow(props) {
 // }
 
 function ListeFichiersThumbnails(props) {
-    const {rows, onSelectioner, onOuvrir, onContextMenu, touchEnabled} = props
+    const {rows, onSelectioner, onOuvrir, onContextMenu, touchEnabled, modeView} = props
     if(!rows) return ''  // Ecran n'est pas encore configure
+
+    let modeSmall = ''
+    if(modeView === 'thumbnails-small') modeSmall = true
 
     const selectionnes = props.selectionne || []
     // console.debug("ListeFichierThumbnails selectionnes : %O", selectionnes)
@@ -332,6 +339,7 @@ function ListeFichiersThumbnails(props) {
                         selectionne={selectionne}
                         touchEnabled={touchEnabled}
                         className={classNames.join(' ')}
+                        small={modeSmall}
                         />
                 )
             })}
@@ -342,7 +350,7 @@ function ListeFichiersThumbnails(props) {
 
 function FichierThumbnail(props) {
 
-    const {data, className, onSelectioner, onOuvrir, onContextMenu, touchEnabled} = props,
+    const {data, className, onSelectioner, onOuvrir, onContextMenu, touchEnabled, small} = props,
           {fileId, folderId, thumbnailIcon, thumbnailSrc, thumbnailLoader, thumbnailCaption, duree} = data
 
     const onClickAction = useCallback(event=>{
@@ -376,6 +384,7 @@ function FichierThumbnail(props) {
             loader={thumbnailLoader}
             placeholder={thumbnailIcon}
             className={className}
+            small={small}
             >
 
             {duree?
@@ -391,6 +400,66 @@ function FichierThumbnail(props) {
             <ThumbnailBoutonContexte onClick={onContextMenuAction} />
 
         </Thumbnail>
+    )
+}
+
+function ListeFichiersRecents(props) {
+
+    const {rows, onSelectioner, onOuvrir, onContextMenu, touchEnabled} = props
+    if(!rows) return ''  // Ecran n'est pas encore configure
+
+    const [jours, setJours] = useState('')
+
+    useEffect(()=>{
+        const jours = grouperFichiersRecents(rows)
+        console.debug("Praparer rows pour recents, jours : %O", jours)
+        setJours(jours)
+    }, [setJours, rows])
+
+    if(!jours) return ''
+
+    return (
+        <div>
+            {jours.map(item=>{
+                const keyStr = '' + item.jour.getTime()
+                return <GroupeJour key={keyStr} value={item} />
+            })}
+        </div>
+    )
+}
+
+function GroupeJour(props) {
+
+    const { jour, groupes } = props.value
+
+    const groupesListe = []
+    for(let type in groupes) {
+        const rows = groupes[type]
+        groupesListe.push({type, rows})
+    }
+    groupesListe.sort(trierGroupes)
+
+    return (
+        <div>
+            <Row>
+                <Col><FormatterDate value={jour.getTime()/1000} format="yyyy-MM-DD"/></Col>
+            </Row>
+            {groupesListe.map(groupe=>{
+                const { type, rows } = groupe
+                return (
+                    <div key={type}>
+                        <Row>
+                            <Col>{type}</Col>
+                        </Row>
+                        <Row>
+                            <Col>
+                                <ListeFichiersThumbnails rows={rows} modeView='thumbnails-small' />
+                            </Col>
+                        </Row>
+                    </div>
+                )
+            })}
+        </div>
     )
 }
 
@@ -454,4 +523,64 @@ export function MenuContextuelModal(props) {
             </Modal.Body>
         </Modal>
     )
+}
+
+/** Grouper les fichiers recents par jour, puis par type. */
+function grouperFichiersRecents(rows) {
+    const joursParDate = {}
+
+    rows.forEach(fichier=>{
+        const dateFichier = fichier.dateAjout
+        
+        // Identifier jour
+        const jour = new Date(dateFichier*1000)
+        jour.setHours(0)
+        jour.setMinutes(0)
+        jour.setSeconds(0)
+        jour.setMilliseconds(0)
+        const jourMs = ''+jour.getTime()
+
+        // Identifier type
+        let typeFichier
+        const mimetype = fichier.mimetype,
+              baseType = mimetype.split('/').shift()
+        if(mimetype === MIMETYPE_PDF) typeFichier = 'document'
+        else if(baseType === 'image' || baseType === 'video') typeFichier = 'media'
+        else if(fichier.folderId) typeFichier = 'collection'
+        else typeFichier = 'fichier'
+
+        let dataJour = joursParDate[jourMs]
+        if(!dataJour) {
+            dataJour = {}
+            joursParDate[jourMs] = dataJour
+        }
+        let dataType = dataJour[typeFichier]
+        if(!dataType) {
+            dataType = []
+            dataJour[typeFichier] = dataType
+        }
+        dataType.push(fichier)
+    })
+
+    const jours = Object.keys(joursParDate)
+    console.debug("Jours keys : %O", jours)
+    jours.sort(trierDates)
+    const joursTries = jours.map(jour=>{
+        return {
+            jour: new Date(Number.parseInt(jour)), 
+            groupes: joursParDate[jour]
+        }
+    })
+
+    return joursTries
+}
+
+function trierDates(a, b) {
+    if(a === b) return 0
+    return a - b
+}
+
+function trierGroupes(a, b) {
+    const aType = a.type, bType = b.type
+    return aType.localeCompare(bType)
 }

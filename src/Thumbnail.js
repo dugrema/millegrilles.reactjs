@@ -3,8 +3,13 @@ import {Button, Card} from 'react-bootstrap'
 import styles from './styles.module.css'
 
 export function Thumbnail(props) {
-    const { mini } = props
-    const styleBase = props.mini?styles.thumbnailmini:styles.thumbnail
+    const { mini, small } = props
+    
+    let styleBase
+    if(small) styleBase = styles.thumbnailsmall
+    else if(mini) styleBase = styles.thumbnailmini
+    else styleBase = styles.thumbnail
+
     const className = [styleBase, (props.className || '')].join(' ')
     const {src, loader, placeholder} = props
     const {onClick, onDoubleClick, onContextMenu, onTouchEnd} = props

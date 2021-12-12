@@ -18,6 +18,7 @@ export default props => {
     const [data, setData] = useState('')
     const [selectionLignes, setSelectionLignes] = useState('')
     const [selectionThumbs, setSelectionThumbs] = useState('')
+    const [selectionRecents, setSelectionRecents] = useState('')
     const [ouvrirId, setOuvrirId] = useState('')
 
     useEffect(()=>{
@@ -40,6 +41,7 @@ export default props => {
 
     const onSelectionLignes = useCallback(selection=>{setSelectionLignes(selection.join(', '))}, [setSelectionLignes])
     const onSelectionThumbs = useCallback(selection=>{setSelectionThumbs(selection.join(', '))}, [setSelectionThumbs])
+    const onSelectionRecents = useCallback(selection=>{setSelectionRecents(selection.join(', '))}, [setSelectionRecents])
 
     const fermerContextuel = useCallback(()=>{
         setContextuel(false)
@@ -67,7 +69,7 @@ export default props => {
             <p>Selection : {selectionLignes}</p>
             <p>Ouvrir: {ouvrirId}</p>
 
-            <h2>Liste fichiers mode thumbnails</h2>
+            <h2>Liste fichiers mode thumbnails (full)</h2>
             <ListeFichiers 
                 modeView='thumbnails' 
                 colonnes={colonnes}
@@ -82,6 +84,32 @@ export default props => {
             <p style={{clear: 'left'}}>
                 Selection : {selectionThumbs}
             </p>
+
+            <h2>Liste fichiers mode thumbnails small</h2>
+            <ListeFichiers 
+                modeView='thumbnails-small'
+                colonnes={colonnes}
+                rows={data} 
+                onClick={onClick} 
+                onDoubleClick={onDoubleClick}
+                onContextMenu={(event, value)=>onContextMenu(event, value, setContextuel)}
+                onSelection={onSelectionThumbs}
+                onClickEntete={colonne=>{console.debug("Entete click : %s", colonne)}}
+                />
+
+            <p style={{clear: 'left'}}>
+                Selection : {selectionThumbs}
+            </p>
+
+            <h2>Liste fichiers mode recents</h2>
+            <ListeFichiers 
+                modeView='recents' 
+                rows={data} 
+                onClick={onClick} 
+                onDoubleClick={onDoubleClick}
+                onContextMenu={(event, value)=>onContextMenu(event, value, setContextuel)}
+                onSelection={onSelectionRecents}
+                />
 
             <MenuContextuel show={contextuel.show} posX={contextuel.x} posY={contextuel.y} fermer={fermerContextuel}>
                 <Row><Col><Button variant="link" onClick={fermerContextuel}><i className="fa fa-search"/> Preview</Button></Col></Row>
@@ -122,8 +150,10 @@ function sampleData1() {
         {fuuid: 'abcd-1235', nom: 'fichier2 avec un nom long.jpg', taille: 2938481, date: 1637264901, mimetype: 'image/jpg', thumbnailLoader: loadImage()},
         {fuuid: 'abcd-1236', nom: 'fichier3 avec un nom encore plus long que lautre pour depasser la limite de lecran.jpg', taille: 10023, date: 1637264902, mimetype: 'image/jpg'},
         {fuuid: 'abcd-1237', nom: 'article1.pdf', taille: 84511, date: 1637265416, mimetype: 'application/pdf'},
-        {fuuid: 'abcd-1238', nom: 'mon film 1.mov', taille: 134874998, date: 1637278941, mimetype: 'video/qt', duree: 123},
+        {fuuid: 'abcd-1238', nom: 'fichier3 avec un nom encore plus long que lautre pour depasser la limite de lecran.jpg', taille: 10023, date: 1637264902, mimetype: 'image/jpg'},        
+        {fuuid: 'abcd-1239', nom: 'mon film 2.mov', taille: 164874998, date: 1637584902, mimetype: 'video/qt', duree: 123},
         {cuuid: 'efgh-5678', nom: 'Repertoire 1', date: 1637264902},
+        {cuuid: 'efgh-5679', nom: 'Repertoire 2', date: 1637594902},
     ]
 }
 

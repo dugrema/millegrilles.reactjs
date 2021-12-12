@@ -106,7 +106,7 @@ BODY {
   bottom: 0.25rem;
 }
 
-.thumbnail IMG, .thumbnailmini IMG {
+.thumbnail IMG, .thumbnailmini IMG, .thumbnailsmall IMG {
   object-fit: cover;
 }
 
@@ -118,7 +118,7 @@ BODY {
   height: 22px;
 }
 
-.thumbnailminiph {
+.thumbnailmini {
   float: left;
   margin: 1px;
   margin-right: 0.5rem;
@@ -129,6 +129,27 @@ BODY {
 .thumbnailmini IMG {
   width: 20px;
   height: 20px;
+}
+
+.thumbnailsmall {
+  float: left;
+  /* margin: 1px;
+  margin-right: 0.5rem;
+  width: 100px;
+  height: 100px; */
+}
+
+.thumbnailsmallph {
+  float: left;
+  /* margin: 1px;
+  margin-right: 0.5rem;
+  width: 100px;
+  height: 100px; */
+}
+
+.thumbnailsmall IMG {
+  width: 80px;
+  height: 80px;
 }
 
 .menucontextuel {
@@ -214,7 +235,7 @@ BODY {
     width: 200px;
     height: 200px;
   }
-  .thumbnailfooter {
+  .thumbnail .thumbnailfooter {
     bottom: 0.5rem;
     width: 170px;
     padding-left: 5px;
@@ -233,6 +254,32 @@ BODY {
     padding-left: 1.5rem;
     font-size: 8rem;
   }
+
+  .thumbnailsmall {
+    margin: 0.5em;
+    width: 100px;
+    height: 100px;
+  }
+  .thumbnailsmall .thumbnailfooter {
+    bottom: 0.2rem;
+    width: 75px;
+    padding-left: 2px;
+    padding-right: 2px;
+    text-align: center;
+  }
+  .thumbnailsmall:hover .thumbnailboutoncontexte {
+    display: block;
+  }
+  .thumbnailsmall IMG {
+    width: 98px;
+    height: 98px;
+  }
+  .thumbnailsmall I {
+    padding-top: 0.5rem;
+    padding-left: 0.75rem;
+    font-size: 3rem;
+  }
+
   .header .menu-right {
     text-align: right;
   }
