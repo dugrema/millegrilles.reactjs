@@ -350,7 +350,7 @@ export function genererChallengeWebAuthn(params) {
 
 export function upgradeProteger(data) {
   if(data) {
-    return emitBlocking('upgradeProtege', data, {noformat: true})
+    return emitBlocking('upgrade', data, {noformat: true})
   } else {
     // Faire une requete pour upgrader avec le certificat
     // console.debug("upgradeProtege, fetch le challenge")
@@ -358,7 +358,7 @@ export function upgradeProteger(data) {
       // console.debug("connexionClient.upgradeProteger Reponse challenge : %O", reponse)
       // Repondre pour creer l'upgrade
       const data = {...reponse.challengeCertificat}
-      return emitBlocking('upgradeProtege', data, {domaine: 'login', attacherCertificat: true})
+      return emitBlocking('upgrade', data, {domaine: 'login', attacherCertificat: true})
     })
   }
 }
