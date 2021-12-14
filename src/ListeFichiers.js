@@ -441,17 +441,17 @@ function GroupeJour(props) {
 
     return (
         <div>
-            <Row>
+            <Row className="listerecent-jour">
                 <Col><FormatterDate value={jour.getTime()/1000} format="yyyy-MM-DD"/></Col>
             </Row>
             {groupesListe.map(groupe=>{
                 const { type, rows } = groupe
                 return (
-                    <div key={type}>
+                    <div key={type} className="listerecent-row">
                         <Row>
                             <Col>{type}</Col>
                         </Row>
-                        <Row>
+                        <Row className="listerecent-subrow">
                             <Col>
                                 <ListeFichiersThumbnails rows={rows} modeView='thumbnails-small' />
                             </Col>
@@ -577,7 +577,7 @@ function grouperFichiersRecents(rows) {
 
 function trierDates(a, b) {
     if(a === b) return 0
-    return a - b
+    return b - a  // sort DESC
 }
 
 function trierGroupes(a, b) {

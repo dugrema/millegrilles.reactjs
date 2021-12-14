@@ -52,11 +52,14 @@ export function FormatterDate(props) {
 
     const value = props.value
 
+    if(!value) return ''
+
     return moment(value*1000).tz(timezone).format(format)
 }
 
 export function FormatterDuree(props) {
     const { value } = props
+    if(!value) return ''
     const momentDuree = moment.duration(value, 'seconds')
     // console.debug("Moment duree : %O", momentDuree)
     return momentDuree.format('h:mm:ss')
