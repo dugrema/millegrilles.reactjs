@@ -405,7 +405,7 @@ function FichierThumbnail(props) {
 
 function ListeFichiersRecents(props) {
 
-    const {rows, onSelectioner, onOuvrir, onContextMenu, touchEnabled} = props
+    const {rows} = props
     if(!rows) return ''  // Ecran n'est pas encore configure
 
     const [jours, setJours] = useState('')
@@ -422,7 +422,9 @@ function ListeFichiersRecents(props) {
         <div>
             {jours.map(item=>{
                 const keyStr = '' + item.jour.getTime()
-                return <GroupeJour key={keyStr} value={item} />
+                return (
+                    <GroupeJour key={keyStr} {...props} value={item} />
+                )
             })}
         </div>
     )
@@ -453,7 +455,7 @@ function GroupeJour(props) {
                         </Row>
                         <Row className="listerecent-subrow">
                             <Col>
-                                <ListeFichiersThumbnails rows={rows} modeView='thumbnails-small' />
+                                <ListeFichiersThumbnails {...props} rows={rows} modeView='thumbnails-small'/>
                             </Col>
                         </Row>
                     </div>
