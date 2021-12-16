@@ -39,6 +39,9 @@ export function ListeFichiers(props) {
     }, [onDoubleClick])
     
     const contextMenuHandler = useCallback( async (event, value) => {
+        event.stopPropagation()
+        event.preventDefault()
+
         // console.debug("Context event : %O", event.currentTarget)
         if(onSelection) {
             const idSelection = value.fileId || value.folderId
@@ -128,7 +131,9 @@ function ListeFichiersLignes(props) {
 
     return (
         <div className={styles.fichierstable}>
+
             <ListeFichiersEntete colonnes={colonnes} onClickEntete={props.onClickEntete} />
+            
             {rows.map(row=>{
                 const localId = row.fileId || row.folderId
                 const selectionne = selectionnes.includes(localId)
@@ -206,11 +211,11 @@ function ListeFichiersRow(props) {
 
     const onClickAction = useCallback(event=>{
         if(touchEnabled) return  // Rien a faire
-        if(onSelectioner) onSelectioner(event, {fileId, folderId})
-    }, [onSelectioner, fileId, folderId])
+        if(onSelectioner && !touchEnabled) onSelectioner(event, {fileId, folderId})
+    }, [onSelectioner, touchEnabled, fileId, folderId])
 
     const onDoubleClickAction = useCallback(event=>{
-        if(touchEnabled) return  // Rien a faire
+        if(touchEnabled === true) return  // Rien a faire
         event.preventDefault()
         event.stopPropagation()
         if(onOuvrir) onOuvrir(event, {fileId, folderId})
@@ -226,8 +231,8 @@ function ListeFichiersRow(props) {
     }, [onContextMenu, fileId, folderId])
 
     const onBoutonContext = useCallback(event=>{
-        event.preventDefault()
         event.stopPropagation()
+        event.preventDefault()
         if(onContextMenu) onContextMenu(event, {fileId, folderId})
     })
 
@@ -237,10 +242,8 @@ function ListeFichiersRow(props) {
     return (
         <Row 
             className={classNames.join(' ')}
-            onClick={onClickAction}
             onDoubleClick={onDoubleClickAction} 
             onContextMenu={onContextMenuAction}
-            onTouchEnd={onTouchEnd}
             >
             {colonnes.ordreColonnes.map(nomColonne=>{
                 const param = paramsColonnes[nomColonne]
@@ -271,7 +274,14 @@ function ListeFichiersRow(props) {
                 let boutonContexte = ''
                 if(showBoutonContexte) {
                     boutonContexte = (
-                        <Button variant="secondary" size="sm" onClick={onBoutonContext} className={styles.lignehover}><i className="fa fa-ellipsis-h"/></Button>
+                        <Button 
+                            variant="secondary" 
+                            size="sm" 
+                            onClick={onBoutonContext} 
+                            className={styles.lignehover}
+                        >
+                            <i className="fa fa-ellipsis-h"/>
+                        </Button>
                     )
                 }
 
@@ -283,11 +293,24 @@ function ListeFichiersRow(props) {
                     xl: param.xl,
                 }
 
+                if(boutonContexte) {
+                    return (
+                        <Col key={nomColonne} {...infoDimension} className={className}>
+                            {boutonContexte}
+                        </Col>
+                    )
+                }
+
                 return (
-                    <Col key={nomColonne} {...infoDimension} className={className}>
+                    <Col 
+                        key={nomColonne} 
+                        {...infoDimension} 
+                        className={className}
+                        onClick={onClickAction}
+                        onTouchEnd={onTouchEnd}
+                    >
                         {thumbnail}
                         {spanContenu}
-                        {boutonContexte}
                     </Col>
                 )
             })}

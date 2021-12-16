@@ -359,6 +359,8 @@ BODY {
 @media screen and (max-width: 767px) {
   .fichierstable .fichierstablerow .lignehover {
     display: block;
+    padding-left: 0.1rem;
+    padding-right: 0.1rem;
   }
   .thumbnail {
     margin: 0.2rem;
