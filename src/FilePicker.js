@@ -47,14 +47,17 @@ export default props => {
 
     useEffect(()=>{
         if(!loadCollection || !setListe) return
-        loadCollection(cuuidCourant)
-        .then(liste=>{
-            // console.debug("Cuuid %s, liste collections : %O", cuuidCourant, liste)
-            setListe(liste)
-        })
-        .catch(err=>{
-            console.error("Erreur load collection %s : %O", cuuidCourant, err)
-        })
+        else {
+            loadCollection(cuuidCourant)
+            .then(liste=>{
+                // console.debug("Cuuid %s, liste collections : %O", cuuidCourant, liste)
+                liste.sort(trierNom)
+                setListe(liste)
+            })
+            .catch(err=>{
+                console.error("Erreur load collection %s : %O", cuuidCourant, err)
+            })
+        }
     }, [loadCollection, cuuidCourant, setListe])
 
     let pathCumulatif = []
@@ -108,4 +111,10 @@ function AfficherListeCollections(props) {
             ))}
         </div>
     )
+}
+
+function trierNom(a, b) {
+    if(a===b) return 0
+    const aNom = a.nom || '', bNom = b.nom || ''
+    return aNom.localeCompare(bNom)
 }
