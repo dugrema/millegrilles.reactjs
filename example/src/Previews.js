@@ -67,6 +67,15 @@ function preparerSample1() {
             }, typeRessource) 
         },
         {
+            tuuid: 'abcd-1234', mimetype: 'image/jpeg', nom: 'Le big nom du nom de la place longue cest un nom trop long pour fitter dans tout ecran pas triche.jpg',
+            loader: typeRessource => resLoader({
+                thumbnail: '/reactjs/res/001_128.jpg', 
+                poster: '/reactjs/res/001_200.jpg', 
+                'image/jpg;1080': '/reactjs/res/001.jpg',
+                original: '/reactjs/res/001.jpg',
+            }, typeRessource) 
+        },
+        {
             tuuid: 'abcd-1235', mimetype: 'application/pdf', nom: 'sample1.pdf',
             loader: typeRessource => resLoader({
                 poster: '/reactjs/files/sample1.poster.jpg', 

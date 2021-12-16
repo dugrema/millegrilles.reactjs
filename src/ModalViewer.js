@@ -105,14 +105,19 @@ export default props => {
             >
 
             {afficherHeaderFooter?
-                <Modal.Header closeButton>
+                <Modal.Header>
                     <Modal.Title>{nomFichier}</Modal.Title>
-                    <Button variant="secondary" onClick={downloadSrcClick} disabled={!downloadSrc} title="Download">
-                        <i className="fa fa-download"/>
-                    </Button>
-                    <Button variant="secondary" onClick={viewSrcClick} disabled={!downloadSrc} title="View">
-                        <i className="fa fa-window-maximize"/>
-                    </Button>
+                    <div className={styles['modal-heading-buttons']}>
+                        <Button variant="secondary" onClick={downloadSrcClick} disabled={!downloadSrc} title="Download" className={styles.accessoire}>
+                            <i className="fa fa-download"/>
+                        </Button>
+                        <Button variant="secondary" onClick={viewSrcClick} disabled={!downloadSrc} title="View">
+                            <i className="fa fa-window-maximize"/>
+                        </Button>
+                        <Button variant="secondary" onClick={handleCloseModal} title="View" className={styles.remove}>
+                            <i className="fa fa-remove"/>
+                        </Button>
+                    </div>
                 </Modal.Header>
                 :''
             }

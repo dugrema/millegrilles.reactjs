@@ -356,6 +356,29 @@ BODY {
   color: red;
 }
 
+/*
+:global .modal-title {
+  overflow: hidden;
+  text-overflow: clip;
+  height: 2rem;
+}
+*/
+.modal-heading-buttons {
+  display: inline;
+  width: 16rem;
+  text-align: right;
+  vertical-align: top;
+}
+
+.modal-heading-buttons BUTTON {
+  margin-left: 0.25rem;
+  font-size: 1rem;
+}
+
+.modal-heading-buttons BUTTON.remove {
+  margin-left: 2rem;
+}
+
 @media screen and (max-width: 767px) {
   .fichierstable .fichierstablerow .lignehover {
     display: block;
@@ -403,6 +426,15 @@ BODY {
     left: 1rem;
     font-size: 5rem;
   }
+  
+  .modal-heading-buttons BUTTON.accessoire {
+    display: none;
+  }
+
+  .modal-heading-buttons BUTTON.remove {
+    margin-left: 0.2rem;
+  }
+ 
 }
 
 @media screen and (max-width: 400px) {
@@ -415,4 +447,13 @@ BODY {
     left: 2.5rem;
     font-size: 5rem;
   }
+
+  .modal-heading-buttons BUTTON.accessoire {
+    display: none;
+  }
+
+  .modal-heading-buttons BUTTON.remove {
+    margin-left: 0.2rem;
+  }
+
 }
