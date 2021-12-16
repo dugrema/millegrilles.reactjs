@@ -31,6 +31,7 @@ const App = () => {
       case 'DbUsagerExemple': PageCls = DbUsagerExemple; break;
       case 'DetecterSupport': PageCls = DetecterSupport; break;
       case 'TransfertFichiers': PageCls = TransfertFichiers; break;
+      case 'FilePicker': PageCls = FilePicker; break;
       default:
     }
     if(PageCls) return (
@@ -53,6 +54,7 @@ const App = () => {
         <li><Button onClick={()=>setPage('DbUsagerExemple')}>DbUsagerExemple</Button></li>
         <li><Button onClick={()=>setPage('DetecterSupport')}>DetecterSupport</Button></li>
         <li><Button onClick={()=>setPage('TransfertFichiers')}>TransfertFichiers</Button></li>
+        <li><Button onClick={()=>setPage('FilePicker')}>File Picker</Button></li>
       </ul>
     </Container>
   )
