@@ -442,7 +442,7 @@ function GroupeJour(props) {
     groupesListe.sort(trierGroupes)
 
     return (
-        <div>
+        <div className={styles.fichierstable}>
             <Row className="listerecent-jour">
                 <Col><FormatterDate value={jour.getTime()/1000} format="yyyy-MM-DD"/></Col>
             </Row>
