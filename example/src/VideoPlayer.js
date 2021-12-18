@@ -84,6 +84,15 @@ function preparerSample1() {
                 original: '/files/p-403_032.mov'
             }, typeRessource) 
         },
+        {
+            tuuid: 'pasvid-1', mimetype: 'video/qt', nom: 'pasvid.mp4',
+            loader: typeRessource => resLoader({
+                poster: '/reactjs/files/p-403_032.poster.jpg', 
+                'image/jpg;720': '/reactjs/files/p-403_032.720.jpg',
+                // 'video/mp4;240;250000': '/reactjs/files/005_1_240.mp4',
+                original: '/files/p-403_032.mov'
+            }, typeRessource) 
+        },
     ]
 }
 
@@ -95,7 +104,7 @@ function resLoader(sources, typeRessource, opts) {
 
     console.debug("Loader %s avec sources %O", typeRessource, sources)
 
-    let src = '', clean = () => {}
+    let src = ''
     if(typeRessource === 'image') {
         // Charger image pleine resolution
         const labelImage = trouverLabelImage(Object.keys(sources))
@@ -122,14 +131,15 @@ function resLoader(sources, typeRessource, opts) {
         // Charger video pleine resolution
         const labelVideo = trouverLabelVideo(Object.keys(sources))
         console.debug("Label video trouve : '%s'", labelVideo)
+        const urlVideo = sources[labelVideo]
 
+        if(!urlVideo) return
         // src = new Promise(resolve=>{
         //     setTimeout(()=>resolve(sources[labelVideo]), 2000)
         // })
 
         src = new Promise(async (resolve, reject)=>{
             try {
-                const urlVideo = sources[labelVideo]
                 const response = await fetch(urlVideo)
                 console.debug(response)
                 const ab = await response.arrayBuffer()

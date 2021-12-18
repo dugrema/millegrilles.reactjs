@@ -236,39 +236,48 @@ function PreviewVideo(props) {
 
     const [srcImage, setSrcImage] = useState('')
     const [srcVideo, setSrcVideo] = useState('')
+    const [message, setMessage] = useState('')
 
     useEffect(()=>{
         if(loader) {
-            const {srcPromise: srcImagePromise, clean: cleanImage} = loader('image')
-            srcImagePromise
-                .then(src=>{
-                    // console.debug("Image chargee : %O", src)
-                    setSrcImage(src)
-                })
-                .catch(err=>{console.error("Erreur chargement image : %O", err)})
-            return () => {
-                // Executer sur exit
-                // console.debug("Cleanup video (image)")
-                if(cleanImage) cleanImage()
+            const loaderImage = loader('image')
+
+            if(loaderImage && loaderImage.srcPromise) {
+                const {srcPromise: srcImagePromise, clean: cleanImage} = loaderImage
+                srcImagePromise
+                    .then(src=>{
+                        // console.debug("Image chargee : %O", src)
+                        setSrcImage(src)
+                    })
+                    .catch(err=>{console.error("Erreur chargement image : %O", err)})
+                return () => {
+                    // Executer sur exit
+                    // console.debug("Cleanup video (image)")
+                    if(cleanImage) cleanImage()
+                }
             }
         }
     }, [loader, setSrcImage, setSrcVideo])
 
     useEffect(()=>{
         if(loader && srcImage && idxItem === idxCourant) {
-            const {srcPromise: srcVideoPromise, clean: cleanVideo} = loader('video')
-            // Charger video
-            srcVideoPromise.then(src=>{
-                // console.debug("Video charge : %O", src)
-                setSrcVideo(src)
-            }).catch(err=>{console.error("Erreur chargement video : %O", err)})
-            return () => {
-                // Executer sur exit
-                // console.debug("Cleanup video")
-                if(cleanVideo) cleanVideo()
+            const loaderVideo = loader('video')
+            if(loaderVideo && loaderVideo.srcPromise) {
+                setMessage(<p><i className="fa fa-spinner fa-spin"/> ... Loading ...</p>)
+                // Charger video
+                loaderVideo.srcPromise.then(src=>{
+                    setSrcVideo(src)
+                    setMessage('')
+                }).catch(err=>{console.error("Erreur chargement video : %O", err)})
+                return () => {
+                    // Executer sur exit
+                    if(loaderVideo.clean) loaderVideo.clean()
+                }
+            } else {
+                setMessage(<p> !!! Video non disponible !!! </p>)
             }
         }
-    }, [loader, srcImage, idxItem, idxCourant, setSrcImage, setSrcVideo])
+    }, [loader, srcImage, idxItem, idxCourant, setSrcImage, setSrcVideo, setMessage])
 
     useEffect(()=>{
         if(srcVideo && idxItem === idxCourant) {
@@ -286,10 +295,11 @@ function PreviewVideo(props) {
     }
 
     if(srcImage) {
+
         return (
             <div>
                 <img src={srcImage} onClick={onClick} />
-                <i className="fa fa-spinner fa-spin"/> ... Loading ...
+                {message}
             </div>
         )
     }
