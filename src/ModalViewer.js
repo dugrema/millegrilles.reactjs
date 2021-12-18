@@ -9,7 +9,7 @@ import styles from './styles.module.css'
 
 export default props => {
 
-    const {tuuidSelectionne, fichiers} = props
+    const {tuuidSelectionne, fichiers, DEBUG} = props
 
     const handle = useFullScreenHandle()
     // const [fichiersFiltres, setFichiersFiltres] = useState('')
@@ -52,7 +52,8 @@ export default props => {
         onClick, 
         setDownloadSrc: setDownloadSrcAction, 
         fullscreenHandle: handle, 
-        idxCourant: idxFichier
+        idxCourant: idxFichier,
+        DEBUG,
     })
     
     const defaultActiveIndex = fichiers.reduce((idxDefault, item, idx)=>{
@@ -75,7 +76,7 @@ export default props => {
     const downloadSrcClick = useCallback( event => {
         // https://www.delftstack.com/howto/javascript/javascript-download/
         // console.debug("Download %O", downloadSrc)
-        // const url = window.URL.createObjectURL(new Blob([response.data]));
+        // const url = window.URL.createObjectURL(new Blob([response.data], {type: 'video/mp4'}));
         const link = document.createElement('a')
         link.href = downloadSrc
         link.setAttribute('download', nomFichier)
@@ -150,7 +151,7 @@ export default props => {
 }
 
 function preparerItems(props) {
-    const {fichiers, onClick, idxCourant, setDownloadSrc} = props
+    const {fichiers, onClick, idxCourant, setDownloadSrc, DEBUG} = props
 
     if(!fichiers || idxCourant==='') return ''  // Rien a faire
 
@@ -187,7 +188,8 @@ function preparerItems(props) {
                                 idxCourant={idxCourant} 
                                 mimetype={mimetype} 
                                 onClick={onClick} 
-                                setDownloadSrc={setDownloadSrc} />
+                                setDownloadSrc={setDownloadSrc} 
+                                DEBUG={DEBUG} />
                         :''
                     }
                 </Carousel.Item>

@@ -66,6 +66,24 @@ function preparerSample1() {
                 original: '/files/p-403_032.mov'
             }, typeRessource) 
         },
+        {
+            tuuid: '005', mimetype: 'video/qt', nom: '005.mp4',
+            loader: typeRessource => resLoader({
+                poster: '/reactjs/files/p-403_032.poster.jpg', 
+                'image/jpg;720': '/reactjs/files/p-403_032.720.jpg',
+                'video/mp4;240;250000': '/reactjs/files/005_240.mp4',
+                original: '/files/p-403_032.mov'
+            }, typeRessource) 
+        },
+        {
+            tuuid: '005-1', mimetype: 'video/qt', nom: '005_1.mp4',
+            loader: typeRessource => resLoader({
+                poster: '/reactjs/files/p-403_032.poster.jpg', 
+                'image/jpg;720': '/reactjs/files/p-403_032.720.jpg',
+                'video/mp4;240;250000': '/reactjs/files/005_1_240.mp4',
+                original: '/files/p-403_032.mov'
+            }, typeRessource) 
+        },
     ]
 }
 
@@ -77,19 +95,19 @@ function resLoader(sources, typeRessource, opts) {
 
     console.debug("Loader %s avec sources %O", typeRessource, sources)
 
-    let src = ''
+    let src = '', clean = () => {}
     if(typeRessource === 'image') {
         // Charger image pleine resolution
         const labelImage = trouverLabelImage(Object.keys(sources))
         console.debug("Label image trouve : '%s'", labelImage)
-        src = sources[labelImage]
+        src = Promise.resolve(sources[labelImage])
     } else if(typeRessource === 'poster') {
         // Charger poster (fallback image pleine resolution)
         if(sources.poster) src = sources.poster
         else {
             const labelImage = trouverLabelImage(Object.keys(sources))
             console.debug("Label image trouve : '%s'", labelImage)
-            src = sources[labelImage]
+            src = Promise.resolve(sources[labelImage])
         }
     } else if(typeRessource === 'thumbnail') {
         // Charger thumbnail (fallback image poster, sinon pleine resolution)
@@ -98,23 +116,44 @@ function resLoader(sources, typeRessource, opts) {
         else {
             const labelImage = trouverLabelImage(Object.keys(sources))
             console.debug("Label image trouve : '%s'", labelImage)
-            src = sources[labelImage]
+            src = Promise.resolve(sources[labelImage])
         }
     } else if(typeRessource === 'video') {
         // Charger video pleine resolution
         const labelVideo = trouverLabelVideo(Object.keys(sources))
         console.debug("Label video trouve : '%s'", labelVideo)
-        src = new Promise(resolve=>{
-            setTimeout(()=>resolve(sources[labelVideo]), 2000)
+
+        // src = new Promise(resolve=>{
+        //     setTimeout(()=>resolve(sources[labelVideo]), 2000)
+        // })
+
+        src = new Promise(async (resolve, reject)=>{
+            try {
+                const urlVideo = sources[labelVideo]
+                const response = await fetch(urlVideo)
+                console.debug(response)
+                const ab = await response.arrayBuffer()
+                const blob = new Blob(
+                    [ab], 
+                    // {type: 'video/mp4'}
+                )
+                console.debug("AB : %O, Blob : %O", ab, blob)
+
+                const blobUrl = URL.createObjectURL(blob)
+                resolve(blobUrl)
+            } catch(err) {
+                reject(err)
+            }
         })
     } else if(typeRessource === 'original') {
         // Charger contenu original
-        src = sources.original
+        src = Promise.resolve(sources.original)
     }
 
-    return { srcPromise: (async () => src)(), clean: ()=>clean(src) }
+    return { srcPromise: src, clean: ()=>clean(src) }
 }
 
 function clean(src) {
     console.debug("Cleanup image %s", src)
+    // URL.revokeObjectURL(blobUrl)
 }
