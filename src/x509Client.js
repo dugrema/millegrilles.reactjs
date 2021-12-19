@@ -1,17 +1,27 @@
 import { pki as forgePki } from 'node-forge'
-import { forgecommon, validateurMessage } from '@dugrema/millegrilles.utiljs'
+import { forgecommon, validateurMessage, idmg } from '@dugrema/millegrilles.utiljs'
 
 const { CertificateStore } = forgecommon
 const { verifierMessage: _verifierMessage } = validateurMessage
+const { getIdmg } = idmg
 
 var _certificatCaForge = null,
-    _certificateStore = null
+    _certificateStore = null,
+    _idmgLocal = ''
 
 export function init(caPem) {
   // console.debug("Init x509Client")
   _certificatCaForge = forgePki.certificateFromPem(caPem)
   // console.debug("Certificat Store class : %O\nCert forge : %O", CertificateStore, _certificatCaForge)
   _certificateStore = new CertificateStore(_certificatCaForge)
+
+  getIdmg(caPem).then(idmg=>{
+    _idmgLocal = idmg
+  })
+}
+
+export function getIdmgLocal() {
+  return _idmgLocal
 }
 
 export function verifierCertificat(chainePem, dateValidation) {

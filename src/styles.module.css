@@ -331,6 +331,7 @@ BODY {
   padding-bottom: 0.5em;
   min-height: 4em;
   color: White;
+  font-size: smaller;
 }
 
 .footer H2 {
@@ -346,6 +347,10 @@ BODY {
 .footer A, .footer A:visited {
   color: White;
   text-decoration: underline;
+}
+
+.footer .centre {
+  text-align: center;
 }
 
 .connecte {
