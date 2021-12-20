@@ -110,28 +110,58 @@ async function traiterUploads() {
     if(!_chiffrage) throw new Error("_chiffrage non initialise")
 
     let complete = ''
-    for(_uploadEnCours = _uploadsPending.shift(); _uploadEnCours; _uploadEnCours = _uploadsPending.shift()) {
-        // console.debug("Traitement fichier %O", _uploadEnCours)
+    const _uploadEnCours = _uploadsPending.shift()
+    if(_uploadEnCours) {
         _uploadEnCours.status = STATUS_ENCOURS
-        emettreEtat({complete}).catch(err=>(console.warn("Erreur maj etat : %O", err)))
+
         try {
-            // Uploader le fichier. Le status est modifie selon la reponse du POST (HTTP 201 ou 202)
+            emettreEtat({complete}).catch(err=>(console.warn("Erreur maj etat : %O", err)))
             await uploadFichier()
         } catch(err) {
             console.error("Erreur PUT fichier : %O", err)
             _uploadEnCours.status = STATUS_ERREUR
             _uploadEnCours.err = {msg: ''+err, stack: err.stack}
         } finally {
-            if(!_uploadEnCours.annuler) {
-                _uploadsCompletes.push(_uploadEnCours)
-            }
-            complete = _uploadEnCours.correlation
-            _uploadEnCours.complete = true
+            try {
+                if(!_uploadEnCours.annuler) {
+                    _uploadsCompletes.push(_uploadEnCours)
+                }
+                complete = _uploadEnCours.correlation
+                _uploadEnCours.complete = true
 
-            _uploadEnCours = null
-            emettreEtat({complete}).catch(err=>(console.warn("Erreur maj etat : %O", err)))
+                _uploadEnCours = null
+                emettreEtat({complete}).catch(err=>(console.warn("Erreur maj etat : %O", err)))
+            } catch(err) {
+                console.warn("Erreur finalisation upload fichier : %O", err)
+            } finally {
+                // Poursuivre
+                traiterUploads()
+            }
         }
     }
+    
+    // for(_uploadEnCours = _uploadsPending.shift(); _uploadEnCours; _uploadEnCours = _uploadsPending.shift()) {
+    //     // console.debug("Traitement fichier %O", _uploadEnCours)
+    //     _uploadEnCours.status = STATUS_ENCOURS
+    //     emettreEtat({complete}).catch(err=>(console.warn("Erreur maj etat : %O", err)))
+    //     try {
+    //         // Uploader le fichier. Le status est modifie selon la reponse du POST (HTTP 201 ou 202)
+    //         await uploadFichier()
+    //     } catch(err) {
+    //         console.error("Erreur PUT fichier : %O", err)
+    //         _uploadEnCours.status = STATUS_ERREUR
+    //         _uploadEnCours.err = {msg: ''+err, stack: err.stack}
+    //     } finally {
+    //         if(!_uploadEnCours.annuler) {
+    //             _uploadsCompletes.push(_uploadEnCours)
+    //         }
+    //         complete = _uploadEnCours.correlation
+    //         _uploadEnCours.complete = true
+
+    //         _uploadEnCours = null
+    //         emettreEtat({complete}).catch(err=>(console.warn("Erreur maj etat : %O", err)))
+    //     }
+    // }
 
 }
 
