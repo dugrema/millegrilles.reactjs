@@ -106,11 +106,12 @@ export async function up_ajouterFichiersUpload(acceptedFiles, opts) {
 }
 
 async function traiterUploads() {
+    // console.debug("!!! Traiter uploads !!!")
     if(_uploadEnCours) return  // Rien a faire
     if(!_chiffrage) throw new Error("_chiffrage non initialise")
 
     let complete = ''
-    const _uploadEnCours = _uploadsPending.shift()
+    _uploadEnCours = _uploadsPending.shift()
     if(_uploadEnCours) {
         _uploadEnCours.status = STATUS_ENCOURS
 
