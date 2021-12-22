@@ -332,6 +332,7 @@ BODY {
   min-height: 4em;
   color: White;
   font-size: smaller;
+  clear: left;
 }
 
 .footer H2 {
@@ -354,8 +355,7 @@ BODY {
 }
 
 .connecte {
-  /* display: none; */
-  color: green;
+  display: none;
 }
 
 .deconnecte {

@@ -6,8 +6,8 @@ import styles from './styles.module.css'
 export default props => {
     const children = props.children || []
 
-    const haut = children.filter?children.filter(item=>item.type.name!=='FooterApplication'):children
-    const bas = children.filter?children.filter(item=>item.type.name==='FooterApplication'):''
+    const haut = children.filter?children.filter(item=>item.type.name !== FooterApplication.name):children
+    const bas = children.filter?children.filter(item=>item.type.name === FooterApplication.name):''
 
     return (
         <div className={styles.flexwrapper}>
@@ -51,5 +51,5 @@ export function IconeConnexion(props) {
     } else {
         stylesConnexion = [styles.deconnecte, "fa fa-plug"]
     }
-    return <span>C<i className={stylesConnexion.join(' ')} /></span>
+    return <i className={stylesConnexion.join(' ')} />
 }
