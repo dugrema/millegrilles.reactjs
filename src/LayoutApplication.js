@@ -47,9 +47,9 @@ export function IconeConnexion(props) {
     const {connecte} = props
     let stylesConnexion = []
     if(connecte) {
-        stylesConnexion = [styles.connecte, "fa fa-"]
+        stylesConnexion = [styles.connecte, "fa fa-plug"]
     } else {
         stylesConnexion = [styles.deconnecte, "fa fa-plug"]
     }
-    return <i className={stylesConnexion.join(' ')} />
+    return <span>C<i className={stylesConnexion.join(' ')} /></span>
 }
