@@ -354,7 +354,8 @@ BODY {
 }
 
 .connecte {
-  display: none;
+  /* display: none; */
+  color: green;
 }
 
 .deconnecte {
