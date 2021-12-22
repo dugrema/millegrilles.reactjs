@@ -10,8 +10,8 @@ export default props => {
     const bas = children.filter?children.filter(item=>item.type.name==='FooterApplication'):''
 
     return (
-        <div className={styles['flex-wrapper']}>
-            <div className={styles['application-layout']}>
+        <div className={styles.flexwrapper}>
+            <div className={styles.applicationlayout}>
                 {haut}
             </div>
             {bas}

@@ -2,8 +2,8 @@
 // import 'bootstrap/dist/css/bootstrap.min.css'
 // import 'react-bootstrap/dist/react-bootstrap.min.js'
 
-import styles from './styles.module.css'
-export { styles }
+// import styles from './styles.module.css'
+// export { styles }
 
 // Components a exporter
 import { Thumbnail,  ThumbnailFooter, ThumbnailHeader, ThumbnailBoutonContexte } 

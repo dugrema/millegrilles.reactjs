@@ -290,7 +290,7 @@ BODY {
 }
 
 /* Layout application */
-.flex-wrapper {
+.flexwrapper {
   display: flex;
   min-height: 100vh;
   flex-direction: column;
@@ -316,7 +316,7 @@ BODY {
   color: black;
 }
 
-.application-layout :global .contenu {
+.applicationlayout :global .contenu {
   margin-top: 1rem;
 }
 
