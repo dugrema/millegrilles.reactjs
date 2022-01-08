@@ -18,7 +18,7 @@ function ChiffrageEd25519(props) {
             <h1>Chiffrage Ed25519</h1>
             
             <p>PEM Prive</p>
-            <textarea cols="64" rows="20">{pem}</textarea>
+            <textarea cols="64" rows="20" value={pem}/>
             
         </div>
     )
@@ -37,6 +37,8 @@ async function run(setPem) {
 
     const cles = genererClePrivee({password})
     console.debug("Cles : %O", cles)
+    console.debug("PEM CHIFFRE\n%s", cles.pemChiffre)
+    setPem(cles.pemChiffre)
 
     const clePrivee = chargerPemClePriveeEd25519(cles.pemChiffre, {password})
     console.debug("Cle privee dechiffree : %O", clePrivee)
