@@ -1,4 +1,4 @@
-import { pki as forgePki } from 'node-forge'
+import { pki as forgePki } from '@dugrema/node-forge'
 import { forgecommon, validateurMessage, idmg } from '@dugrema/millegrilles.utiljs'
 
 const { CertificateStore } = forgecommon

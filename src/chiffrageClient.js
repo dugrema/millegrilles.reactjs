@@ -1,4 +1,4 @@
-import { pki as forgePki } from 'node-forge'
+import { pki as forgePki } from '@dugrema/node-forge'
 
 import {hacherCertificat} from '@dugrema/millegrilles.utiljs/src/hachage'
 import {CertificateStore, validerChaineCertificats, extraireExtensionsMillegrille} from '@dugrema/millegrilles.utiljs/src/forgecommon'
