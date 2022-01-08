@@ -12,6 +12,7 @@ import WorkerExemple from './WorkerExemple'
 import DbUsagerExemple from './DbUsagerExemple'
 import DetecterSupport from './DetecterSupport'
 import TransfertFichiers from './TransfertFichiers'
+import ChiffrageEd25519 from './ChiffrageEd25519'
 
 const App = () => {
 
@@ -32,6 +33,7 @@ const App = () => {
       case 'DetecterSupport': PageCls = DetecterSupport; break;
       case 'TransfertFichiers': PageCls = TransfertFichiers; break;
       case 'FilePicker': PageCls = FilePicker; break;
+      case 'ChiffrageEd25519': PageCls = ChiffrageEd25519; break;
       default:
     }
     if(PageCls) return (
@@ -55,6 +57,7 @@ const App = () => {
         <li><Button onClick={()=>setPage('DetecterSupport')}>DetecterSupport</Button></li>
         <li><Button onClick={()=>setPage('TransfertFichiers')}>TransfertFichiers</Button></li>
         <li><Button onClick={()=>setPage('FilePicker')}>File Picker</Button></li>
+        <li><Button onClick={()=>setPage('ChiffrageEd25519')}>ChiffrageEd25519</Button></li>
       </ul>
     </Container>
   )
