@@ -13,6 +13,7 @@ import DbUsagerExemple from './DbUsagerExemple'
 import DetecterSupport from './DetecterSupport'
 import TransfertFichiers from './TransfertFichiers'
 import ChiffrageEd25519 from './ChiffrageEd25519'
+import HachageWasm from './HachageWasm'
 
 const App = () => {
 
@@ -34,6 +35,7 @@ const App = () => {
       case 'TransfertFichiers': PageCls = TransfertFichiers; break;
       case 'FilePicker': PageCls = FilePicker; break;
       case 'ChiffrageEd25519': PageCls = ChiffrageEd25519; break;
+      case 'HachageWasm': PageCls = HachageWasm; break;
       default:
     }
     if(PageCls) return (
@@ -58,6 +60,7 @@ const App = () => {
         <li><Button onClick={()=>setPage('TransfertFichiers')}>TransfertFichiers</Button></li>
         <li><Button onClick={()=>setPage('FilePicker')}>File Picker</Button></li>
         <li><Button onClick={()=>setPage('ChiffrageEd25519')}>ChiffrageEd25519</Button></li>
+        <li><Button onClick={()=>setPage('HachageWasm')}>HachageWasm</Button></li>
       </ul>
     </Container>
   )

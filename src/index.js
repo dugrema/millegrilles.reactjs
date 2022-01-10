@@ -1,9 +1,5 @@
-// import React from 'react'
-// import 'bootstrap/dist/css/bootstrap.min.css'
-// import 'react-bootstrap/dist/react-bootstrap.min.js'
-
-// import styles from './styles.module.css'
-// export { styles }
+// Juste importer hachage. Execute le hook setHacheurs pour hachage dans millegrilles.utiljs
+import hachage from './hachage'
 
 // Components a exporter
 import { Thumbnail,  ThumbnailFooter, ThumbnailHeader, ThumbnailBoutonContexte } 
