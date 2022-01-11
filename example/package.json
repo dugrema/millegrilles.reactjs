@@ -12,20 +12,22 @@
   "dependencies": {
     "@dugrema/millegrilles.reactjs": "file:..",
     "@dugrema/millegrilles.utiljs": "file:../node_modules/@dugrema/millegrilles.utiljs",
+    "@dugrema/wasm-crypto": "file:/home/mathieu/PycharmProjects/wasm_crypto/pkg",
     "bootstrap": "^5.1.3",
     "comlink": "^4.3.1",
+    "font-awesome": "^4.7.0",
     "react": "file:../node_modules/react",
     "react-bootstrap": "^2.0.2",
     "react-dom": "file:../node_modules/react-dom",
-    "font-awesome": "^4.7.0"
+    "wasm-loader": "^1.3.0"
   },
   "devDependencies": {
     "@babel/plugin-syntax-object-rest-spread": "^7.8.3",
     "@rescripts/cli": "^0.0.16",
-    "rescript-worker-loader": "^1.0.4",
-    "worker-loader": "^3.0.8",
     "react-scripts": "file:../node_modules/react-scripts",
-    "webpack": "^4"
+    "rescript-worker-loader": "^1.0.4",
+    "webpack": "^4",
+    "worker-loader": "^3.0.8"
   },
   "eslintConfig": {
     "extends": "react-app"

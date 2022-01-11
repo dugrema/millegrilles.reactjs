@@ -14,6 +14,7 @@ import DetecterSupport from './DetecterSupport'
 import TransfertFichiers from './TransfertFichiers'
 import ChiffrageEd25519 from './ChiffrageEd25519'
 import HachageWasm from './HachageWasm'
+import ChiffrageWasm from './ChiffrageWasm'
 
 const App = () => {
 
@@ -36,6 +37,7 @@ const App = () => {
       case 'FilePicker': PageCls = FilePicker; break;
       case 'ChiffrageEd25519': PageCls = ChiffrageEd25519; break;
       case 'HachageWasm': PageCls = HachageWasm; break;
+      case 'ChiffrageWasm': PageCls = ChiffrageWasm; break;
       default:
     }
     if(PageCls) return (
@@ -61,6 +63,7 @@ const App = () => {
         <li><Button onClick={()=>setPage('FilePicker')}>File Picker</Button></li>
         <li><Button onClick={()=>setPage('ChiffrageEd25519')}>ChiffrageEd25519</Button></li>
         <li><Button onClick={()=>setPage('HachageWasm')}>HachageWasm</Button></li>
+        <li><Button onClick={()=>setPage('ChiffrageWasm')}>ChiffrageWasm</Button></li>
       </ul>
     </Container>
   )
