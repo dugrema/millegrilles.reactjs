@@ -1,0 +1,42 @@
+{
+  "name": "example2",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@testing-library/jest-dom": "^5.16.1",
+    "@testing-library/react": "^12.1.2",
+    "@testing-library/user-event": "^13.5.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "@rescripts/cli": "^0.0.16",
+    "react-scripts": "file:../node_modules/react-scripts",
+    "web-vitals": "^2.1.3",
+    "webpack": "^4",
+    "wasm-loader": "^1.3.0",
+    "@dugrema/wasm-crypto": "file:/home/mathieu/PycharmProjects/wasm_crypto/pkg"
+  },
+  "scripts": {
+    "start": "export WDS_SOCKET_PATH=/reactjs/sockjs-node && rescripts start",
+    "build": "rescripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
