@@ -1,12 +1,17 @@
 // https://koala42.com/using-webassembly-in-your-reactjs-app/
 import { useEffect, useState } from 'react'
 
-const TAILLE_CHIFFRAGE = 10 * 1024 * 1024
+// Cipher JavaScript pour comparaison a WASM
+const { XChaCha20 } = require('xchacha20-js');
+
+
+const TAILLE_CHIFFRAGE = 1 * 1024 * 1024
 
 function ChiffrageWasm(props) {
     
     const [wasmcrypto, setwasmcrypto] = useState()
     const [dureeChiffrage, setDureeChiffrage] = useState('')
+    const [dureeChiffrageJs, setDureeChiffrageJs] = useState('')
     const [message, setMessage] = useState('')
 
     useEffect(()=>{
@@ -18,8 +23,7 @@ function ChiffrageWasm(props) {
     useEffect(()=>{
         if(wasmcrypto) {
             console.debug("WASM Crypto charge")
-            // wasmcrypto.greet()
-            chiffrer(wasmcrypto, setDureeChiffrage, setMessage).catch(err=>console.error("Erreur wasmcrypto chiffrer: %O", err))
+            chiffrer(wasmcrypto, setDureeChiffrage, setDureeChiffrageJs, setMessage).catch(err=>console.error("Erreur wasmcrypto chiffrer: %O", err))
         }
     }, [wasmcrypto])
 
@@ -29,7 +33,9 @@ function ChiffrageWasm(props) {
 
             <p>Taille du contenu a chiffrer : {TAILLE_CHIFFRAGE}</p>
 
-            <p>Duree chiffrage : {dureeChiffrage}</p>
+            <p>Duree chiffrage WASM : {dureeChiffrage}</p>
+            
+            <p>Duree chiffrage JS : {dureeChiffrageJs}</p>
 
             <p>{message}</p>
 
@@ -44,7 +50,19 @@ async function loaddeps() {
     return {wasmcrypto}
 }
 
-async function chiffrer(wasmcrypto, setDureeChiffrage, setMessage) {
+
+async function chiffrer(wasmcrypto, setDureeChiffrage, setDureeChiffrageJs, setMessage) {
+
+    await setMessage("Debut chiffrage")
+
+    await chiffrerWasm(wasmcrypto, setDureeChiffrage, setMessage)
+    await chiffrerJs(setMessage, setDureeChiffrageJs)
+
+    await setMessage("Chiffrage termine")
+}
+
+async function chiffrerWasm(wasmcrypto, setDureeChiffrage, setMessage) {
+    await setMessage("Chiffrage WASM")
 
     const nonce = new Uint8Array(19)
     await window.crypto.getRandomValues(nonce)
@@ -100,5 +118,35 @@ async function chiffrer(wasmcrypto, setDureeChiffrage, setMessage) {
     const duree = finChiffrage.getTime() - debut.getTime()
     setDureeChiffrage(''+duree+' ms')
     console.debug("Done chiffrage - duree %s ms", duree)
+
+}
+
+async function chiffrerJs(setMessage, setDureeChiffrageJs) {
+    await setMessage("Chiffrage JS")
+    let messageBytes = new Uint8Array(TAILLE_CHIFFRAGE)
+
+    console.debug("XChaCha20 : %O", XChaCha20)
+
+    let xcha20 = new XChaCha20()
+    // let message = "test message";
+    let key = Buffer.from('808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f', 'hex');
+    let nonce = Buffer.from('404142434445464748494a4b4c4d4e4f5051525354555658', 'hex');
+
+    const debut = new Date()
+     
+    let blockCounter = 1; // Optional, defaults to 1 per the RFC
+    const ciphertext = await xcha20.encrypt(messageBytes, nonce, key, blockCounter)
+    //.then(
+        // function (ciphertext) {
+        //     xcha20.decrypt(ciphertext, nonce, key, blockCounter).then(
+        //         function (plaintext) {
+        //             console.log(plaintext.toString() === message); // true
+        //         }
+        //     )
+        // }
+    //);
+    const fin = new Date()
+    const duree = fin.getTime() - debut.getTime()
+    setDureeChiffrageJs(''+duree+' ms')
 
 }
