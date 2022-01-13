@@ -3,9 +3,10 @@ import { useEffect, useState } from 'react'
 
 // Cipher JavaScript pour comparaison a WASM
 const { XChaCha20 } = require('xchacha20-js');
+const Poly1305 = require('poly1305-js');
 
 
-const TAILLE_CHIFFRAGE = 1 * 1024 * 1024 + 5
+const TAILLE_CHIFFRAGE = 32  // 1 * 1024 * 1024 + 5
 
 function ChiffrageWasm(props) {
     
@@ -65,7 +66,7 @@ function tests() {
 }
 
 async function loaddeps() {
-    const wasmcrypto = await import('@dugrema/wasm-crypto/wasm_crypto.js')
+    const wasmcrypto = await import('@dugrema/wasm-xchacha20poly1305/wasm_xchacha20poly1305.js')
     return {wasmcrypto}
 }
 
@@ -74,8 +75,7 @@ async function chiffrer(wasmcrypto, setDureeChiffrage, setDureeChiffrageJs, setM
     await setMessage("Debut chiffrage")
 
     await chiffrerWasm(wasmcrypto, setDureeChiffrage, setMessage)
-    await chiffrerJs(setMessage, setDureeChiffrageJs)
-    await chiffrerWasm(wasmcrypto, setDureeChiffrage, setMessage)
+    await chiffrerJs(wasmcrypto, setMessage, setDureeChiffrageJs)
 
     await setMessage("Chiffrage termine")
 }
@@ -83,10 +83,13 @@ async function chiffrer(wasmcrypto, setDureeChiffrage, setDureeChiffrageJs, setM
 async function chiffrerWasm(wasmcrypto, setDureeChiffrage, setMessage) {
     await setMessage("Chiffrage WASM")
 
-    const nonce = new Uint8Array(19)
-    await window.crypto.getRandomValues(nonce)
-    var key = new Uint8Array(32)
-    await window.crypto.getRandomValues(key)
+    // const nonce = new Uint8Array(19)
+    // await window.crypto.getRandomValues(nonce)
+    // var key = new Uint8Array(32)
+    // await window.crypto.getRandomValues(key)
+
+    const key = Buffer.from('808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f', 'hex');
+    const nonce = Buffer.from('404142434445464748494a4b4c4d4e4f505152', 'hex');
 
     const messageString = "Je veux chiffrer un message avec WASM puis faire la difference entre WASM et pur JavaScript."
     const encoder = new TextEncoder()
@@ -131,7 +134,7 @@ async function chiffrerWasm(wasmcrypto, setDureeChiffrage, setMessage) {
 
     console.debug("Debut chiffrage")
     const debut = new Date()
-    await wasmcrypto.xchacha20poly1305_chiffrer_stream(nonce, key, readstream, output)
+    await wasmcrypto.xchacha20poly1305_encrypt_stream(nonce, key, readstream, output)
     const finChiffrage = new Date()
     const duree = finChiffrage.getTime() - debut.getTime()
     await setDureeChiffrage('Chiffrage : '+duree+' ms, Dechiffrage: NA')
@@ -168,16 +171,18 @@ async function chiffrerWasm(wasmcrypto, setDureeChiffrage, setMessage) {
     console.debug("Taill Contenu chiffre : %d", outputDechiffrage.length)
 
     const debutDechiffrage = new Date()
-    await wasmcrypto.xchacha20poly1305_dechiffrer_stream(nonce, key, readstreamChiffre, outputDechiffrageStream)
+    await wasmcrypto.xchacha20poly1305_decrypt_stream(nonce, key, readstreamChiffre, outputDechiffrageStream)
     const finDechiffrage = new Date()
     const dureeDechiffrage = finDechiffrage.getTime() - debutDechiffrage.getTime()
     await setDureeChiffrage('Chiffrage : '+duree+' ms, Dechiffrage: ' + dureeDechiffrage + ' ms')
     console.debug("Done dechiffrage - duree %s ms", dureeDechiffrage)
+    console.debug("Contenu dechiffre : %O", outputDechiffrage)
 
 }
 
-async function chiffrerJs(setMessage, setDureeChiffrageJs) {
+async function chiffrerJs(wasmcrypto, setMessage, setDureeChiffrageJs) {
     await setMessage("Chiffrage JS")
+
     let messageBytes = new Uint8Array(TAILLE_CHIFFRAGE)
 
     console.debug("XChaCha20 : %O", XChaCha20)
@@ -190,16 +195,11 @@ async function chiffrerJs(setMessage, setDureeChiffrageJs) {
     const debut = new Date()
      
     let blockCounter = 1; // Optional, defaults to 1 per the RFC
-    const ciphertext = await xcha20.encrypt(messageBytes, nonce, key, blockCounter)
-    //.then(
-        // function (ciphertext) {
-        //     xcha20.decrypt(ciphertext, nonce, key, blockCounter).then(
-        //         function (plaintext) {
-        //             console.log(plaintext.toString() === message); // true
-        //         }
-        //     )
-        // }
-    //);
+    let ciphertext = await xcha20.encrypt(messageBytes, nonce, key, blockCounter)
+    // let tag = await Poly1305.onetimeauth(ciphertext, key);
+    // let cipherauth = new Uint8Array(ciphertext.length + tag.length)
+    // cipherauth.set(ciphertext, 0)
+    // cipherauth.set(tag, ciphertext.length)
     const fin = new Date()
     const duree = fin.getTime() - debut.getTime()
     setDureeChiffrageJs(''+duree+' ms')
