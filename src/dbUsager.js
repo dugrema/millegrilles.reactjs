@@ -126,35 +126,6 @@ export async function supprimerUsager(nomUsager) {
   return promises[0]
 }
 
-// async function getClesPrivees(nomUsager) {
-
-//   // const nomDB = 'millegrilles.' + nomUsager
-//   const db = await ouvrirDB()
-
-//   // console.debug("Database %O", db)
-//   const tx = await db.transaction(STORE_CLES_USAGER, 'readonly')
-//   const store = tx.objectStore(STORE_CLES_USAGER)
-//   const dechiffrer = (await store.get('dechiffrer'))
-//   const signer = (await store.get('signer'))
-//   await tx.done
-
-//   return {dechiffrer, signer}
-// }
-
-// async function getCsr(nomUsager) {
-
-//   // const nomDB = 'millegrilles.' + nomUsager
-//   const db = await ouvrirDB()
-
-//   // console.debug("Database %O", db)
-//   const tx = await db.transaction(STORE_CLES_USAGER, 'readonly')
-//   const store = tx.objectStore(STORE_CLES_USAGER)
-//   const csr = (await store.get('csr'))
-//   await tx.done
-
-//   return {csr}
-// }
-
 export async function entretienCache(nomUsager, opts) {
   /* Effectue l'entretien des caches de cles */
   opts = opts || {}
@@ -221,9 +192,3 @@ async function entretienCacheFichiersDechiffres(tempsExpiration, opts) {
     }
   }
 }
-
-// module.exports = {
-//   ouvrirDB, getUsager, updateUsager, getListeUsagers, supprimerUsager,
-//   saveCleDechiffree, getCleDechiffree,
-//   entretienCache,
-// }
