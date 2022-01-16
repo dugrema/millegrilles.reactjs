@@ -1,5 +1,5 @@
 // Juste importer hachage. Execute le hook setHacheurs pour hachage dans millegrilles.utiljs
-import hachage from './hachage'
+export * from './hachage'
 
 // Components a exporter
 import { Thumbnail,  ThumbnailFooter, ThumbnailHeader, ThumbnailBoutonContexte } 
@@ -14,10 +14,6 @@ import { ListeFichiers, MenuContextuel }
     from './ListeFichiers'
 export { ListeFichiers, MenuContextuel }
 
-import { detecterAppareilsDisponibles, supporteFormatWebp, supporteFormatWebm, supporteFileStream, isTouchEnabled } 
-    from './detecterAppareils'
-export { detecterAppareilsDisponibles, supporteFormatWebp, supporteFormatWebm, supporteFileStream, isTouchEnabled }
-
 import ModalViewer from './ModalViewer'
 export { ModalViewer }
 
@@ -27,22 +23,11 @@ export { FilePicker }
 import LayoutApplication, { HeaderApplication, FooterApplication, IconeConnexion } from './LayoutApplication'
 export { LayoutApplication, HeaderApplication, FooterApplication, IconeConnexion }
 
-import { trouverLabelImage, trouverLabelVideo } from './labelsRessources'
-export { trouverLabelImage, trouverLabelVideo }
+export { repondreRegistrationChallenge } from './webauthn'
 
-import {
-  ouvrirDB, getUsager, updateUsager, getListeUsagers, supprimerUsager,
-  saveCleDechiffree, getCleDechiffree,
-  entretienCache,
-} from './dbUsager'
-export {
-    ouvrirDB, getUsager, updateUsager, getListeUsagers, supprimerUsager,
-    saveCleDechiffree, getCleDechiffree,
-    entretienCache,
-}
-
-import { repondreRegistrationChallenge } from './webauthn'
-export { repondreRegistrationChallenge }
+export * from './detecterAppareils'
+export * from './labelsRessources'
+export * from './dbUsager'
 
 // import * as ChiffrageClient from './chiffrageClient.js'
 // export { ChiffrageClient }

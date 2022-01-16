@@ -7,9 +7,14 @@ import multibase from 'multibase'
 // const { FormatteurMessageSubtle } = formatteurMessage
 // const { extraireExtensionsMillegrille } = forgecommon
 
-import { getRandomValues } from '@dugrema/millegrilles.utiljs/src/chiffrage.js'
-import { FormatteurMessageSubtle } from '@dugrema/millegrilles.utiljs/src/formatteurMessage.js'
-import { extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
+import { getRandomValues, forgecommon } from '@dugrema/millegrilles.utiljs'
+import { FormatteurMessageEd25519 } from '@dugrema/millegrilles.utiljs/src/formatteurMessage.js'
+//import { extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
+
+import hachage from './hachage'  // Wiring hachage pour utiljs
+console.debug("!!!1 Chargement hacheurs dans worker : %O", hachage)
+
+const { extraireExtensionsMillegrille } = forgecommon
 
 var _socket = null,
     _formatteurMessage = null
@@ -41,7 +46,7 @@ export async function connecter(urlApp, opts) {
   if(urlApp === _urlCourant) return
 
   const urlSocketio = new URL(urlApp)
-  urlSocketio.pathname = path.join(urlSocketio.pathname, 'socket.io')
+  // urlSocketio.pathname = path.join(urlSocketio.pathname, 'socket.io')
   if(opts.DEBUG) console.debug("Socket.IO connecter avec url %s", urlSocketio.href)
 
   const connexion = connecterSocketio(urlSocketio.href, opts)
@@ -175,7 +180,9 @@ async function connecterSocketio(url, opts) {
 
 export async function initialiserFormatteurMessage(certificatPem, clePriveeSign, opts) {
   opts = opts || {}
-  _formatteurMessage = new FormatteurMessageSubtle(certificatPem, clePriveeSign)
+  const DEBUG = opts.DEBUG
+  if(DEBUG) console.debug("initialiserFormatteurMessage PEM:\n%O\n", certificatPem)
+  _formatteurMessage = new FormatteurMessageEd25519(certificatPem, clePriveeSign, {...opts, hacheurs: hachage.hacheurs})
   await _formatteurMessage.ready  // Permet de recevoir erreur si applicable
 }
 
