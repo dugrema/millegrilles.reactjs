@@ -206,8 +206,8 @@ export function deconnecter() {
   } else {
     console.warn("_socket n'est pas initialise, on ne peut pas deconnecter")
   }
-  _clePriveeSubtleDecrypt = null
-  _clePriveeSubtleSign = null
+  // _clePriveeSubtleDecrypt = null
+  // _clePriveeSubtleSign = null
   _formatteurMessage = null
   // console.info("Deconnexion completee")
 }
@@ -385,6 +385,16 @@ export async function getCleFichierProtege(fuuid) {
     { liste_hachage_bytes: [fuuid] },
     { domaine: 'MaitreDesCles', action: 'dechiffrage', attacherCertificat: true }
   )
+}
+
+export function formatterMessage(message, domaineAction, opts) {
+  opts = opts || {}
+  opts.attacherCertificat = true  // Toujours attacher le certificat
+
+  /* Expose formatterMessage du formatteur de messages */
+  if(opts.DEBUG) console.debug("Formatter domaine=%s, message : %O", domaineAction, message)
+
+  return _formatteurMessage.formatterMessage(message, domaineAction, opts)
 }
 
 // module.exports = {
