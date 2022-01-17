@@ -7,14 +7,22 @@ import multibase from 'multibase'
 // const { FormatteurMessageSubtle } = formatteurMessage
 // const { extraireExtensionsMillegrille } = forgecommon
 
-import { getRandomValues, forgecommon } from '@dugrema/millegrilles.utiljs'
-import { FormatteurMessageEd25519 } from '@dugrema/millegrilles.utiljs/src/formatteurMessage.js'
+import { getRandomValues, forgecommon, formatteurMessage } from '@dugrema/millegrilles.utiljs'
 //import { extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
 
 import hachage from './hachage'  // Wiring hachage pour utiljs
+import { 
+  initialiserFormatteurMessage as initialiserFormatteurMessageChiffrage,
+  formatterMessage, chargerCleMillegrille, signerMessageCleMillegrille, clearCleMillegrille,
+} from './chiffrageClient'
+
 console.debug("!!!1 Chargement hacheurs dans worker : %O", hachage)
 
 const { extraireExtensionsMillegrille } = forgecommon
+const { FormatteurMessageEd25519 } = formatteurMessage
+
+// Re-exporter fonctions de chiffrageClient
+export { formatterMessage, chargerCleMillegrille, signerMessageCleMillegrille, clearCleMillegrille } 
 
 var _socket = null,
     _formatteurMessage = null
@@ -183,6 +191,11 @@ export async function initialiserFormatteurMessage(certificatPem, clePriveeSign,
   const DEBUG = opts.DEBUG
   if(DEBUG) console.debug("initialiserFormatteurMessage PEM:\n%O\n", certificatPem)
   _formatteurMessage = new FormatteurMessageEd25519(certificatPem, clePriveeSign, {...opts, hacheurs: hachage.hacheurs})
+
+  // Initialiser section partagee avec le chiffrageClient
+  await initialiserFormatteurMessageChiffrage(certificatPem, clePriveeSign, opts)
+  // await initialiserCertificateStoreChiffrage(certificatPem, clePriveeSign, opts)
+
   await _formatteurMessage.ready  // Permet de recevoir erreur si applicable
 }
 
@@ -387,15 +400,27 @@ export async function getCleFichierProtege(fuuid) {
   )
 }
 
-export function formatterMessage(message, domaineAction, opts) {
-  opts = opts || {}
-  opts.attacherCertificat = true  // Toujours attacher le certificat
+// Fonctions partagees avec chiffrageClient
 
-  /* Expose formatterMessage du formatteur de messages */
-  if(opts.DEBUG) console.debug("Formatter domaine=%s, message : %O", domaineAction, message)
+// export function formatterMessage(message, domaineAction, opts) {
+//   opts = opts || {}
+//   opts.attacherCertificat = true  // Toujours attacher le certificat
 
-  return _formatteurMessage.formatterMessage(message, domaineAction, opts)
-}
+//   /* Expose formatterMessage du formatteur de messages */
+//   if(opts.DEBUG) console.debug("Formatter domaine=%s, message : %O", domaineAction, message)
+
+//   return _formatteurMessage.formatterMessage(message, domaineAction, opts)
+// }
+
+// export function signerMessageCleMillegrille(message, opts) {
+//   opts = opts || {}
+
+//   /* Expose formatterMessage du formatteur de messages */
+//   if(opts.DEBUG) console.debug("Signer message avec cle de MilleGrille: %O", message)
+//   const signateur = new SignateurMessageSubtle(_cleMillegrilleSubtle.clePriveeSign)
+//   return signateur.signer(message)
+// }
+
 
 // module.exports = {
 //   connecter, deconnecter,
