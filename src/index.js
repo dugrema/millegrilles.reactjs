@@ -1,5 +1,6 @@
 // Juste importer hachage. Execute le hook setHacheurs pour hachage dans millegrilles.utiljs
-export * from './hachage'
+import hachage from './hachage'
+export { hachage }
 
 // Components a exporter
 import { Thumbnail,  ThumbnailFooter, ThumbnailHeader, ThumbnailBoutonContexte } 

@@ -37,4 +37,4 @@ const hacheurs = {
 // console.debug("Set hacheurs : %O", hacheurs)
 setHacheurs(hacheurs)
 
-export default { hacheurs}
+export default { hacheurs }

@@ -1,20 +1,18 @@
-import { pki as forgePki } from '@dugrema/node-forge'
+import { pki as forgePki, ed25519 } from '@dugrema/node-forge'
 
-import {hacherCertificat} from '@dugrema/millegrilles.utiljs/src/hachage'
 import { 
+  hacherCertificat,
   forgecommon, formatteurMessage as formatteurMessageLib,
   // importerClePubliqueSubtle, importerClePriveeSubtle,
-  chiffrerDocument as _chiffrerDocument, dechiffrerDocument as _dechiffrerDocument,
+  // chiffrerDocument as _chiffrerDocument, 
+  // dechiffrerDocument as _dechiffrerDocument,
   // preparerCleSecreteSubtle as _preparerCleSecreteSubtle,
   // dechiffrerSubtle
 } from '@dugrema/millegrilles.utiljs'
 // import {chiffrerCleSecreteSubtle, dechiffrerCleSecreteSubtle} from '@dugrema/millegrilles.utiljs/src/chiffrage'
-import { ed25519 } from '@dugrema/node-forge'
 
 const { CertificateStore, validerChaineCertificats, extraireExtensionsMillegrille } = forgecommon
 const { FormatteurMessageEd25519, SignateurMessageEd25519 } = formatteurMessageLib
-
-console.debug("!!!6 Formatteur message : %O", formatteurMessageLib)
 
 // import { 
 //   forgecommon, formatteurMessage as formatteurMessageLib, hachage, 
@@ -159,18 +157,20 @@ export async function chiffrerDocument(doc, domaine, certificatChiffragePem, ide
   // Combiner le certificat fourni avec celui de la millegrille
   const certificatsPem = [certificatChiffragePem, certificatMillegrille.pem]
 
-  const resultat = await _chiffrerDocument(doc, domaine, certificatsPem, identificateurs_document, opts)
+  throw new Error("fix me")
+  // const resultat = await _chiffrerDocument(doc, domaine, certificatsPem, identificateurs_document, opts)
 
-  // Signer la commande de maitre des cles
-  const commandeMaitrecles = await formatterMessage(resultat.commandeMaitrecles, 'MaitreDesCles.sauvegarderCle', {DEBUG})
-  resultat.commandeMaitrecles = commandeMaitrecles
+  // // Signer la commande de maitre des cles
+  // const commandeMaitrecles = await formatterMessage(resultat.commandeMaitrecles, 'MaitreDesCles.sauvegarderCle', {DEBUG})
+  // resultat.commandeMaitrecles = commandeMaitrecles
 
-  return resultat
+  // return resultat
 }
 
 export function dechiffrerDocument(ciphertext, messageCle, opts) {
   // Wrapper pour dechiffrer document, insere la cle privee locale
-  return _dechiffrerDocument(ciphertext, messageCle, _clePrivee, opts)
+  throw new Error("fix me")
+  // return _dechiffrerDocument(ciphertext, messageCle, _clePrivee, opts)
 }
 
 export async function chargerCleMillegrille(clePrivee) {
