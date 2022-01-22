@@ -66,7 +66,7 @@ function tests() {
 }
 
 async function loaddeps() {
-    const wasmcrypto = await import('@dugrema/wasm-xchacha20poly1305/wasm_xchacha20poly1305.js')
+    const wasmcrypto = await import('@dugrema/wasm-xchacha20poly1305/wasm_chacha20poly1305.js')
     return {wasmcrypto}
 }
 
@@ -89,7 +89,8 @@ async function chiffrerWasm(wasmcrypto, setDureeChiffrage, setMessage) {
     // await window.crypto.getRandomValues(key)
 
     const key = Buffer.from('808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f', 'hex');
-    const nonce = Buffer.from('404142434445464748494a4b4c4d4e4f505152', 'hex');
+    // const nonce = Buffer.from('404142434445464748494a4b4c4d4e4f505152', 'hex');
+    const nonce = Buffer.from('404142434445464748494a4b', 'hex');
 
     const messageString = "Je veux chiffrer un message avec WASM puis faire la difference entre WASM et pur JavaScript."
     const encoder = new TextEncoder()
@@ -134,7 +135,8 @@ async function chiffrerWasm(wasmcrypto, setDureeChiffrage, setMessage) {
 
     console.debug("Debut chiffrage")
     const debut = new Date()
-    await wasmcrypto.xchacha20poly1305_encrypt_stream(nonce, key, readstream, output)
+    const tag = await wasmcrypto.chacha20poly1305_encrypt_stream(nonce, key, readstream, output)
+    console.debug("Tag recu : %O", tag)
     const finChiffrage = new Date()
     const duree = finChiffrage.getTime() - debut.getTime()
     await setDureeChiffrage('Chiffrage : '+duree+' ms, Dechiffrage: NA')
@@ -161,7 +163,7 @@ async function chiffrerWasm(wasmcrypto, setDureeChiffrage, setMessage) {
     let outputDechiffrage = []
     const outputDechiffrageStream = {
         write: async chunk => {
-            // console.debug("Recu chunk dechiffre : %O", chunk)
+            console.debug("Recu chunk dechiffre : %O", chunk)
             // await new Promise(resolve=>setTimeout(resolve, 250))
             outputDechiffrage = combinerBuffers(outputDechiffrage, chunk)
             return true
@@ -171,7 +173,7 @@ async function chiffrerWasm(wasmcrypto, setDureeChiffrage, setMessage) {
     console.debug("Taill Contenu chiffre : %d", outputDechiffrage.length)
 
     const debutDechiffrage = new Date()
-    await wasmcrypto.xchacha20poly1305_decrypt_stream(nonce, key, readstreamChiffre, outputDechiffrageStream)
+    await wasmcrypto.chacha20poly1305_decrypt_stream(nonce, key, tag, readstreamChiffre, outputDechiffrageStream)
     const finDechiffrage = new Date()
     const dureeDechiffrage = finDechiffrage.getTime() - debutDechiffrage.getTime()
     await setDureeChiffrage('Chiffrage : '+duree+' ms, Dechiffrage: ' + dureeDechiffrage + ' ms')
@@ -205,3 +207,12 @@ async function chiffrerJs(wasmcrypto, setMessage, setDureeChiffrageJs) {
     setDureeChiffrageJs(''+duree+' ms')
 
 }
+
+async function chiffrageComparaison(wasmcrypto, setMessage) {
+
+}
+
+const MESSAGE_1 = 'un message secret',
+      KEY_1 = 'm7o6Oy11rqROwiWk/UgE1zq+UifXeMYdwecDhDZkjENo',
+      NONCE_1 = 'mwbQUFbYMUR1f3eu5',
+      CYPHERTEXT_1 = 'mTkvJw79bU02T7aVAMa2APm8xUs5Ao/9YX+n1gEqbXwfa'
