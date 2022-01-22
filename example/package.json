@@ -13,7 +13,7 @@
     "@digitalbazaar/minimal-cipher": "^4.0.2",
     "@dugrema/millegrilles.reactjs": "file:..",
     "@dugrema/millegrilles.utiljs": "file:../node_modules/@dugrema/millegrilles.utiljs",
-    "@dugrema/wasm-xchacha20poly1305": "^0.1.2",
+    "@dugrema/wasm-xchacha20poly1305": "^0.2.0",
     "bootstrap": "^5.1.3",
     "comlink": "^4.3.1",
     "font-awesome": "^4.7.0",
