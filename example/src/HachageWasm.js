@@ -5,7 +5,7 @@ import 'hash-wasm/dist/blake2s.umd.min.js'
 import { useEffect, useState } from 'react'
 // import { sha512, blake2b, blake2s } from 'hash-wasm'
 import { createSHA512, createBLAKE2b } from 'hash-wasm'
-import reactjs from '@dugrema/millegrilles.reactjs'
+import '@dugrema/millegrilles.reactjs'
 import { hacher, verifierHachage, encoderIdmg, verifierIdmg, Hacheur, VerificateurHachage } from '@dugrema/millegrilles.utiljs'
 
 function HachageWasm(props) {
@@ -75,7 +75,7 @@ async function hacherUtiljs(setVal) {
     const verifSha512 = await verifierHachage(hachageSha512, int32Buffer)
     console.debug("Verification SHA2-512 : %O", verifSha512)
 
-    let buffer100MB = new Uint8Array(100 * 1024 * 1024) // 25 MB
+    let buffer100MB = new Uint8Array(10 * 1024 * 1024)
     const debut = new Date()
     const hachageBlake2b100mb = await hacher(buffer100MB, {hashingCode: 'blake2b-512'})
     const finHachage = new Date()
@@ -88,6 +88,7 @@ async function hacherUtiljs(setVal) {
     const finSubtle = new Date()
 
     const hacheurSha512 = new Hacheur({hashingCode: 'sha2-512'})
+    console.debug("Hacheur 512 : %O", hacheurSha512)
     await hacheurSha512.ready
     await hacheurSha512.update(buffer100MB)
     const hachage512WasmUpdate = await hacheurSha512.finalize()
