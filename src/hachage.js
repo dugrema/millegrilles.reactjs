@@ -1,4 +1,4 @@
-import { setHacheurs } from '@dugrema/millegrilles.utiljs'
+import { setHacheurs } from '@dugrema/millegrilles.utiljs/src/hachage'
 import { createSHA256, createSHA512, createBLAKE2b, createBLAKE2s } from 'hash-wasm'
 
 // Injecte les methodes de hachage natives avec setHacheurs pour la librairie utiljs

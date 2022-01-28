@@ -2,6 +2,9 @@
 import hachage from './hachage'
 export { hachage }
 
+// Re-exporter utiljs au complete
+export * as utiljs from '@dugrema/millegrilles.utiljs/dist/index.min'
+
 // Components a exporter
 import { Thumbnail,  ThumbnailFooter, ThumbnailHeader, ThumbnailBoutonContexte } 
     from './Thumbnail'

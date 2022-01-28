@@ -7,8 +7,10 @@ import multibase from 'multibase'
 // const { FormatteurMessageSubtle } = formatteurMessage
 // const { extraireExtensionsMillegrille } = forgecommon
 
-import { getRandomValues, forgecommon, formatteurMessage } from '@dugrema/millegrilles.utiljs'
-//import { extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
+import { getRandom } from '@dugrema/millegrilles.utiljs/src/random'
+//import * as forgecommon from '@dugrema/millegrilles.utiljs/src/forgecommon'
+import { FormatteurMessageEd25519 } from '@dugrema/millegrilles.utiljs/src/formatteurMessage'
+import { extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
 
 import hachage from './hachage'  // Wiring hachage pour utiljs
 import { 
@@ -18,8 +20,8 @@ import {
 
 console.debug("!!!1 Chargement hacheurs dans worker : %O", hachage)
 
-const { extraireExtensionsMillegrille } = forgecommon
-const { FormatteurMessageEd25519 } = formatteurMessage
+// const { extraireExtensionsMillegrille } = forgecommon
+// const { FormatteurMessageEd25519 } = formatteurMessage
 
 // Re-exporter fonctions de chiffrageClient
 export { formatterMessage, chargerCleMillegrille, signerMessageCleMillegrille, clearCleMillegrille } 
@@ -97,8 +99,8 @@ export async function connecter(urlApp, opts) {
 async function onConnect() {
 
   // S'assurer que la connexion est faite avec le bon site
-  const randomBytes = new Uint8Array(64)
-  await getRandomValues(randomBytes)
+  // const randomBytes = new Uint8Array(64)
+  const randomBytes = await getRandom(64)
   const challenge = String.fromCharCode.apply(null, multibase.encode('base64', randomBytes))
   const reponse = await new Promise(async (resolve, reject)=>{
     // console.debug("Emission challenge connexion Socket.io : %O", challenge)

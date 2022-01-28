@@ -1,18 +1,28 @@
 import { pki as forgePki, ed25519 } from '@dugrema/node-forge'
 
-import { 
-  hacherCertificat,
-  forgecommon, formatteurMessage as formatteurMessageLib,
-  // importerClePubliqueSubtle, importerClePriveeSubtle,
-  // chiffrerDocument as _chiffrerDocument, 
-  // dechiffrerDocument as _dechiffrerDocument,
-  // preparerCleSecreteSubtle as _preparerCleSecreteSubtle,
-  // dechiffrerSubtle
-} from '@dugrema/millegrilles.utiljs'
+// import { 
+//   hacherCertificat,
+//   forgecommon, formatteurMessage as formatteurMessageLib,
+//   // importerClePubliqueSubtle, importerClePriveeSubtle,
+//   // chiffrerDocument as _chiffrerDocument, 
+//   // dechiffrerDocument as _dechiffrerDocument,
+//   // preparerCleSecreteSubtle as _preparerCleSecreteSubtle,
+//   // dechiffrerSubtle
+// } from '@dugrema/millegrilles.utiljs/src/index'
 // import {chiffrerCleSecreteSubtle, dechiffrerCleSecreteSubtle} from '@dugrema/millegrilles.utiljs/src/chiffrage'
 
-const { CertificateStore, validerChaineCertificats, extraireExtensionsMillegrille } = forgecommon
-const { FormatteurMessageEd25519, SignateurMessageEd25519 } = formatteurMessageLib
+import { setHacheurs, hacherCertificat } from '@dugrema/millegrilles.utiljs/src/hachage'
+import { CertificateStore, validerChaineCertificats, extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon'
+import { FormatteurMessageEd25519, SignateurMessageEd25519 } from '@dugrema/millegrilles.utiljs/src/formatteurMessage'
+import hacheurs from './hachage'
+
+// Set hachage
+console.debug("Hachage chiffrageClient : %O", hacheurs)
+setHacheurs(hacheurs.hacheurs)
+
+
+// const { CertificateStore, validerChaineCertificats, extraireExtensionsMillegrille } = forgecommon
+// const { FormatteurMessageEd25519, SignateurMessageEd25519 } = formatteurMessageLib
 
 // import { 
 //   forgecommon, formatteurMessage as formatteurMessageLib, hachage, 

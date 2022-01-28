@@ -1,10 +1,13 @@
 import path from 'path'
 import axios from 'axios'
 import { v4 as uuidv4 } from 'uuid'
-import { forgecommon, creerCipher, preparerCommandeMaitrecles } from '@dugrema/millegrilles.utiljs'
+// import { forgecommon, creerCipher, preparerCommandeMaitrecles } from '@dugrema/millegrilles.utiljs/src/index'
+import { creerCipher, preparerCommandeMaitrecles } from '@dugrema/millegrilles.utiljs/src/chiffrage'
+import { splitPEMCerts } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
+
 import { getAcceptedFileReader, streamAsyncIterable } from './stream.js'
 
-const { splitPEMCerts } = forgecommon
+// const { splitPEMCerts } = forgecommon
 
 // Globals
 // Structure uploads : {file: AcceptedFile, status=1, }

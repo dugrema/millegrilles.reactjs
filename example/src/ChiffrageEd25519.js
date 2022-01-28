@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { genererClePrivee, chargerPemClePriveeEd25519 } from '@dugrema/millegrilles.utiljs'
+//import { genererClePrivee, chargerPemClePriveeEd25519 } from '@dugrema/millegrilles.utiljs/dist/index.min.js'
 
-import { pki, ed25519 } from '@dugrema/node-forge'
+//import { pki, ed25519 } from '@dugrema/node-forge'
 
 // console.debug("Forge : %O", Object.keys(forge))
 
@@ -35,13 +35,13 @@ async function run(setPem) {
     // const pemChiffre = cleToPem(keypair.privateKey, setPem)
     // pemToCle(pemChiffre)
 
-    const cles = genererClePrivee({password})
-    console.debug("Cles : %O", cles)
-    console.debug("PEM CHIFFRE\n%s", cles.pemChiffre)
-    setPem(cles.pemChiffre)
+    // const cles = genererClePrivee({password})
+    // console.debug("Cles : %O", cles)
+    // console.debug("PEM CHIFFRE\n%s", cles.pemChiffre)
+    // setPem(cles.pemChiffre)
 
-    const clePrivee = chargerPemClePriveeEd25519(cles.pemChiffre, {password})
-    console.debug("Cle privee dechiffree : %O", clePrivee)
+    // const clePrivee = chargerPemClePriveeEd25519(cles.pemChiffre, {password})
+    // console.debug("Cle privee dechiffree : %O", clePrivee)
 }
 
 // function cleToPem(cle, setPem) {

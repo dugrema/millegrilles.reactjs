@@ -1,8 +1,12 @@
 import { pki as forgePki } from '@dugrema/node-forge'
-import { forgecommon, validateurMessage, getIdmg } from '@dugrema/millegrilles.utiljs'
+// import { forgecommon, validateurMessage, getIdmg } from '@dugrema/millegrilles.utiljs/src/index'
 
-const { CertificateStore } = forgecommon
-const { verifierMessage: _verifierMessage } = validateurMessage
+import { getIdmg } from '@dugrema/millegrilles.utiljs/src/idmg'
+import { CertificateStore } from '@dugrema/millegrilles.utiljs/src/forgecommon'
+import { verifierMessage as _verifierMessage } from '@dugrema/millegrilles.utiljs/src/validateurMessage'
+
+// const { CertificateStore } = forgecommon
+// const { verifierMessage: _verifierMessage } = validateurMessage
 // const { getIdmg } = idmg
 
 var _certificatCaForge = null,
