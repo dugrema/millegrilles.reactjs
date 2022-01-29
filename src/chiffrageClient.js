@@ -15,6 +15,7 @@ import { setHacheurs, hacherCertificat } from '@dugrema/millegrilles.utiljs/src/
 import { CertificateStore, validerChaineCertificats, extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon'
 import { FormatteurMessageEd25519, SignateurMessageEd25519 } from '@dugrema/millegrilles.utiljs/src/formatteurMessage'
 import hacheurs from './hachage'
+import * as chiffrage from './chiffrage'
 
 // Set hachage
 console.debug("Hachage chiffrageClient : %O", hacheurs)

@@ -13,6 +13,8 @@ import { FormatteurMessageEd25519 } from '@dugrema/millegrilles.utiljs/src/forma
 import { extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
 
 import hachage from './hachage'  // Wiring hachage pour utiljs
+import * as chiffrage from './chiffrage'
+
 import { 
   initialiserFormatteurMessage as initialiserFormatteurMessageChiffrage,
   formatterMessage, chargerCleMillegrille, signerMessageCleMillegrille, clearCleMillegrille,

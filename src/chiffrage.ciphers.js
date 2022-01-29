@@ -236,7 +236,7 @@ async function decryptChacha20Poly1305(key, nonce, data, tag, opts) {
     if(ArrayBuffer.isView(data)) data = Buffer.from(data)
     if(ArrayBuffer.isView(nonce)) nonce = Buffer.from(nonce)
 
-    console.debug("Data: %O, tag: %O", data, tag)
+    // console.debug("Data: %O, tag: %O", data, tag)
     const ciphertextTag = new Uint8Array(Buffer.concat([data, tag]))
     const messageDechiffre = await wasmcrypto.chacha20poly1305_decrypt(nonce, key, ciphertextTag)
 

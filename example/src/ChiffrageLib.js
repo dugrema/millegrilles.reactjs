@@ -4,15 +4,6 @@ import { ed25519 } from '@dugrema/node-forge'
 
 const TAILLE_CHIFFRAGE = 32  // 1 * 1024 * 1024 + 5
 
-var _wasmcrypto = null
-async function loaddeps() {
-    _wasmcrypto = await import('@dugrema/wasm-xchacha20poly1305/wasm_xchacha20poly1305.js')
-        .then(wasmcrypto=>{
-            _wasmcrypto = wasmcrypto
-        })
-    return _wasmcrypto
-}
-
 function ChiffrageWasm(props) {
     
     const [dureeChiffrage, setDureeChiffrage] = useState('')
@@ -43,21 +34,14 @@ function ChiffrageWasm(props) {
 
 export default ChiffrageWasm
 
-function combinerBuffers(buffer1, buffer2) {
-    let buffersCombines = new Uint8Array(buffer1.length + buffer2.length)
-    buffersCombines.set(buffer1, 0)
-    buffersCombines.set(buffer2, buffer1.length)
-    return buffersCombines
-}
-
 async function chiffrer(setDureeChiffrage, setDureeChiffrageJs, setMessage) {
 
-    await loaddeps()
+    // await loaddeps()
 
     await setMessage("Debut chiffrage")
 
-    // await chiffrerWasmChacha20_onepass(setMessage)
-    await chiffrerWasmChacha20(setDureeChiffrage, setMessage)
+    await chiffrerWasmChacha20_onepass(setMessage)
+    // await chiffrerWasmChacha20(setDureeChiffrage, setMessage)
 
     await setMessage("Chiffrage termine")
 }
@@ -72,6 +56,7 @@ async function chiffrerWasmChacha20_onepass(setMessage) {
     const messageString = "Je veux chiffrer un message avec WASM puis faire la difference entre WASM et pur JavaScript."
     const encoder = new TextEncoder()
     let messageBytes = encoder.encode(messageString)
+    // let messageBytes = new Uint8Array(1 * 1024 * 1024)
 
     console.debug("Debut chiffrage")
     const debut = new Date()
@@ -80,7 +65,7 @@ async function chiffrerWasmChacha20_onepass(setMessage) {
     const finChiffrage = new Date()
     const duree = finChiffrage.getTime() - debut.getTime()
     
-    console.debug("Resultat chiffrage: %O", resultatChiffrage)
+    // console.debug("Resultat chiffrage: %O", resultatChiffrage)
     console.debug("Done chiffrage - duree %s ms", duree)
 
     const {ciphertext, secretKey, meta} = resultatChiffrage,
@@ -90,13 +75,13 @@ async function chiffrerWasmChacha20_onepass(setMessage) {
     const finDechiffrage = new Date()
     const dureeDechiffrage = finDechiffrage.getTime() - debutDechiffrage.getTime()
 
-    console.debug("Output dechiffrage : %O", messageDechiffre)
+    // console.debug("Output dechiffrage : %O", messageDechiffre)
     const bufferDechiffre = Buffer.from(messageDechiffre)
     const textDecoder = new TextDecoder()
     const messageDechiffreString = textDecoder.decode(bufferDechiffre)
 
     console.debug("Done dechiffrage ChaCha20 - duree %s ms", dureeDechiffrage)
-    console.debug("Contenu dechiffre ChaCha20 : %s", messageDechiffreString)
+    // console.debug("Contenu dechiffre ChaCha20 : %s", messageDechiffreString)
 
 }
 
