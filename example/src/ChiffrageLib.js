@@ -41,7 +41,7 @@ async function chiffrer(setDureeChiffrage, setDureeChiffrageJs, setMessage) {
     await setMessage("Debut chiffrage")
 
     await chiffrerWasmChacha20_onepass(setMessage)
-    // await chiffrerWasmChacha20(setDureeChiffrage, setMessage)
+    await chiffrerWasmChacha20(setDureeChiffrage, setMessage)
 
     await setMessage("Chiffrage termine")
 }
