@@ -2,7 +2,7 @@ import path from 'path'
 import axios from 'axios'
 import { v4 as uuidv4 } from 'uuid'
 // import { forgecommon, creerCipher, preparerCommandeMaitrecles } from '@dugrema/millegrilles.utiljs/src/index'
-import { creerCipher, preparerCommandeMaitrecles } from '@dugrema/millegrilles.utiljs/src/chiffrage'
+import { preparerCipher, preparerCommandeMaitrecles } from '@dugrema/millegrilles.utiljs/src/chiffrage'
 import { splitPEMCerts } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
 
 import { getAcceptedFileReader, streamAsyncIterable } from './stream.js'
@@ -285,7 +285,7 @@ async function terminerTraitementFichier(uploadEnCours) {
 
 /** Retourne un StreamReader qui applique les transformations requises */
 async function preparerTransform() {
-    return creerCipher()
+    return preparerCipher()
 }
 
 function onUploadProgress(progress) {

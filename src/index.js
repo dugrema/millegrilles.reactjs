@@ -1,6 +1,8 @@
 // Juste importer hachage. Execute le hook setHacheurs pour hachage dans millegrilles.utiljs
 import hachage from './hachage'
 export { hachage }
+import { chiffrage } from './chiffrage'
+export { chiffrage }
 
 // Re-exporter utiljs au complete
 export * as utiljs from '@dugrema/millegrilles.utiljs/dist/index.min'
