@@ -27,7 +27,7 @@ function ChiffrageWasm(props) {
 
     return (
         <div>
-            <h1>Chiffrage Wasm</h1>
+            <h1>Chiffrage librairie millegrilles.reactjs</h1>
 
             <p>Taille du contenu a chiffrer : {TAILLE_CHIFFRAGE}</p>
 

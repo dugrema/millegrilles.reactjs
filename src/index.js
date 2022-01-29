@@ -1,5 +1,9 @@
-// Juste importer hachage. Execute le hook setHacheurs pour hachage dans millegrilles.utiljs
+// Execute le hook setHacheurs pour hachage dans millegrilles.utiljs
 import hachage from './hachage'
+
+// Executer hook pour chiffreurs (WASM)
+import './chiffrage.ciphers'
+
 export { hachage }
 import { chiffrage } from './chiffrage'
 export { chiffrage }
