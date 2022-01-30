@@ -20,7 +20,7 @@ import {
   formatterMessage, chargerCleMillegrille, signerMessageCleMillegrille, clearCleMillegrille,
 } from './chiffrageClient'
 
-console.debug("!!!1 Chargement hacheurs dans worker : %O", hachage)
+// console.debug("!!!1 Chargement hacheurs dans worker : %O", hachage)
 
 // const { extraireExtensionsMillegrille } = forgecommon
 // const { FormatteurMessageEd25519 } = formatteurMessage

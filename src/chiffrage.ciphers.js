@@ -36,7 +36,7 @@ async function creerCipherChacha20Poly1305(key, nonce, opts) {
         read: async () => {
             const input = await readerInput.read()
             if(input.done) return input
-            const value = [...input.value]
+            const value = [...new Uint8Array(input.value)]
             return {done: false, value}
         }
     }
@@ -67,16 +67,17 @@ async function creerCipherChacha20Poly1305(key, nonce, opts) {
 
     return {
         update: async data => {
-            controllerInput.enqueue(data)
             // console.debug("Data enqueue : %O", data)
+            controllerInput.enqueue(data)
 
             // Lire une "chunk" en output pour simuler sync
             let {done, value: ciphertext} = await readerOutput.read()
+            // console.debug("Resultat : done %s, ciphertext: %O", done, ciphertext)
             if(!done) {
                 ciphertext = new Uint8Array(ciphertext)
                 // console.debug("ciphertext output lu : %O", ciphertext)
                 await hacheur.update(ciphertext)
-                taille += data.length
+                taille += ciphertext.length
             } else {
                 _done = true
             }

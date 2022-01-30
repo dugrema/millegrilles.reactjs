@@ -85,7 +85,7 @@ export async function* streamAsyncIterable(reader, opts) {
 
           if(value) {
               if(transform) {
-                  value = opts.transform(value)
+                  value = await opts.transform(value)
               }
               if(!tempBuffer) {
                   tempBuffer = Buffer.from(value)

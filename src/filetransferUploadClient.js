@@ -2,10 +2,14 @@ import path from 'path'
 import axios from 'axios'
 import { v4 as uuidv4 } from 'uuid'
 // import { forgecommon, creerCipher, preparerCommandeMaitrecles } from '@dugrema/millegrilles.utiljs/src/index'
-import { preparerCipher, preparerCommandeMaitrecles } from '@dugrema/millegrilles.utiljs/src/chiffrage'
+// import { preparerCipher, preparerCommandeMaitrecles } from '@dugrema/millegrilles.utiljs/src/chiffrage'
 import { splitPEMCerts } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
+import { pki } from '@dugrema/node-forge'
+import { base64 } from 'multiformats/bases/base64'
 
 import { getAcceptedFileReader, streamAsyncIterable } from './stream.js'
+import { preparerCipher, preparerCommandeMaitrecles }  from './chiffrage'
+import hachage from './hachage'
 
 // const { splitPEMCerts } = forgecommon
 
@@ -20,6 +24,9 @@ var _chiffrage = null
 
 // Callback etat : (nbFichiersPending, pctFichierEnCours, {encours: uuid, complete: uuid})
 var _callbackEtatUpload = null,
+    _certificatCa = null,
+    _publicKeyCa = null,
+    _fingerprintCa = null,
     _certificat = null,
     _domaine = 'GrosFichiers',
     _pathServeur = '/fichiers',
@@ -109,7 +116,6 @@ export async function up_ajouterFichiersUpload(acceptedFiles, opts) {
 }
 
 async function traiterUploads() {
-    // console.debug("!!! Traiter uploads !!!")
     if(_uploadEnCours) return  // Rien a faire
     if(!_chiffrage) throw new Error("_chiffrage non initialise")
 
@@ -177,7 +183,8 @@ async function uploadFichier() {
 
     // console.debug("Traiter upload en cours : %O", _uploadEnCours)
     const transformHandler = await preparerTransform()
-    const transform = data => transformHandler.update(data)
+    const cipher = transformHandler.cipher
+    const transform = data => cipher.update(data)
     
     const reader = streamAsyncIterable(getAcceptedFileReader(_uploadEnCours.file), {batchSize: BATCH_SIZE, transform})
 
@@ -208,13 +215,18 @@ async function uploadFichier() {
         }
 
         // Preprarer commande maitre des cles
-        const resultatChiffrage = await transformHandler.finish()
-        const {hachage_bytes, iv, tag} = resultatChiffrage.meta
+        // const resultatChiffrage = await transformHandler.finish()
+        const resultatChiffrage = await cipher.finalize()
+        const {hachage: hachage_bytes, tag} = resultatChiffrage
+        const iv = base64.encode(transformHandler.iv)
         // console.debug("Resultat chiffrage : %O", resultatChiffrage)
         const identificateurs_document = { fuuid: hachage_bytes }
         const commandeMaitreDesCles = await preparerCommandeMaitrecles(
-            [_certificat, [_certificat[2]]], resultatChiffrage.password, _domaine, hachage_bytes, iv, tag, identificateurs_document)
-        // console.debug("Commande maitre des cles : %O", commandeMaitreDesCles)
+            [_certificat[0]], transformHandler.secretKey, _domaine, hachage_bytes, iv, tag, identificateurs_document, {DEBUG: false})
+
+        // Ajouter cle du cert de millegrille
+        commandeMaitreDesCles.cles[_fingerprintCa] = transformHandler.secretChiffre
+        console.debug("Commande maitre des cles : %O", commandeMaitreDesCles)
         _uploadEnCours.commandeMaitreDesCles = commandeMaitreDesCles
 
         _uploadEnCours.transaction.fuuid = hachage_bytes
@@ -285,7 +297,7 @@ async function terminerTraitementFichier(uploadEnCours) {
 
 /** Retourne un StreamReader qui applique les transformations requises */
 async function preparerTransform() {
-    return preparerCipher()
+    return preparerCipher({clePubliqueEd25519: _publicKeyCa})
 }
 
 function onUploadProgress(progress) {
@@ -346,6 +358,19 @@ async function emettreEtat(flags) {
 
 export function up_setCallbackUpload(cb) {
     _callbackEtatUpload = cb
+}
+
+export function up_setCertificatCa(certificat) {
+    _certificatCa = certificat
+    const cert = pki.certificateFromPem(certificat)
+    _publicKeyCa = cert.publicKey.publicKeyBytes
+    hachage.hacherCertificat(cert)
+        .then(fingerprint=>{
+            _fingerprintCa = fingerprint
+            console.debug("Fingerprint certificat CA : %s", fingerprint)
+        })
+        .catch(err=>console.error("Erreur calcul fingerprint CA : %O", err))
+    console.debug("Cle CA chargee : %O, cle : %O", cert, _publicKeyCa)
 }
 
 export function up_setCertificat(certificat) {

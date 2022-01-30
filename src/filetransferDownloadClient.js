@@ -3,8 +3,11 @@ import { openDB } from 'idb'
 
 import { dechiffrer } from '@dugrema/millegrilles.utiljs/src/index'
 
+import * as chiffrage from './chiffrage'
+
 var _urlDownload = '/fichiers',
-    _nomIdb = 'collections'
+    _nomIdb = 'collections',
+    _certificatCa = null
 
 const CACHE_TEMP_NAME = 'fichiersDechiffresTmp',
       CACHE_DURABLE_NAME = 'fichiersSauvegardes',
@@ -560,6 +563,10 @@ export function down_setCallbackDownload(cb) {
 
 export function down_setUrlDownload(urlDownload) {
   _urlDownload = urlDownload
+}
+
+export function down_setCertificatCa(certificat) {
+  _certificatCa = certificat
 }
 
 export async function down_retryDownload(fuuid) {

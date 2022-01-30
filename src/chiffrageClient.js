@@ -18,7 +18,7 @@ import hacheurs from './hachage'
 import * as chiffrage from './chiffrage'
 
 // Set hachage
-console.debug("Hachage chiffrageClient : %O", hacheurs)
+// console.debug("Hachage chiffrageClient : %O", hacheurs)
 setHacheurs(hacheurs.hacheurs)
 
 
@@ -80,10 +80,8 @@ export function initialiserCallbackCleMillegrille(cb) {
 
 export async function initialiserFormatteurMessage(certificatPem, clePrivee, opts) {
   opts = opts || {}
-  console.debug("!!!2 formatteur message setup, PEM: %O, clePrivee: %O", certificatPem, clePrivee)
   formatteurMessage = new FormatteurMessageEd25519(certificatPem, clePrivee)
   await formatteurMessage.ready  // Permet de recevoir erreur si applicable
-  console.debug("!!!3 formatteur message setup complete : %O", formatteurMessage)
 }
 
 export function clearInfoSecrete() {
