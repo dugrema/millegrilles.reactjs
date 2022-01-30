@@ -1,9 +1,9 @@
 import path from 'path'
 import { openDB } from 'idb'
 
-import { dechiffrer } from '@dugrema/millegrilles.utiljs/src/index'
+// import { dechiffrer } from '@dugrema/millegrilles.utiljs/src/chiffrage'
 
-import * as chiffrage from './chiffrage'
+import { dechiffrer } from './chiffrage'
 
 var _urlDownload = '/fichiers',
     _nomIdb = 'collections',

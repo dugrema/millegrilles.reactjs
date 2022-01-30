@@ -11,15 +11,17 @@ import { pki as forgePki, ed25519 } from '@dugrema/node-forge'
 // } from '@dugrema/millegrilles.utiljs/src/index'
 // import {chiffrerCleSecreteSubtle, dechiffrerCleSecreteSubtle} from '@dugrema/millegrilles.utiljs/src/chiffrage'
 
-import { setHacheurs, hacherCertificat } from '@dugrema/millegrilles.utiljs/src/hachage'
+// import { setHacheurs, hacherCertificat } from '@dugrema/millegrilles.utiljs/src/hachage'
 import { CertificateStore, validerChaineCertificats, extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon'
 import { FormatteurMessageEd25519, SignateurMessageEd25519 } from '@dugrema/millegrilles.utiljs/src/formatteurMessage'
-import hacheurs from './hachage'
+import hachage from './hachage'
 import * as chiffrage from './chiffrage'
+
+const { hacherCertificat } = hachage
 
 // Set hachage
 // console.debug("Hachage chiffrageClient : %O", hacheurs)
-setHacheurs(hacheurs.hacheurs)
+//setHacheurs(hacheurs)
 
 
 // const { CertificateStore, validerChaineCertificats, extraireExtensionsMillegrille } = forgecommon
@@ -66,11 +68,15 @@ export async function initialiserCertificateStore(caCert, opts) {
   certificateStore = new CertificateStore(caCert, opts)
   if(DEBUG) console.debug("CertificateStore initialise %O", certificateStore)
 
+  console.debug("!!! 11 !!! hacherCertificat : %O", hacherCertificat)
+
   certificatMillegrille = {
     pem: caCert,
     cert: certificateStore.cert,
     fingerprint: await hacherCertificat(certificateStore.cert)
   }
+
+  console.debug("!!! 11 !!! Certificat millegrille : %O", certificatMillegrille)
 }
 
 export function initialiserCallbackCleMillegrille(cb) {

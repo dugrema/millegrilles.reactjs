@@ -9,7 +9,8 @@ import { chiffrage } from './chiffrage'
 export { chiffrage }
 
 // Re-exporter utiljs au complete
-export * as utiljs from '@dugrema/millegrilles.utiljs/dist/index.min'
+//export * as utiljs from '@dugrema/millegrilles.utiljs/dist/index.min'
+export * as forgecommon from '@dugrema/millegrilles.utiljs/src/forgecommon'
 
 // Components a exporter
 import { Thumbnail,  ThumbnailFooter, ThumbnailHeader, ThumbnailBoutonContexte } 
