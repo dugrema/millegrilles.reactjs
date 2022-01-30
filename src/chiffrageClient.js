@@ -19,6 +19,8 @@ import hachage from './hachage'
 import * as chiffrage from './chiffrage'
 import * as ed25519Utils from '@dugrema/millegrilles.utiljs/src/chiffrage.ed25519'
 
+export {chiffrage}
+
 const { hacherCertificat } = hachage
 
 // Set hachage

@@ -233,11 +233,12 @@ async function decryptChacha20Poly1305(key, nonce, data, tag, opts) {
     if(typeof(tag)==='string') tag = base64.decode(tag)
     if(typeof(nonce)==='string') nonce = base64.decode(nonce)
 
-    if(ArrayBuffer.isView(tag)) tag = Buffer.from(tag)
-    if(ArrayBuffer.isView(data)) data = Buffer.from(data)
-    if(ArrayBuffer.isView(nonce)) nonce = Buffer.from(nonce)
-
-    // console.debug("Data: %O, tag: %O", data, tag)
+    //if(Buffer.isBuffer(tag)) tag = Buffer.from(tag)
+    //if(Buffer.isBuffer(data)) data = Buffer.from(data)
+    if(Buffer.isBuffer(nonce)) nonce = Buffer.from(nonce)
+    data = Buffer.from(data)
+    tag = Buffer.from(tag)
+    console.debug("Data: %O, tag: %O", data, tag)
     const ciphertextTag = new Uint8Array(Buffer.concat([data, tag]))
     const messageDechiffre = await wasmcrypto.chacha20poly1305_decrypt(nonce, key, ciphertextTag)
 
