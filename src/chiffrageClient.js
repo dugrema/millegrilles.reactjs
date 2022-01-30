@@ -1,3 +1,4 @@
+import { base64 } from 'multiformats/bases/base64'
 import { pki as forgePki, ed25519 } from '@dugrema/node-forge'
 
 // import { 
@@ -16,6 +17,7 @@ import { CertificateStore, validerChaineCertificats, extraireExtensionsMillegril
 import { FormatteurMessageEd25519, SignateurMessageEd25519 } from '@dugrema/millegrilles.utiljs/src/formatteurMessage'
 import hachage from './hachage'
 import * as chiffrage from './chiffrage'
+import * as ed25519Utils from '@dugrema/millegrilles.utiljs/src/chiffrage.ed25519'
 
 const { hacherCertificat } = hachage
 
@@ -68,15 +70,11 @@ export async function initialiserCertificateStore(caCert, opts) {
   certificateStore = new CertificateStore(caCert, opts)
   if(DEBUG) console.debug("CertificateStore initialise %O", certificateStore)
 
-  console.debug("!!! 11 !!! hacherCertificat : %O", hacherCertificat)
-
   certificatMillegrille = {
     pem: caCert,
     cert: certificateStore.cert,
     fingerprint: await hacherCertificat(certificateStore.cert)
   }
-
-  console.debug("!!! 11 !!! Certificat millegrille : %O", certificatMillegrille)
 }
 
 export function initialiserCallbackCleMillegrille(cb) {
@@ -86,6 +84,7 @@ export function initialiserCallbackCleMillegrille(cb) {
 
 export async function initialiserFormatteurMessage(certificatPem, clePrivee, opts) {
   opts = opts || {}
+  _clePrivee = ed25519.privateKeyFromPem(clePrivee)
   formatteurMessage = new FormatteurMessageEd25519(certificatPem, clePrivee)
   await formatteurMessage.ready  // Permet de recevoir erreur si applicable
 }
@@ -278,12 +277,13 @@ export async function rechiffrerAvecCleMillegrille(secretsChiffres, pemRechiffra
   return secretsRechiffres
 }
 
-export async function preparerCleSecreteSubtle(cleSecreteChiffree, iv) {
-  return _preparerCleSecreteSubtle(cleSecreteChiffree, iv, clePriveeSubtleDecrypt)
-}
+// export async function preparerCleSecreteSubtle(cleSecreteChiffree, iv) {
+//   return _preparerCleSecreteSubtle(cleSecreteChiffree, iv, clePriveeSubtleDecrypt)
+// }
 
 export function dechiffrerCleSecrete(cleSecreteChiffree) {
-  return dechiffrerCleSecrete(clePrivee, cleSecreteChiffree)
+  console.debug("Cle secrete chiffree : %O", cleSecreteChiffree)
+  return ed25519Utils.dechiffrerCle(cleSecreteChiffree, _clePrivee)
 }
 
 // Re-export des imports
