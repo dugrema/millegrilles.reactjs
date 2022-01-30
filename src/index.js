@@ -8,6 +8,8 @@ export { hachage }
 import { chiffrage } from './chiffrage'
 export { chiffrage }
 
+export * as ed25519 from '@dugrema/millegrilles.utiljs/src/chiffrage.ed25519'
+
 // Re-exporter utiljs au complete
 //export * as utiljs from '@dugrema/millegrilles.utiljs/dist/index.min'
 export * as forgecommon from '@dugrema/millegrilles.utiljs/src/forgecommon'

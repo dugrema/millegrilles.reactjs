@@ -427,7 +427,7 @@ async function downloadCacheFichier(downloadEnCours, opts) {
         // On avait un processor, finir le dechiffrage
         if(DEBUG) console.debug("Dechiffrer avec subtle")
         progressCb(size-1, size, {flag: 'Dechiffrage en cours'})
-        const password = await _chiffrage.preparerCleSecreteSubtle(passwordChiffre, iv)
+        const password = await _chiffrage.dechiffrerCleSecrete(passwordChiffre)
         buffer = await dechiffrer(buffer, password, iv, tag)
         if(DEBUG) console.debug("Dechiffrage avec subtle termine")
         progressCb(size, size, {flag: 'Mise en cache'})
