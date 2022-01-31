@@ -1,19 +1,11 @@
 import {io as openSocket} from 'socket.io-client'
-import path from 'path'
 import multibase from 'multibase'
-
-// import { formatteurMessage, forgecommon, getRandomValues } from '@dugrema/millegrilles.utiljs'
-
-// const { FormatteurMessageSubtle } = formatteurMessage
-// const { extraireExtensionsMillegrille } = forgecommon
-
 import { getRandom } from '@dugrema/millegrilles.utiljs/src/random'
-//import * as forgecommon from '@dugrema/millegrilles.utiljs/src/forgecommon'
 import { FormatteurMessageEd25519 } from '@dugrema/millegrilles.utiljs/src/formatteurMessage'
 import { extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
 
 import hachage from './hachage'  // Wiring hachage pour utiljs
-import * as chiffrage from './chiffrage'
+import './chiffrage'
 
 import { 
   initialiserFormatteurMessage as initialiserFormatteurMessageChiffrage,
@@ -204,11 +196,18 @@ export async function initialiserFormatteurMessage(certificatPem, clePriveeSign,
 }
 
 export function socketOn(eventName, callback) {
+  if(!_socket) {
+    console.error("socketOn %s, _socket === null", eventName)
+    if(callback) callback(false)
+    return
+  }
   _socket.on(eventName, message => { callback(message) })
 }
 
 export function socketOff(eventName, callback) {
-  if(callback) {
+  if( ! _socket && callback ) {
+    callback(false)
+  } else if(callback) {
     _socket.off(eventName, callback)
   } else {
     _socket.removeAllListeners(eventName)
