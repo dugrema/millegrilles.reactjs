@@ -32,6 +32,16 @@ export function verifierCertificat(chainePem, dateValidation) {
   return _certificateStore.verifierChaine(chainePem, {validityCheckDate: dateValidation})
 }
 
+export function validerCertificat(chainePem, dateValidation) {
+  const certificatValide = _certificateStore.verifierChaine(chainePem, {validityCheckDate: dateValidation})
+  // verifierChaine retourne false si le certificat est invalide, un objet si valide
+  if(certificatValide) {
+    console.debug("Certificat valide : %O", certificatValide)
+    return true
+  }
+  return false
+}
+
 export async function verifierMessage(message) {
   const certificat = message['_certificat']
   const estampille = new Date(message['en-tete'].estampille * 1000)

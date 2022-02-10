@@ -238,11 +238,17 @@ async function decryptChacha20Poly1305(key, nonce, data, tag, opts) {
     if(Buffer.isBuffer(nonce)) nonce = Buffer.from(nonce)
     data = Buffer.from(data)
     tag = Buffer.from(tag)
-    console.debug("Data: %O, tag: %O", data, tag)
+    // console.debug("Data: %O, tag: %O", data, tag)
     const ciphertextTag = new Uint8Array(Buffer.concat([data, tag]))
-    const messageDechiffre = await wasmcrypto.chacha20poly1305_decrypt(nonce, key, ciphertextTag)
+    // console.debug("ciphertextTag : %O", ciphertextTag)
 
-    return messageDechiffre
+    try {
+        const messageDechiffre = await wasmcrypto.chacha20poly1305_decrypt(nonce, key, ciphertextTag)
+        return messageDechiffre
+    } catch(err) {
+        console.error("decryptChacha20Poly1305 Erreur call WASM : %O", err)
+        throw err
+    }
 }
 
 async function creerReadableStream() {
