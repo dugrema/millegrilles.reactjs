@@ -134,25 +134,27 @@ export async function _validerCertificatChiffrage(certificatPem, opts) {
 
   if(!certificateStore) throw new Error("CertificatStore non initialise pour verifier certificat de chiffrage")
 
-  const infoCertificat = await validerChaineCertificats(
-    certificatPem,
-    {...opts, clientStore: certificateStore}
-  )
+  const certificatForge = verifierCertificat(certificatPem, opts)
+
+  // const infoCertificat = await validerChaineCertificats(
+  //   certificatPem,
+  //   {...opts, clientStore: certificateStore}
+  // )
 
   // if( ! certificateStore.verifierChaine(certificatPem) ) {
   //   throw new Error("Certificat de chiffrage invalide")
   // }
   //
   if(DEBUG) console.debug("Certificat forge : %O", infoCertificat)
-  const certificatForge = await infoCertificat.cert
+  // const certificatForge = await infoCertificat.cert
   const extensions = extraireExtensionsMillegrille(certificatForge)
   if(DEBUG) console.debug("Extensions MilleGrille du certificat : %O", extensions)
 
   if( ! extensions.roles.includes('maitrecles') ) {
     throw new Error("Le certificat de chiffrage n'est pas pour le maitre des cles")
   }
-  if( ! extensions.niveauxSecurite.includes('4.secure') && ! extensions.niveauxSecurite.includes('3.protege') ) {
-    throw new Error("Le certificat de chiffrage n'est pas de niveau 3.protege ou 4.secure")
+  if( ! extensions.niveauxSecurite.includes('4.secure') ) {
+    throw new Error("Le certificat de chiffrage n'est pas de niveau 4.secure")
   }
 
   const fingerprint = await hacherCertificat(certificatForge)
@@ -163,24 +165,29 @@ export async function _validerCertificatChiffrage(certificatPem, opts) {
   return resultat
 }
 
-export async function chiffrerDocument(doc, domaine, certificatChiffragePem, identificateurs_document, opts) {
+export async function chiffrerDocument(doc, domaine, certificatChiffragePem, opts) {
     opts = opts || {}
-    const DEBUG = opts.DEBUG
+    const { DEBUG, identificateurs_document } = opts
+
+  console.debug("Certificat millegrille : %O", certificatMillegrille)
 
   // Valider le certificat - lance une exception si invalide
-  const infoCertificatChiffrage = _validerCertificatChiffrage(certificatChiffragePem)
+  const infoCertificatChiffrage = await _validerCertificatChiffrage(certificatChiffragePem)
+  console.debug("InfoCert chiffrage: %O", infoCertificatChiffrage)
 
-  // Combiner le certificat fourni avec celui de la millegrille
-  const certificatsPem = [certificatChiffragePem, certificatMillegrille.pem]
+  const certificatsListeChiffrage = [certificatChiffragePem.shift()]
 
-  throw new Error("fix me")
-  // const resultat = await _chiffrerDocument(doc, domaine, certificatsPem, identificateurs_document, opts)
+  const resultat = await chiffrage.chiffrerDocument(
+    doc, domaine, certificatMillegrille.pem, identificateurs_document, 
+    {...opts, certificats: certificatsListeChiffrage}
+  )
+  console.debug("resultat chiffrage : %O", resultat)
 
   // // Signer la commande de maitre des cles
-  // const commandeMaitrecles = await formatterMessage(resultat.commandeMaitrecles, 'MaitreDesCles.sauvegarderCle', {DEBUG})
-  // resultat.commandeMaitrecles = commandeMaitrecles
+  const commandeMaitrecles = await formatterMessage(resultat.commandeMaitrecles, 'MaitreDesCles', {action: 'sauvegarderCle', ajouterCertificat: true, DEBUG})
+  resultat.commandeMaitrecles = commandeMaitrecles
 
-  // return resultat
+  return resultat
 }
 
 export function dechiffrerDocument(ciphertext, messageCle, opts) {
