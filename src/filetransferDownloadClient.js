@@ -1,5 +1,6 @@
 import path from 'path'
 import { openDB } from 'idb'
+import { base64 } from "multiformats/bases/base64"
 
 // import { dechiffrer } from '@dugrema/millegrilles.utiljs/src/chiffrage'
 
@@ -321,6 +322,8 @@ async function preparerDataProcessor(iv, tag, opts) {
   if(!password) {
     // Dechiffrage du password - agit comme validation si subtle est utilise (on ne sauvegarde pas le password)
     password = await _chiffrage.dechiffrerCleSecrete(passwordChiffre)
+  } else if(typeof(password) === 'string') {
+    password = base64.decode(password)
   }
 
   const dataProcessor = {
@@ -345,6 +348,7 @@ async function preparerDataProcessor(iv, tag, opts) {
       if(!blockCipher) throw new Error("Data processor est inactif")
       return blockCipher.finish()
     },
+    password,
   }
 
   return dataProcessor
@@ -427,8 +431,9 @@ async function downloadCacheFichier(downloadEnCours, opts) {
         // On avait un processor, finir le dechiffrage
         if(DEBUG) console.debug("Dechiffrer avec subtle")
         progressCb(size-1, size, {flag: 'Dechiffrage en cours'})
-        const password = await _chiffrage.dechiffrerCleSecrete(passwordChiffre)
-        buffer = await dechiffrer(buffer, password, iv, tag)
+        // if(!password)
+        // password = await _chiffrage.dechiffrerCleSecrete(passwordChiffre)
+        buffer = await dechiffrer(buffer, dataProcessor.password, iv, tag)
         if(DEBUG) console.debug("Dechiffrage avec subtle termine")
         progressCb(size, size, {flag: 'Mise en cache'})
       }
