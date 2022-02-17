@@ -4,9 +4,10 @@ import 'hash-wasm/dist/blake2s.umd.min.js'
 
 import { useEffect, useState } from 'react'
 // import { sha512, blake2b, blake2s } from 'hash-wasm'
-import { createSHA512, createBLAKE2b } from 'hash-wasm'
+//import { createSHA512, createBLAKE2b } from 'hash-wasm'
 import '@dugrema/millegrilles.reactjs'
-import { hacher, verifierHachage, encoderIdmg, verifierIdmg, Hacheur, VerificateurHachage } from '@dugrema/millegrilles.utiljs/dist/index.min'
+//import { hacher, verifierHachage, encoderIdmg, verifierIdmg, Hacheur, VerificateurHachage } from '@dugrema/millegrilles.utiljs/dist/index.min'
+
 
 function HachageWasm(props) {
 

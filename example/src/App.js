@@ -16,6 +16,7 @@ import ChiffrageEd25519 from './ChiffrageEd25519'
 import HachageWasm from './HachageWasm'
 import ChiffrageWasm from './ChiffrageWasm'
 import ChiffrageLib from './ChiffrageLib'
+import QuillSample from './Quill'
 
 const App = () => {
 
@@ -40,6 +41,7 @@ const App = () => {
       case 'HachageWasm': PageCls = HachageWasm; break;
       case 'ChiffrageWasm': PageCls = ChiffrageWasm; break;
       case 'ChiffrageLib': PageCls = ChiffrageLib; break;
+      case 'QuillSample': PageCls = QuillSample; break;
       default:
     }
     if(PageCls) return (
@@ -67,6 +69,7 @@ const App = () => {
         <li><Button onClick={()=>setPage('HachageWasm')}>HachageWasm</Button></li>
         <li><Button onClick={()=>setPage('ChiffrageWasm')}>ChiffrageWasm</Button></li>
         <li><Button onClick={()=>setPage('ChiffrageLib')}>ChiffrageLib</Button></li>
+        <li><Button onClick={()=>setPage('QuillSample')}>QuillSample</Button></li>
       </ul>
     </Container>
   )
