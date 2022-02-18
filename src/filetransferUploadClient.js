@@ -29,8 +29,7 @@ var _callbackEtatUpload = null,
     _fingerprintCa = null,
     _certificat = null,
     _domaine = 'GrosFichiers',
-    _pathServeur = '/fichiers',
-    _nomIdb = 'collections'
+    _pathServeur = '/fichiers'
 
 const BATCH_SIZE = 1 * 1024 * 1024  // 1 MB
 const STATUS_NOUVEAU = 1,

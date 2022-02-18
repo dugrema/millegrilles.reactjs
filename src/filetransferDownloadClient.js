@@ -30,6 +30,10 @@ const STATUS_NOUVEAU = 1,
   STATUS_SUCCES = 3,
   STATUS_ERREUR = 4
 
+export function down_setNomIdb(nomIdb) {
+  _nomIdb = nomIdb
+}
+
 export async function down_getEtatCourant() {
   const db = await ouvrirIdb()
 
