@@ -286,6 +286,48 @@ export async function rechiffrerAvecCleMillegrille(secretsChiffres, pemRechiffra
   return secretsRechiffres
 }
 
+export async function chiffrerSecret(secrets, pemRechiffrage, opts) {
+  /*
+    secretsChiffres : dict correlation = buffer
+    pemRechiffrage : certificat a utiliser pour rechiffrer
+  */
+  opts = opts || {}
+  const DEBUG = opts.DEBUG
+  if(DEBUG) console.debug("chiffrer secrets: %O", secrets)
+
+  // Importer la cle publique en format Subtle a partir du pem de certificat
+  const certificat = forgePki.certificateFromPem(pemRechiffrage)
+  let clePublique = certificat.publicKey
+  if(clePublique.publicKeyBytes) clePublique = clePublique.publicKeyBytes
+  // var clePublique = forgePki.publicKeyToPem(certificat.publicKey)
+  // const regEx = /\n?\-{5}[A-Z ]+\-{5}\n?/g
+  // clePublique = clePublique.replaceAll(regEx, '')
+  // clePublique = await importerClePubliqueSubtle(clePublique)
+  if(DEBUG) console.debug("Cle publique extraite du pem : %O", clePublique)
+
+  const promises = Object.keys(secrets).map(async correlation => {
+    var cleSecrete = secrets[correlation]
+    // if(typeof(buffer) === 'string') buffer = base64.decode(buffer)
+    // buffer = await chiffrerCleSecreteSubtle(clePublique, buffer)
+    if(typeof(cleSecrete) === 'string') cleSecrete = base64.decode(cleSecrete)
+    if(DEBUG) console.debug("Chiffrer cle secrete : %O", cleSecrete)
+    const cleChiffree = await ed25519Utils.chiffrerCle(cleSecrete, clePublique, {ed25519: true})
+
+    if(DEBUG) console.debug("Cle %s chiffree : %O", correlation, cleChiffree)
+    return {[correlation]: cleChiffree}
+  })
+
+  var resultats = await Promise.all(promises)
+  if(DEBUG) console.debug("Resultats rechiffrage : %O", resultats)
+
+  // Concatener toutes les reponses
+  const secretsRechiffres = resultats.reduce((secretsRechiffres, item)=>{
+    return {...secretsRechiffres, ...item}
+  }, {})
+
+  return secretsRechiffres
+}
+
 // export async function preparerCleSecreteSubtle(cleSecreteChiffree, iv) {
 //   return _preparerCleSecreteSubtle(cleSecreteChiffree, iv, clePriveeSubtleDecrypt)
 // }
