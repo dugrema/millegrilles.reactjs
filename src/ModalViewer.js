@@ -209,18 +209,21 @@ function PreviewImage(props) {
     // Thumbnail
     useEffect(()=>{
         if(loader) {
-            const {srcPromise, clean} = loader('thumbnail')
-            srcPromise
-                .then(src=>{
-                    console.debug("Thumbnail charge : %O", src)
-                    setSrcThumbnail(src)
-                })
-                .catch(err=>{
-                    console.error("Erreur chargement thumbnail : %O", err)
-                    // setErr(err)
-                })
-            return () => {
-                clean()  // Executer sur exit
+            const loaderInstance = loader('thumbnail')
+            if(loaderInstance) {
+                const {srcPromise, clean} = loaderInstance
+                srcPromise
+                    .then(src=>{
+                        console.debug("Thumbnail charge : %O", src)
+                        setSrcThumbnail(src)
+                    })
+                    .catch(err=>{
+                        console.error("Erreur chargement thumbnail : %O", err)
+                        // setErr(err)
+                    })
+                return () => {
+                    clean()  // Executer sur exit
+                }
             }
         }
     }, [loader, setSrcThumbnail])
@@ -228,17 +231,20 @@ function PreviewImage(props) {
     // Image
     useEffect(()=>{
         if(loader) {
-            const {srcPromise, clean} = loader('image')
-            srcPromise
-                .then(src=>{
-                    setSrcImage(src)
-                })
-                .catch(err=>{
-                    console.error("Erreur chargement image : %O", err)
-                    setErr(err)
-                })
-            return () => {
-                clean()  // Executer sur exit
+            const loaderInstance = loader('image')
+            if(loaderInstance) {
+                const {srcPromise, clean} = loaderInstance
+                srcPromise
+                    .then(src=>{
+                        setSrcImage(src)
+                    })
+                    .catch(err=>{
+                        console.error("Erreur chargement image : %O", err)
+                        setErr(err)
+                    })
+                return () => {
+                    clean()  // Executer sur exit
+                }
             }
         }
     }, [loader, setSrcImage, setErr])
