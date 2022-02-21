@@ -297,6 +297,7 @@ export async function chiffrerSecret(secrets, pemRechiffrage, opts) {
 
   // Importer la cle publique en format Subtle a partir du pem de certificat
   const certificat = forgePki.certificateFromPem(pemRechiffrage)
+  const partition = await hacherCertificat(certificat)
   let clePublique = certificat.publicKey
   if(clePublique.publicKeyBytes) clePublique = clePublique.publicKeyBytes
   // var clePublique = forgePki.publicKeyToPem(certificat.publicKey)
@@ -325,7 +326,7 @@ export async function chiffrerSecret(secrets, pemRechiffrage, opts) {
     return {...secretsRechiffres, ...item}
   }, {})
 
-  return secretsRechiffres
+  return {cles: secretsRechiffres, partition}
 }
 
 // export async function preparerCleSecreteSubtle(cleSecreteChiffree, iv) {
