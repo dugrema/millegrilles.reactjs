@@ -1,6 +1,6 @@
 {
   "name": "millegrilles.reactjs",
-  "version": "2022.1.0",
+  "version": "2022.2.0",
   "description": "Composants communs pour MilleGrilles front-end avec ReactJS",
   "author": "dugrema",
   "license": "MIT",
@@ -20,25 +20,27 @@
     "predeploy": "cd example && npm install && npm run build",
     "deploy": "gh-pages -d example/build"
   },
-  "peerDependencies": {
-    "@dugrema/millegrilles.utiljs": "git+ssh://git.maceroc.com/git/millegrilles.utiljs#2022.1",
-    "@dugrema/node-forge": "github:dugrema/forge#ed25519",
+  "dependencies": {
+    "@dugrema/millegrilles.utiljs": "git+ssh://git.maceroc.com/git/millegrilles.utiljs#2022.2",
     "@dugrema/wasm-xchacha20poly1305": "^0.3.0",
-    "axios": "^0.24.0",
+    "axios": "^0.26.1",
     "base64url": "^3.0.1",
     "bootstrap": "^5.1",
     "comlink": "^4.3.1",
     "hash-wasm": "^4.9.0",
-    "idb": "^7.0.0",
+    "idb": "^7.0.1",
     "moment-duration-format": "^2.3",
     "moment-timezone": "^0.5.34",
     "multibase": "^4.0.6",
     "react": "^17.0",
-    "react-bootstrap": "^2.0",
-    "react-dropzone": "^11.4.2",
-    "react-player": "^2.9.0",
-    "socket.io-client": "^4.4.0",
-    "webpack": "~4.44.2",
+    "react-bootstrap": "^2.2",
+    "react-dropzone": "^12.0.4",
+    "react-player": "^2.10.0",
+    "socket.io-client": "^4.4.1",
+    "webpack": "4.44.2"
+  },
+  "peerDependencies": {
+    "@dugrema/node-forge": "github:dugrema/forge#ed25519",
     "multiformats": "^9.6.2"
   },
   "devDependencies": {
