@@ -29,7 +29,7 @@ var _callbackEtatUpload = null,
     _fingerprintCa = null,
     _certificat = null,
     _domaine = 'GrosFichiers',
-    _pathServeur = '/fichiers'
+    _pathServeur = '/collections/fichiers'
 
 const BATCH_SIZE = 1 * 1024 * 1024  // 1 MB
 const STATUS_NOUVEAU = 1,
@@ -38,6 +38,10 @@ const STATUS_NOUVEAU = 1,
       STATUS_ERREUR = 4,
       STATUS_NONCONFIRME = 5
 
+export function up_setPathServeur(pathServeur) {
+    _pathServeur = pathServeur
+}
+    
 export function up_getEtatCourant() {
 
     const loadedCourant = _uploadEnCours?_uploadEnCours.batchLoaded:0
@@ -275,8 +279,8 @@ async function terminerTraitementFichier(uploadEnCours) {
     // console.debug("Etat fichier uploadEnCours : %O", uploadEnCours)
 
     const confirmationResultat = {
-        commandeMaitrecles: maitreDesClesSignees, 
-        transactionGrosFichiers: transactionSignee,
+        cles: maitreDesClesSignees, 
+        transaction: transactionSignee,
     }
 
     const pathConfirmation = path.join(_pathServeur, uploadEnCours.correlation)
@@ -286,11 +290,21 @@ async function terminerTraitementFichier(uploadEnCours) {
         data: confirmationResultat,
     })
 
+    console.info("!!! Fichier verification (POST) reponse : %O", reponse)
+
+    if(reponse.data.ok === false) {
+        const data = reponse.data
+        console.error("Erreur verification fichier : %O", data)
+        const err = new Error("Erreur upload fichier : %s", data.err)
+        err.reponse = data
+        throw err
+    }
+
     return {
         status: reponse.status, 
         reponse: reponse.data, 
-        commandeMaitrecles: maitreDesClesSignees, 
-        transactionGrosFichiers: transactionSignee
+        cles: maitreDesClesSignees, 
+        transaction: transactionSignee
     }
 }
 
