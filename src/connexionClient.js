@@ -12,11 +12,6 @@ import {
   formatterMessage, chargerCleMillegrille, signerMessageCleMillegrille, clearCleMillegrille,
 } from './chiffrageClient'
 
-// console.debug("!!!1 Chargement hacheurs dans worker : %O", hachage)
-
-// const { extraireExtensionsMillegrille } = forgecommon
-// const { FormatteurMessageEd25519 } = formatteurMessage
-
 // Re-exporter fonctions de chiffrageClient
 export { formatterMessage, chargerCleMillegrille, signerMessageCleMillegrille, clearCleMillegrille } 
 
@@ -125,11 +120,9 @@ async function onConnect() {
     throw new Error("Signature de la reponse invalide, serveur non fiable")
   }
 
-  // console.debug("Signature du serveur est valide")
   // On vient de confirmer que le serveur a un certificat valide qui correspond
   // a la MilleGrille. L'authentification du client se fait automatiquement
   // avec le certificat (mode prive ou protege).
-
   // Faire l'upgrade protege
   const resultatProtege = await upgradeProteger()
   if(resultatProtege) getCertificatsMaitredescles()  // Met en cache le certificat
@@ -190,7 +183,6 @@ export async function initialiserFormatteurMessage(certificatPem, clePriveeSign,
 
   // Initialiser section partagee avec le chiffrageClient
   await initialiserFormatteurMessageChiffrage(certificatPem, clePriveeSign, opts)
-  // await initialiserCertificateStoreChiffrage(certificatPem, clePriveeSign, opts)
 
   await _formatteurMessage.ready  // Permet de recevoir erreur si applicable
 }
@@ -222,63 +214,13 @@ export function deconnecter() {
   } else {
     console.warn("_socket n'est pas initialise, on ne peut pas deconnecter")
   }
-  // _clePriveeSubtleDecrypt = null
-  // _clePriveeSubtleSign = null
   _formatteurMessage = null
-  // console.info("Deconnexion completee")
-}
-
-export function subscribe(routingKeys, callback, opts) {
-  if(!opts) opts = {}
-  const DEBUG = opts.DEBUG
-
-  const niveauxSecurite = opts.exchange || ['1.public']
-  if(DEBUG) console.debug("Enregistrer %O sur exchanges %O", routingKeys, niveauxSecurite)
-
-  const callbackFilter = function(message) {
-    if(!message) return
-
-    // Filtrer par routing key
-    const routingKey = message.routingKey
-    if(DEBUG) console.debug("Message recu, routingKey : %s", routingKey)
-
-    if(routingKeys.includes(routingKey) && niveauxSecurite.includes(message.exchange)) {
-      try {
-        callback(message)
-      } catch(err) {
-        console.error("Erreur traitement callback sur %s", routingKey)
-      }
-    }
-  }
-
-  // Transmet une liste de routingKeys a enregistrer sur notre Q.
-  _socket.emit('subscribe', {routingKeys, exchange: niveauxSecurite})
-
-  const domainesActions = getDomainesActions(routingKeys)
-  if(DEBUG) console.debug("Enregistrer listeners domaineAction : %O", domainesActions)
-  domainesActions.forEach(domaineAction=>{
-    _socket.on(domaineAction, callbackFilter)
-  })
-
-  // Retourne une methode pour faire le "unsubscribe"
-  // return callbackFilter
-}
-
-export function unsubscribe(routingKeys, callback, opts) {
-  // Retrait du listener d'evenement
-  // console.debug("Unsubscribe callback, socket.off %O", routingKeys)
-  _socket.emit('unsubscribe', {routingKeys, opts})
-
-  const domainesAction = getDomainesActions(routingKeys)
-  domainesAction.forEach(domaineAction=>{
-    _socket.off(domaineAction, callback)
-  })
-
 }
 
 export async function emitBlocking(event, message, opts) {
   /* Emet un message et attend la reponse. */
   opts = opts || {}
+  const timeoutDelay = opts.timeout || 9000
 
   if( message && !message['_signature'] && !opts.noformat ) {
     // Signer le message
@@ -295,7 +237,7 @@ export async function emitBlocking(event, message, opts) {
     // Creer timeout pour echec de commande
     const timeout = setTimeout(_=>{
       reject(new Error('emitBlocking ' + event + ': Timeout socket.io'))
-    }, 9000)
+    }, timeoutDelay)
 
     const traiterReponse = reponse => {
       clearTimeout(timeout)  // Reponse recue, annuler le timeout
@@ -402,35 +344,3 @@ export async function getCleFichierProtege(fuuid) {
     { domaine: 'MaitreDesCles', action: 'dechiffrage', attacherCertificat: true }
   )
 }
-
-// Fonctions partagees avec chiffrageClient
-
-// export function formatterMessage(message, domaineAction, opts) {
-//   opts = opts || {}
-//   opts.attacherCertificat = true  // Toujours attacher le certificat
-
-//   /* Expose formatterMessage du formatteur de messages */
-//   if(opts.DEBUG) console.debug("Formatter domaine=%s, message : %O", domaineAction, message)
-
-//   return _formatteurMessage.formatterMessage(message, domaineAction, opts)
-// }
-
-// export function signerMessageCleMillegrille(message, opts) {
-//   opts = opts || {}
-
-//   /* Expose formatterMessage du formatteur de messages */
-//   if(opts.DEBUG) console.debug("Signer message avec cle de MilleGrille: %O", message)
-//   const signateur = new SignateurMessageSubtle(_cleMillegrilleSubtle.clePriveeSign)
-//   return signateur.signer(message)
-// }
-
-
-// module.exports = {
-//   connecter, deconnecter,
-//   initialiserFormatteurMessage, isFormatteurReady,
-//   subscribe, unsubscribe, emit, emitBlocking,
-//   socketOn, socketOff,
-//   getInformationMillegrille, getCertificatsMaitredescles,
-//   genererChallengeWebAuthn, upgradeProteger, downgradePrive,
-//   getCertificatFormatteur,
-// }
