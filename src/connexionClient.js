@@ -277,6 +277,46 @@ export async function emit(event, message, opts) {
   }
 }
 
+/**
+ * 
+ * @param {*} nomEventSocketio Nom de l'event correspondant sur le backend de l'application
+ * @param {*} cb Callback a invoquer sur chaque message
+ * @param {*} params (Optionnel) Obj de parametres pour emitBlocking
+ * @param {*} opts (Optionnel) Obj d'options supplementaires pour emitBlocking (e.g. pour signature du message)
+ */
+export async function subscribe(nomEventSocketio, cb, params, opts) {
+  params = params || {}
+  opts = opts || {}
+  const resultat = await emitBlocking(nomEventSocketio, params, opts)
+  console.debug("Resultat subscribe %s : %O", nomEventSocketio, resultat)
+  if(resultat && resultat.ok === true) {
+    resultat.routingKeys.forEach(item=>{
+      console.debug("subscribe %s Ajouter socketOn %s", nomEventSocketio, item)
+      socketOn(item, cb)
+    })
+  } else {
+    const err = new Error("Erreur subscribe %s", nomEventSocketio)
+    err.reponse = resultat
+    throw err
+  }
+}
+
+/**
+ * 
+ * @param {*} nomEventSocketio Nom de l'event correspondant sur le backend de l'application
+ * @param {*} cb Callback a retirer
+ */
+export async function unsubscribe(nomEventSocketio, cb) {
+  socketOff(nomEventSocketio)
+  const resultat = await emitBlocking('coupdoeil/retirerEvenementsPresenceNoeuds', {}, {})
+  if(resultat && resultat.ok === true) {
+    resultat.routingKeys.forEach(item=>{
+      console.debug("unsubscribe %s enregistrerCallbackEvenementsNoeuds socketOff %s", nomEventSocketio, item)
+      socketOff(item, cb)
+    })
+  }
+}
+
 export function getDomainesActions(routingKeys) {
   // console.debug("Domaines actions, routingKeys : %O", routingKeys)
   const domainesActions = {}
