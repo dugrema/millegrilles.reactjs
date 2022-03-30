@@ -42,6 +42,8 @@ export * from './detecterAppareils'
 export * from './labelsRessources'
 export * from './dbUsager'
 
+export * from './Alerts'
+
 // import * as ChiffrageClient from './chiffrageClient.js'
 // export { ChiffrageClient }
 
