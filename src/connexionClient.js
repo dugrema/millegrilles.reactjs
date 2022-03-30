@@ -306,9 +306,9 @@ export async function subscribe(nomEventSocketio, cb, params, opts) {
  * @param {*} nomEventSocketio Nom de l'event correspondant sur le backend de l'application
  * @param {*} cb Callback a retirer
  */
-export async function unsubscribe(nomEventSocketio, cb) {
+export async function unsubscribe(nomEventSocketio, cb, params, opts) {
   socketOff(nomEventSocketio)
-  const resultat = await emitBlocking('coupdoeil/retirerEvenementsPresenceNoeuds', {}, {})
+  const resultat = await emitBlocking(nomEventSocketio, params, opts)
   if(resultat && resultat.ok === true) {
     resultat.routingKeys.forEach(item=>{
       console.debug("unsubscribe %s enregistrerCallbackEvenementsNoeuds socketOff %s", nomEventSocketio, item)
