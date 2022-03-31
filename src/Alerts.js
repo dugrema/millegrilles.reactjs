@@ -26,14 +26,17 @@ export function AlertTimeout(props) {
     const closeCb = useCallback(()=>{ setValue('') }, [setValue])
 
     useEffect(()=>{
+        console.info("Alerts value : %O", value)
         if(value) {
-            if(value.err) {
-                setErr(value.err)
-            }
             if(value.message) {
                 setMessage(value.message)
             } else if(typeof(value) === 'string') {
                 setMessage(value)
+            } else if(value.err) {
+                setMessage(''+value.err)
+            }
+            if(value.err) {
+                setErr(value.err)
             }
         } else {
             // Cleanup
