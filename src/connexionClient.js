@@ -23,7 +23,6 @@ var _callbackSetEtatConnexion,
     _x509Worker,
     _urlCourant = '',
     _connecte = false,
-    _protege = false,
     _certificatsMaitreDesCles = ''
 
 export function setX509Worker(x509Worker) {
@@ -36,7 +35,7 @@ export function setCallbacks(setEtatConnexion, callbackSetUsager) {
 }
 
 export function estActif() {
-  return _urlCourant && _connecte && _protege
+  return _urlCourant && _connecte
 }
 
 export async function connecter(urlApp, opts) {
@@ -50,35 +49,33 @@ export async function connecter(urlApp, opts) {
 
   const connexion = connecterSocketio(urlSocketio.href, opts)
 
-  socketOn('connect', _=>{
+  socketOn('connect', () => {
     if(opts.DEBUG) console.debug("socket.io connecte a %O", urlSocketio)
     _connecte = true
     _urlCourant = urlApp
     onConnect()
-      .then(protege=>{
-        _protege = protege
-        if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(protege)
+      .then(()=>{
+        if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(_connecte)
       })
+      .catch(err=>console.error("Erreur connexion : %O", err))
   })
-  socketOn('reconnect', _=>{
+  socketOn('reconnect', () => {
     if(opts.DEBUG) console.debug("Reconnecte")
     _connecte = true
     onConnect()
-      .then(protege=>{
-        _protege = protege
-        if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(protege)
+      .then(()=>{
+        if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(_connecte)
       })
+      .catch(err=>console.error("Erreur connexion : %O", err))
   })
-  socketOn('disconnect', _=>{
+  socketOn('disconnect', () => {
     if(opts.DEBUG) console.debug("Disconnect socket.io")
     _connecte = false
-    _protege = false
     if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(false)
   })
-  socketOn('connect_error', err=>{
+  socketOn('connect_error', err => {
     if(opts.DEBUG) console.debug("Erreur socket.io : %O", err)
     _connecte = false
-    _protege = false
     if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(false)
   })
 
@@ -87,52 +84,52 @@ export async function connecter(urlApp, opts) {
 
 async function onConnect() {
 
-  // S'assurer que la connexion est faite avec le bon site
-  // const randomBytes = new Uint8Array(64)
-  const randomBytes = await getRandom(64)
-  const challenge = String.fromCharCode.apply(null, multibase.encode('base64', randomBytes))
-  const reponse = await new Promise(async (resolve, reject)=>{
-    // console.debug("Emission challenge connexion Socket.io : %O", challenge)
-    const timeout = setTimeout(_=>{
-      reject('Timeout')
-    }, 15000)
-    const reponse = await emitBlocking('challenge', {challenge, noformat: true})
-    // console.debug("Reponse challenge connexion Socket.io : %O", reponse)
-    clearTimeout(timeout)
+  // // S'assurer que la connexion est faite avec le bon site
+  // // const randomBytes = new Uint8Array(64)
+  // const randomBytes = await getRandom(64)
+  // const challenge = String.fromCharCode.apply(null, multibase.encode('base64', randomBytes))
+  // const reponse = await new Promise(async (resolve, reject)=>{
+  //   // console.debug("Emission challenge connexion Socket.io : %O", challenge)
+  //   const timeout = setTimeout(_=>{
+  //     reject('Timeout')
+  //   }, 15000)
+  //   const reponse = await emitBlocking('challenge', {challenge, noformat: true})
+  //   // console.debug("Reponse challenge connexion Socket.io : %O", reponse)
+  //   clearTimeout(timeout)
 
-    if(reponse.reponse === challenge) {
-      resolve(reponse)
-    } else{
-      reject('Challenge mismatch')
-    }
-  })
+  //   if(reponse.reponse === challenge) {
+  //     resolve(reponse)
+  //   } else{
+  //     reject('Challenge mismatch')
+  //   }
+  // })
 
-  // Initialiser les cles, stores, etc pour tous les workers avec
-  // le nom de l'usager. Le certificat doit exister et etre valide pour la
-  // millegrille a laquelle on se connecte.
-  const nomUsager = reponse.nomUsager
-  await _callbackSetUsager(nomUsager)
+  // // Initialiser les cles, stores, etc pour tous les workers avec
+  // // le nom de l'usager. Le certificat doit exister et etre valide pour la
+  // // millegrille a laquelle on se connecte.
+  // const nomUsager = reponse.nomUsager
+  // await _callbackSetUsager(nomUsager)
 
-  // Valider la reponse signee
-  // const signatureValide = await _verifierSignature(reponse)
-  const signatureValide = await _x509Worker.verifierMessage(reponse)
-  if(!signatureValide) {
-    throw new Error("Signature de la reponse invalide, serveur non fiable")
-  }
+  // // Valider la reponse signee
+  // // const signatureValide = await _verifierSignature(reponse)
+  // const signatureValide = await _x509Worker.verifierMessage(reponse)
+  // if(!signatureValide) {
+  //   throw new Error("Signature de la reponse invalide, serveur non fiable")
+  // }
 
-  // On vient de confirmer que le serveur a un certificat valide qui correspond
-  // a la MilleGrille. L'authentification du client se fait automatiquement
-  // avec le certificat (mode prive ou protege).
-  // Faire l'upgrade protege
-  const resultatProtege = await upgradeProteger()
-  if(resultatProtege) getCertificatsMaitredescles()  // Met en cache le certificat
-  // console.debug("Resultat upgrade protege : %O", resultatProtege)
+  // // On vient de confirmer que le serveur a un certificat valide qui correspond
+  // // a la MilleGrille. L'authentification du client se fait automatiquement
+  // // avec le certificat (mode prive ou protege).
+  // // Faire l'upgrade protege
+  // const resultatProtege = await upgradeProteger()
+  // if(resultatProtege) getCertificatsMaitredescles()  // Met en cache le certificat
+  // // console.debug("Resultat upgrade protege : %O", resultatProtege)
 
-  // Emettre l'evenement qui va faire enregistrer les evenements de mise a jour
-  // pour le mapping, siteconfig et sections
-  emit('ecouterMaj')
+  // // Emettre l'evenement qui va faire enregistrer les evenements de mise a jour
+  // // pour le mapping, siteconfig et sections
+  // emit('ecouterMaj')
 
-  return resultatProtege
+  // return resultatProtege
 }
 
 export function getCertificatFormatteur() {
@@ -165,8 +162,11 @@ async function connecterSocketio(url, opts) {
       transports,
     })
 
-    const infoIdmg = await emitBlocking('getInfoIdmg', {}, {noformat: true})
-    return infoIdmg
+    try {
+      return await emitBlocking('getInfoIdmg', {}, {noformat: true})
+    } catch(err) {
+      return {ok: false, err: 'getInfoIdmg: '+err}
+    }
 
   } else {
     const err = new Error("_socket deja charge")
@@ -222,14 +222,14 @@ export async function emitBlocking(event, message, opts) {
   opts = opts || {}
   const timeoutDelay = opts.timeout || 9000
 
-  if( message && !message['_signature'] && !opts.noformat ) {
+  if( message && !message['_signature'] && opts.noformat !== true ) {
     // Signer le message
-    try {
+    // try {
       var domaine = opts.domaine || message['en-tete'].domaine
       message = await _formatteurMessage.formatterMessage(message, domaine, opts)
-    } catch(err) {
-      console.warn("Erreur formattage message : %O", err)
-    }
+    // } catch(err) {
+    //   console.warn("Erreur formattage message : %O", err)
+    // }
   }
 
   return new Promise( (resolve, reject) => {
@@ -260,14 +260,14 @@ export async function emit(event, message, opts) {
   /* Emet un message sans attente (fire and forget) */
   opts = opts || {}
 
-  if( message && !message['_signature'] && !opts.noformat ) {
+  if( message && !message['_signature'] && opts.noformat !== true ) {
     // Signer le message
-    try {
+    // try {
       var domaine = opts.domaine || message['en-tete'].domaine
       message = await _formatteurMessage.formatterMessage(message, domaine, opts)
-    } catch(err) {
-      console.warn("Erreur formattage message : %O", err)
-    }
+    // } catch(err) {
+    //   console.warn("Erreur formattage message : %O", err)
+    // }
   }
 
   if(message) {
@@ -317,17 +317,17 @@ export async function unsubscribe(nomEventSocketio, cb, params, opts) {
   }
 }
 
-export function getDomainesActions(routingKeys) {
-  // console.debug("Domaines actions, routingKeys : %O", routingKeys)
-  const domainesActions = {}
-  for(let idx in routingKeys) {
-    const rkSplit = routingKeys[idx].split('.')
-    var domaineAction = [rkSplit[0], rkSplit[1], rkSplit[rkSplit.length-1]].join('.')
-    domainesActions[domaineAction] = true
-  }
+// export function getDomainesActions(routingKeys) {
+//   // console.debug("Domaines actions, routingKeys : %O", routingKeys)
+//   const domainesActions = {}
+//   for(let idx in routingKeys) {
+//     const rkSplit = routingKeys[idx].split('.')
+//     var domaineAction = [rkSplit[0], rkSplit[1], rkSplit[rkSplit.length-1]].join('.')
+//     domainesActions[domaineAction] = true
+//   }
 
-  return Object.keys(domainesActions)
-}
+//   return Object.keys(domainesActions)
+// }
 
 export function isFormatteurReady() {
   if(_formatteurMessage) {
@@ -354,6 +354,11 @@ export function genererChallengeWebAuthn(params) {
 }
 
 export function upgradeProteger(data) {
+  console.warn("Deprecated : connexionClient.upgradeProteger(), utiliser connexionClient.authentifier()")
+  return authentifier(data)
+}
+
+export function authentifier(data) {
   if(data) {
     return emitBlocking('upgrade', data, {noformat: true})
   } else {
@@ -363,24 +368,24 @@ export function upgradeProteger(data) {
       // console.debug("connexionClient.upgradeProteger Reponse challenge : %O", reponse)
       // Repondre pour creer l'upgrade
       const data = {...reponse.challengeCertificat}
-      return emitBlocking('upgrade', data, {domaine: 'login', attacherCertificat: true})
+      return emitBlocking('upgrade', data, {action: 'login', attacherCertificat: true})
     })
   }
 }
 
-export function downgradePrive() {
+// export function downgradePrive() {
 
-  // S'assurer d'avoir un seul listener
-  socketOff('challengeAuthU2F')
-  socketOff('challengeRegistrationU2F')
+//   // S'assurer d'avoir un seul listener
+//   socketOff('challengeAuthU2F')
+//   socketOff('challengeRegistrationU2F')
 
-  return emit('downgradePrive', {}, {noformat: true})
-}
+//   return emit('downgradePrive', {}, {noformat: true})
+// }
 
-export async function getCleFichierProtege(fuuid) {
-  return emitBlocking(
-    'getClesFichiers',
-    { liste_hachage_bytes: [fuuid] },
-    { domaine: 'MaitreDesCles', action: 'dechiffrage', attacherCertificat: true }
-  )
-}
+// export async function getCleFichierProtege(fuuid) {
+//   return emitBlocking(
+//     'getClesFichiers',
+//     { liste_hachage_bytes: [fuuid] },
+//     { domaine: 'MaitreDesCles', action: 'dechiffrage', attacherCertificat: true }
+//   )
+// }

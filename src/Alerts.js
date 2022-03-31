@@ -5,39 +5,57 @@ import Modal from 'react-bootstrap/Modal'
 
 export function AlertTimeout(props) {
 
-    const message = props.message,
-          setMessage = props.setMessage,
-          setError = props.setError,
-          err = props.err,
+    // const message = props.message,
+    //       setMessage = props.setMessage,
+    //       setError = props.setError,
+    //       err = props.err
           // delay = props.delay || 10000,
-          variant = props.variant || 'success'
+
+    const {value, setValue} = props
+    const titre = props.titre || 'Succes'
+    const variant = props.variant || 'success'
 
     let delay = props.delay
     if(delay !== false && !delay) delay = 10000
 
-    const [timeoutSucces, setTimeoutSucces] = useState('')
+    const [timeoutAlert, setTimeoutAlert] = useState('')
 
-    const titre = err?'Erreur':'Success'
+    const [message, setMessage] = useState('')
+    const [err, setErr] = useState('')
 
-    const closeCb = useCallback(()=>{
-        if(setError) setError('')
-        setMessage('')
-    }, [setMessage, setError])
+    const closeCb = useCallback(()=>{ setValue('') }, [setValue])
 
     useEffect(()=>{
-        if(delay && message && !timeoutSucces) {
+        if(value) {
+            if(value.err) {
+                setErr(value.err)
+            }
+            if(value.message) {
+                setMessage(value.message)
+            } else if(typeof(value) === 'string') {
+                setMessage(value)
+            }
+        } else {
+            // Cleanup
+            setMessage('')
+            setErr('')
+        }
+    }, [value, setMessage, setErr])
+
+    useEffect(()=>{
+        if(delay && value && !timeoutAlert) {
             // Activer timeout
-            setTimeoutSucces(setTimeout(()=>setMessage(''), delay))
+            setTimeoutAlert(setTimeout(()=>setValue(''), delay))
         }
-    }, [message, timeoutSucces, setTimeoutSucces, delay])
+    }, [value, setValue, timeoutAlert, setTimeoutAlert, delay])
 
     useEffect(()=>{
-        if(!message && timeoutSucces) {
+        if(!message && timeoutAlert) {
             // Desactiver timeout
-            clearTimeout(timeoutSucces)
-            setTimeoutSucces('')
+            clearTimeout(timeoutAlert)
+            setTimeoutAlert('')
         }
-    }, [message, timeoutSucces, setTimeoutSucces, delay])
+    }, [message, timeoutAlert, setTimeoutAlert, delay])
 
     return (
         <Alert show={message?true:false} variant={variant} onClose={closeCb} dismissible>
