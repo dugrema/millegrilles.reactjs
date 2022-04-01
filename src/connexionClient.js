@@ -337,6 +337,10 @@ export function isFormatteurReady() {
   return false
 }
 
+export function clearFormatteurMessage() {
+  _formatteurMessage = null
+}
+
 export async function getCertificatsMaitredescles() {
   if(_certificatsMaitreDesCles) return _certificatsMaitreDesCles
   const reponse = await emitBlocking('getCertificatsMaitredescles', null, {noformat: true, ajouterCertificat: true})
