@@ -40,7 +40,10 @@ export { repondreRegistrationChallenge } from './webauthn'
 
 export * from './detecterAppareils'
 export * from './labelsRessources'
-export * from './dbUsager'
+// export * as dbUsagerIndexedDb from './dbUsagerIndexedDb'
+// export * as dbUsagerStorage from './dbUsagerStorage'
+
+export * as usagerDao from './usagerDao'
 
 export * from './Alerts'
 
