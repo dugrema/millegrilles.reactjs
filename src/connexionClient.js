@@ -225,8 +225,11 @@ export async function emitBlocking(event, message, opts) {
   if( message && !message['_signature'] && opts.noformat !== true ) {
     // Signer le message
     // try {
-      var domaine = opts.domaine || message['en-tete'].domaine
-      message = await _formatteurMessage.formatterMessage(message, domaine, opts)
+      var domaine = opts.domaine
+      if(!domaine && message['en-tete']) domaine = message['en-tete'].domaine
+      if(domaine) {
+        message = await _formatteurMessage.formatterMessage(message, domaine, opts)
+      }
     // } catch(err) {
     //   console.warn("Erreur formattage message : %O", err)
     // }
