@@ -1,6 +1,4 @@
 import {io as openSocket} from 'socket.io-client'
-import multibase from 'multibase'
-import { getRandom } from '@dugrema/millegrilles.utiljs/src/random'
 import { FormatteurMessageEd25519 } from '@dugrema/millegrilles.utiljs/src/formatteurMessage'
 import { extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
 
@@ -53,20 +51,12 @@ export async function connecter(urlApp, opts) {
     if(opts.DEBUG) console.debug("socket.io connecte a %O", urlSocketio)
     _connecte = true
     _urlCourant = urlApp
-    onConnect()
-      .then(()=>{
-        if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(_connecte)
-      })
-      .catch(err=>console.error("Erreur connexion : %O", err))
+    _callbackSetEtatConnexion(_connecte)
   })
   socketOn('reconnect', () => {
     if(opts.DEBUG) console.debug("Reconnecte")
     _connecte = true
-    onConnect()
-      .then(()=>{
-        if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(_connecte)
-      })
-      .catch(err=>console.error("Erreur connexion : %O", err))
+    _callbackSetEtatConnexion(_connecte)
   })
   socketOn('disconnect', () => {
     if(opts.DEBUG) console.debug("Disconnect socket.io")
@@ -80,56 +70,6 @@ export async function connecter(urlApp, opts) {
   })
 
   return connexion
-}
-
-async function onConnect() {
-
-  // // S'assurer que la connexion est faite avec le bon site
-  // // const randomBytes = new Uint8Array(64)
-  // const randomBytes = await getRandom(64)
-  // const challenge = String.fromCharCode.apply(null, multibase.encode('base64', randomBytes))
-  // const reponse = await new Promise(async (resolve, reject)=>{
-  //   // console.debug("Emission challenge connexion Socket.io : %O", challenge)
-  //   const timeout = setTimeout(_=>{
-  //     reject('Timeout')
-  //   }, 15000)
-  //   const reponse = await emitBlocking('challenge', {challenge, noformat: true})
-  //   // console.debug("Reponse challenge connexion Socket.io : %O", reponse)
-  //   clearTimeout(timeout)
-
-  //   if(reponse.reponse === challenge) {
-  //     resolve(reponse)
-  //   } else{
-  //     reject('Challenge mismatch')
-  //   }
-  // })
-
-  // // Initialiser les cles, stores, etc pour tous les workers avec
-  // // le nom de l'usager. Le certificat doit exister et etre valide pour la
-  // // millegrille a laquelle on se connecte.
-  // const nomUsager = reponse.nomUsager
-  // await _callbackSetUsager(nomUsager)
-
-  // // Valider la reponse signee
-  // // const signatureValide = await _verifierSignature(reponse)
-  // const signatureValide = await _x509Worker.verifierMessage(reponse)
-  // if(!signatureValide) {
-  //   throw new Error("Signature de la reponse invalide, serveur non fiable")
-  // }
-
-  // // On vient de confirmer que le serveur a un certificat valide qui correspond
-  // // a la MilleGrille. L'authentification du client se fait automatiquement
-  // // avec le certificat (mode prive ou protege).
-  // // Faire l'upgrade protege
-  // const resultatProtege = await upgradeProteger()
-  // if(resultatProtege) getCertificatsMaitredescles()  // Met en cache le certificat
-  // // console.debug("Resultat upgrade protege : %O", resultatProtege)
-
-  // // Emettre l'evenement qui va faire enregistrer les evenements de mise a jour
-  // // pour le mapping, siteconfig et sections
-  // emit('ecouterMaj')
-
-  // return resultatProtege
 }
 
 export function getCertificatFormatteur() {
@@ -162,17 +102,14 @@ async function connecterSocketio(url, opts) {
       transports,
     })
 
-    try {
-      return await emitBlocking('getInfoIdmg', {}, {noformat: true})
-    } catch(err) {
-      return {ok: false, err: 'getInfoIdmg: '+err}
-    }
-
-  } else {
-    const err = new Error("_socket deja charge")
-    err.socketOk = true
-    throw err
   }
+
+  try {
+    return await emitBlocking('getInfoIdmg', {}, {noformat: true})
+  } catch(err) {
+    return {ok: false, err: 'getInfoIdmg: '+err}
+  }
+
 }
 
 export async function initialiserFormatteurMessage(certificatPem, clePriveeSign, opts) {
