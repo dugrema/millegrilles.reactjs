@@ -17,7 +17,7 @@ export function getListeUsagers() {
     return usagers
 }
 
-function getUsager(nomUsager) {
+export function getUsager(nomUsager) {
     const keyStorage = [DB_NAME, STORE_USAGERS, nomUsager].join('.')
     let valueStorage = window.localStorage.getItem(keyStorage)
     if(valueStorage) valueStorage = JSON.parse(valueStorage)

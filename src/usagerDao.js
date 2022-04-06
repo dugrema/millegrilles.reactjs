@@ -4,7 +4,18 @@ import * as dbUsagerStorage from './dbUsagerStorage'
 let _dao = null,
     _ready = false
 
+const FORCE_LOCALSTORAGE = false
+
 export function init() {
+
+    // DEBUG
+    if(FORCE_LOCALSTORAGE) { 
+        console.warn("usagerDao init avec FORCE_LOCALSTORAGE=true")
+        _dao = dbUsagerStorage
+        _ready = true
+        return Promise.resolve(_ready)
+    }
+
     const promise = new Promise(async (resolve, reject) => {
         // Detecter si idb est disponible, fallback sur localstorage
         try {
