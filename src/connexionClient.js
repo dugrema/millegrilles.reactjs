@@ -52,11 +52,13 @@ export async function connecter(urlApp, opts) {
     _connecte = true
     _urlCourant = urlApp
     _callbackSetEtatConnexion(_connecte)
+    onConnect(connexion).catch(err=>console.error("connexionClient.onConnect ERROR %O", err))
   })
   socketOn('reconnect', () => {
     if(opts.DEBUG) console.debug("Reconnecte")
     _connecte = true
     _callbackSetEtatConnexion(_connecte)
+    onConnect(connexion).catch(err=>console.error("connexionClient.onConnect ERROR %O", err))
   })
   socketOn('disconnect', () => {
     if(opts.DEBUG) console.debug("Disconnect socket.io")
@@ -76,6 +78,18 @@ export function getCertificatFormatteur() {
   return {
     // certificat: _formatteurMessage.cert,
     extensions: extraireExtensionsMillegrille(_formatteurMessage.cert)
+  }
+}
+
+async function onConnect(infoPromise) {
+  const info = await infoPromise
+  // console.debug("connexionClient.onConnect %O", info)
+  if(_callbackSetUsager && info.nomUsager) {
+    // console.debug("connexionClient.onConnect setUsager %s", info.nomUsager)
+    _callbackSetUsager(info.nomUsager)
+      .catch(err=>{
+        console.error("connexionClient.onConnect Erreur _callbackSetUsager : %O", err)
+      })
   }
 }
 
@@ -159,12 +173,16 @@ export async function emitBlocking(event, message, opts) {
   opts = opts || {}
   const timeoutDelay = opts.timeout || 9000
 
+  if(!event) throw new TypeError('connexionClient.emitBlocking event null')
+  // if(!message) throw new TypeError('connexionClient.emitBlocking message null')
+
   if( message && !message['_signature'] && opts.noformat !== true ) {
     // Signer le message
     // try {
       var domaine = opts.domaine
       if(!domaine && message['en-tete']) domaine = message['en-tete'].domaine
       if(domaine) {
+        if(!_formatteurMessage) throw new Error("connexionClient.emitBlocking Formatteur de message non initialise")
         message = await _formatteurMessage.formatterMessage(message, domaine, opts)
       }
     // } catch(err) {
@@ -228,10 +246,10 @@ export async function subscribe(nomEventSocketio, cb, params, opts) {
   params = params || {}
   opts = opts || {}
   const resultat = await emitBlocking(nomEventSocketio, params, opts)
-  console.debug("Resultat subscribe %s : %O", nomEventSocketio, resultat)
+  // console.debug("Resultat subscribe %s : %O", nomEventSocketio, resultat)
   if(resultat && resultat.ok === true) {
     resultat.routingKeys.forEach(item=>{
-      console.debug("subscribe %s Ajouter socketOn %s", nomEventSocketio, item)
+      // console.debug("subscribe %s Ajouter socketOn %s", nomEventSocketio, item)
       socketOn(item, cb)
     })
   } else {
@@ -251,7 +269,7 @@ export async function unsubscribe(nomEventSocketio, cb, params, opts) {
   const resultat = await emitBlocking(nomEventSocketio, params, opts)
   if(resultat && resultat.ok === true) {
     resultat.routingKeys.forEach(item=>{
-      console.debug("unsubscribe %s enregistrerCallbackEvenementsNoeuds socketOff %s", nomEventSocketio, item)
+      // console.debug("unsubscribe %s enregistrerCallbackEvenementsNoeuds socketOff %s", nomEventSocketio, item)
       socketOff(item, cb)
     })
   }
@@ -307,12 +325,10 @@ export function authentifier(data) {
     return emitBlocking('upgrade', data, {noformat: true})
   } else {
     // Faire une requete pour upgrader avec le certificat
-    // console.debug("upgradeProtege, fetch le challenge")
     return emitBlocking('genererChallengeCertificat', null).then( reponse => {
-      // console.debug("connexionClient.upgradeProteger Reponse challenge : %O", reponse)
       // Repondre pour creer l'upgrade
       const data = {...reponse.challengeCertificat}
-      return emitBlocking('upgrade', data, {action: 'login', attacherCertificat: true})
+      return emitBlocking('upgrade', data, {domaine: 'login', action: 'login', attacherCertificat: true})
     })
   }
 }
