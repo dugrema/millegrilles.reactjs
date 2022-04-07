@@ -140,12 +140,12 @@ function CodeTexte(props) {
     return (
         <div>
             <Row>
-                <Col xs={8} sm={6} md={3} lg={2}>Compte</Col>
+                <Col sm={6} md={3} lg={2}>Compte</Col>
                 <Col>{nomUsager}</Col>
             </Row>
             <Row>
                 <Form.Label column={true} md={2}>Code</Form.Label>
-                <Col xs={8} sm={6} md={3} lg={2}>
+                <Col sm={6} md={3} lg={2}>
                     <Form.Control 
                         type="text" 
                         placeholder="abcd-1234" 
@@ -202,20 +202,14 @@ function formatterCode(code, erreurCb) {
 async function verifierCode(workers, code, nomUsager) {
     const { connexion } = workers
     const reponse = await connexion.getRecoveryCsr(code, nomUsager)
-    console.debug("Reponse verifier code : %O", reponse)
     if(reponse.ok === false) throw new Error(reponse.err)
     return reponse.csr
 }
   
 export function getNomUsagerCsr(csrPem) {
     try {
-        console.debug("Charger pem csr : %O", csrPem)
         const csrForge = pki.certificationRequestFromPem(csrPem)
-        console.debug("CSR Forge : %O", csrForge)
-  
         const cn = csrForge.subject.getField('CN').value
-        console.debug("Common name : %O", cn)
-  
         return cn
     } catch(err) {
         console.warn("Erreur chargement CSR : %O", err)
