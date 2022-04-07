@@ -9,6 +9,7 @@ import { chiffrage } from './chiffrage'
 export { chiffrage }
 
 export * as ed25519 from '@dugrema/millegrilles.utiljs/src/chiffrage.ed25519'
+export * as idmg from '@dugrema/millegrilles.utiljs/src/idmg'
 
 // Re-exporter utiljs au complete
 //export * as utiljs from '@dugrema/millegrilles.utiljs/dist/index.min'

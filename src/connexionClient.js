@@ -265,6 +265,8 @@ export async function subscribe(nomEventSocketio, cb, params, opts) {
  * @param {*} cb Callback a retirer
  */
 export async function unsubscribe(nomEventSocketio, cb, params, opts) {
+  params = params || {}
+  opts = opts || {}
   socketOff(nomEventSocketio)
   const resultat = await emitBlocking(nomEventSocketio, params, opts)
   if(resultat && resultat.ok === true) {
