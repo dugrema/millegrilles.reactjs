@@ -4,43 +4,19 @@ import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import Form from 'react-bootstrap/Form'
 import Modal from 'react-bootstrap/Modal'
+import Tab from 'react-bootstrap/Tab'
+import Tabs from 'react-bootstrap/Tabs'
 
 import { pki } from '@dugrema/node-forge'
 
 import QrCodeScanner, {handleScanDer} from './QrCodeScanner'
 
 export function AfficherActivationsUsager(props) {
-    const {workers, nomUsager, setSectionGestion, confirmationCb, erreurCb, csrCb, supportCodeQr} = props
+    const {workers, nomUsager, csrCb, supportCodeQr, erreurCb} = props
   
     const [csr, setCsr] = useState('')
     const [nomUsagerCsr, setNomUsagerCsr] = useState('')
-    const [showScanner, setShowScanner] = useState(false)
-  
-    const retourCb = useCallback(()=>setSectionGestion(''), [setSectionGestion])
-  
-    const showScannerOn = useCallback(()=>setShowScanner(true))
 
-    const toggleScanner = useCallback(event=>{
-        const checked = event.currentTarget.checked
-        console.debug("Etat checked : %O", checked)
-        setShowScanner(checked)
-    }, [setShowScanner])
-  
-    const scannerCb = useCallback(csrPem=>{
-        console.debug("Scanner resultat : %O", csrPem)
-        erreurCb(csrPem, 'Resultat OK!')
-  
-        // Verifier CSR
-        const nomUsagerCsr = getNomUsagerCsr(csrPem)
-        if(nomUsagerCsr === nomUsager) {
-            csrCb(csrPem)
-            confirmationCb('Code QR lu avec succes')
-            setShowScanner(false)
-        }
-  
-    }, [nomUsager, csrCb, confirmationCb, erreurCb, setShowScanner])
-  
- 
     // Charger le nom de l'usager dans le CSR
     useEffect(()=>{
         if(csr) {
@@ -56,9 +32,10 @@ export function AfficherActivationsUsager(props) {
   
     return (
         <div>
-            <CodeTexte 
+            <SelecteurSaisie
                 workers={workers}
                 nomUsager={nomUsager}
+                supportCodeQr={supportCodeQr}
                 setCsr={setCsr}
                 setNomUsagerCsr={setNomUsagerCsr}
                 erreurCb={erreurCb} />
@@ -75,21 +52,50 @@ export function AfficherActivationsUsager(props) {
                     }
                 </Col>
             </Row>
-  
-            <h3>Scanner le code QR</h3>
-  
-            <p>Il est aussi possible d'activer en scannant le code QR affiche sur votre autre appareil.</p>
-  
-            <Button onClick={showScannerOn}>Scan code QR</Button>
-
-            <ScannerCode 
-                setCsr={setCsr}
-                showScanner={showScanner}
-                setShowScanner={setShowScanner} />
+ 
         </div>
     )
 }
-  
+
+function SelecteurSaisie(props) {
+    const { supportCodeQr, workers, nomUsager, setCsr, setNomUsagerCsr, erreurCb } = props
+
+    const [showScanner, setShowScanner] = useState(false)
+    const showScannerOn = useCallback(()=>setShowScanner(true))
+
+    if(!supportCodeQr) {
+        return (
+            <CodeTexte 
+                workers={workers}
+                nomUsager={nomUsager}
+                setCsr={setCsr}
+                setNomUsagerCsr={setNomUsagerCsr}
+                erreurCb={erreurCb} />
+        )
+    } else {
+        return (
+            <Tabs defaultActiveKey="qr" id="tab-code">
+                <Tab eventKey="qr" title="Code QR">
+                    <Button variant="secondary" onClick={showScannerOn}>Scan code QR</Button>
+                    <ScannerCode 
+                        setCsr={setCsr}
+                        showScanner={showScanner}
+                        setShowScanner={setShowScanner} />
+
+                </Tab>
+                <Tab eventKey="activation" title="Code activation">
+                    <CodeTexte 
+                        workers={workers}
+                        nomUsager={nomUsager}
+                        setCsr={setCsr}
+                        setNomUsagerCsr={setNomUsagerCsr}
+                        erreurCb={erreurCb} />
+                </Tab>
+            </Tabs>            
+        )
+    }
+}
+
 function CodeTexte(props) {
 
     const { workers, nomUsager, csr, setCsr, setNomUsagerCsr, erreurCb } = props

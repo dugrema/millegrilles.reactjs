@@ -10,12 +10,15 @@ function gotDevices(deviceInfos) {
 
   for (var i = 0; i !== deviceInfos.length; ++i) {
     var deviceInfo = deviceInfos[i];
-    var option = document.createElement('option');
-    option.value = deviceInfo.deviceId;
     appareils[deviceInfo.kind] = true
   }
 
-  return appareils
+  return Object.keys(appareils)
+}
+
+export async function supporteCamera() {
+  const appareils = await detecterAppareilsDisponibles()
+  return appareils.includes('videoinput')
 }
 
 /* https://stackoverflow.com/questions/5573096/detecting-webp-support */
