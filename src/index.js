@@ -48,6 +48,8 @@ export * as usagerDao from './usagerDao'
 
 export * from './Alerts'
 
+export { AfficherActivationsUsager } from './ActivationCodeUsager'
+
 // import * as ChiffrageClient from './chiffrageClient.js'
 // export { ChiffrageClient }
 
