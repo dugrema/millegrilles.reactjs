@@ -18,7 +18,7 @@ var _socket = null,
 
 var _callbackSetEtatConnexion,
     _callbackSetUsager,
-    _x509Worker,
+    _callbackFormatteurMessage,
     _urlCourant = '',
     _connecte = false,
     _certificatsMaitreDesCles = ''
@@ -27,19 +27,25 @@ export function setX509Worker(x509Worker) {
   _x509Worker = x509Worker
 }
     
-export function setCallbacks(setEtatConnexion, callbackSetUsager) {
+export function setCallbacks(setEtatConnexion, callbackSetUsager, callbackFormatteurMessage) {
   _callbackSetEtatConnexion = setEtatConnexion
   _callbackSetUsager = callbackSetUsager
+  _callbackFormatteurMessage = callbackFormatteurMessage
 }
 
 export function estActif() {
-  return _urlCourant && _connecte
+  return _urlCourant && _socket && _connecte
 }
 
 export async function connecter(urlApp, opts) {
   opts = opts || {}
 
   if(urlApp === _urlCourant) return
+
+  if(estActif()) {
+    console.info("connexionClient.connecter() Connexion deja active, rien a faire")
+    return _socket
+  }
 
   const urlSocketio = new URL(urlApp)
   // urlSocketio.pathname = path.join(urlSocketio.pathname, 'socket.io')
@@ -64,11 +70,13 @@ export async function connecter(urlApp, opts) {
     if(opts.DEBUG) console.debug("Disconnect socket.io")
     _connecte = false
     if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(false)
+    if(_callbackSetUsager) _callbackSetUsager('')
   })
   socketOn('connect_error', err => {
     if(opts.DEBUG) console.debug("Erreur socket.io : %O", err)
     _connecte = false
     if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(false)
+    if(_callbackSetUsager) _callbackSetUsager('')
   })
 
   return connexion
@@ -110,9 +118,6 @@ async function connecterSocketio(url, opts) {
       path: pathSocketio,
       reconnection: true,
       reconnectionDelay: 7500,
-      // reconnectionAttempts: 30,
-      // reconnectionDelayMax: 30000,
-      // randomizationFactor: 0.5,
       transports,
     })
 
@@ -136,6 +141,8 @@ export async function initialiserFormatteurMessage(certificatPem, clePriveeSign,
   await initialiserFormatteurMessageChiffrage(certificatPem, clePriveeSign, opts)
 
   await _formatteurMessage.ready  // Permet de recevoir erreur si applicable
+
+  if(_callbackFormatteurMessage) _callbackFormatteurMessage(true)
 }
 
 export function socketOn(eventName, callback) {
@@ -166,6 +173,7 @@ export function deconnecter() {
     console.warn("_socket n'est pas initialise, on ne peut pas deconnecter")
   }
   _formatteurMessage = null
+  if(_callbackFormatteurMessage) _callbackFormatteurMessage(false)
 }
 
 export async function emitBlocking(event, message, opts) {
@@ -178,16 +186,12 @@ export async function emitBlocking(event, message, opts) {
 
   if( message && !message['_signature'] && opts.noformat !== true ) {
     // Signer le message
-    // try {
-      var domaine = opts.domaine
-      if(!domaine && message['en-tete']) domaine = message['en-tete'].domaine
-      if(domaine) {
-        if(!_formatteurMessage) throw new Error("connexionClient.emitBlocking Formatteur de message non initialise")
-        message = await _formatteurMessage.formatterMessage(message, domaine, opts)
-      }
-    // } catch(err) {
-    //   console.warn("Erreur formattage message : %O", err)
-    // }
+    var domaine = opts.domaine
+    if(!domaine && message['en-tete']) domaine = message['en-tete'].domaine
+    if(domaine) {
+      if(!_formatteurMessage) throw new Error("connexionClient.emitBlocking Formatteur de message non initialise")
+      message = await _formatteurMessage.formatterMessage(message, domaine, opts)
+    }
   }
 
   return new Promise( (resolve, reject) => {
@@ -277,18 +281,6 @@ export async function unsubscribe(nomEventSocketio, cb, params, opts) {
   }
 }
 
-// export function getDomainesActions(routingKeys) {
-//   // console.debug("Domaines actions, routingKeys : %O", routingKeys)
-//   const domainesActions = {}
-//   for(let idx in routingKeys) {
-//     const rkSplit = routingKeys[idx].split('.')
-//     var domaineAction = [rkSplit[0], rkSplit[1], rkSplit[rkSplit.length-1]].join('.')
-//     domainesActions[domaineAction] = true
-//   }
-
-//   return Object.keys(domainesActions)
-// }
-
 export function isFormatteurReady() {
   if(_formatteurMessage) {
     const ready = _formatteurMessage.ready()
@@ -299,6 +291,7 @@ export function isFormatteurReady() {
 
 export function clearFormatteurMessage() {
   _formatteurMessage = null
+  if(_callbackFormatteurMessage) _callbackFormatteurMessage(false)
 }
 
 export async function getCertificatsMaitredescles() {
@@ -325,6 +318,9 @@ export function upgradeProteger(data) {
 export function authentifier(data) {
   if(data) {
     return emitBlocking('upgrade', data, {noformat: true})
+      .then(reponse=>{
+        if(reponse.nomUsager && _callbackSetUsager) _callbackSetUsager(reponse.nomUsager)
+      })
   } else {
     // Faire une requete pour upgrader avec le certificat
     return emitBlocking('genererChallengeCertificat', null).then( reponse => {
@@ -332,22 +328,8 @@ export function authentifier(data) {
       const data = {...reponse.challengeCertificat}
       return emitBlocking('upgrade', data, {domaine: 'login', action: 'login', attacherCertificat: true})
     })
+    .then(reponse=>{
+      if(reponse.nomUsager && _callbackSetUsager) _callbackSetUsager(reponse.nomUsager)
+    })
   }
 }
-
-// export function downgradePrive() {
-
-//   // S'assurer d'avoir un seul listener
-//   socketOff('challengeAuthU2F')
-//   socketOff('challengeRegistrationU2F')
-
-//   return emit('downgradePrive', {}, {noformat: true})
-// }
-
-// export async function getCleFichierProtege(fuuid) {
-//   return emitBlocking(
-//     'getClesFichiers',
-//     { liste_hachage_bytes: [fuuid] },
-//     { domaine: 'MaitreDesCles', action: 'dechiffrage', attacherCertificat: true }
-//   )
-// }
