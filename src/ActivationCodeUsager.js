@@ -6,6 +6,7 @@ import Form from 'react-bootstrap/Form'
 import Modal from 'react-bootstrap/Modal'
 import Tab from 'react-bootstrap/Tab'
 import Tabs from 'react-bootstrap/Tabs'
+import Alert from 'react-bootstrap/Alert'
 
 import { pki } from '@dugrema/node-forge'
 
@@ -40,18 +41,13 @@ export function AfficherActivationsUsager(props) {
                 setNomUsagerCsr={setNomUsagerCsr}
                 erreurCb={erreurCb} />
 
-            <Row>
-                <Col xs={6} sm={4} md={3} lg={2}>Compte recu</Col>
-                <Col xs={6} sm={4} md={3} lg={2}>
-                    {nomUsagerCsr}{' '}
-                </Col>
-                <Col xs={6} sm={4} md={3} lg={2}>
-                    {csr&&!nomUsagerMatchCsr?
-                        'Erreur - les comptes ne correspondent pas'
-                        :csr?'(OK)':''
-                    }
-                </Col>
-            </Row>
+            <br />
+            <Alert variant="danger" show={csr&&!nomUsagerMatchCsr}>
+                <p>Le code recu ({nomUsagerCsr}) ne correspond pas au compte {nomUsager}</p>
+            </Alert>
+            <Alert variant="success" show={nomUsagerMatchCsr}>
+                <p>Code du compte {nomUsagerCsr} pret</p>
+            </Alert>
  
         </div>
     )
