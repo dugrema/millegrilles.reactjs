@@ -14,7 +14,8 @@ import {
 export { formatterMessage, chargerCleMillegrille, signerMessageCleMillegrille, clearCleMillegrille } 
 
 var _socket = null,
-    _formatteurMessage = null
+    _formatteurMessage = null,
+    _connecteUneFois = false
 
 var _callbackSetEtatConnexion,
     _callbackSetUsager,
@@ -64,7 +65,7 @@ export async function connecter(urlApp, opts) {
     if(opts.DEBUG) console.debug("Reconnecte")
     _connecte = true
     _callbackSetEtatConnexion(_connecte)
-    onConnect(connexion).catch(err=>console.error("connexionClient.onConnect ERROR %O", err))
+    onConnect().catch(err=>console.error("connexionClient.onConnect ERROR %O", err))
   })
   socketOn('disconnect', () => {
     if(opts.DEBUG) console.debug("Disconnect socket.io")
@@ -90,8 +91,18 @@ export function getCertificatFormatteur() {
 }
 
 async function onConnect(infoPromise) {
-  const info = await infoPromise
-  // console.debug("connexionClient.onConnect %O", info)
+
+  // Pour la premiere connexion, infoPromise est le resultat d'une requete getInfoIdmg.
+  let info = null
+  if(!_connecteUneFois && infoPromise) {
+    _connecteUneFois = true
+    info = await infoPromise
+  } else {
+    // Connexion subsequente, il faut faire une requete emitBlocking pour info session
+    info = await emitBlocking('getInfoIdmg', {}, {noformat: true})
+  }
+
+  console.debug("connexionClient.onConnect %O", info)
   if(_callbackSetUsager && info.nomUsager) {
     // console.debug("connexionClient.onConnect setUsager %s", info.nomUsager)
     _callbackSetUsager(info.nomUsager)
