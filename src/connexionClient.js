@@ -153,6 +153,7 @@ export async function initialiserFormatteurMessage(certificatPem, clePriveeSign,
 
   await _formatteurMessage.ready  // Permet de recevoir erreur si applicable
 
+  if(DEBUG) console.debug("connexionClient.initialiserFormatteurMessage ready")
   if(_callbackFormatteurMessage) _callbackFormatteurMessage(true)
 }
 
@@ -331,6 +332,7 @@ export function authentifier(data) {
     return emitBlocking('upgrade', data, {noformat: true})
       .then(reponse=>{
         if(reponse.nomUsager && _callbackSetUsager) _callbackSetUsager(reponse.nomUsager)
+        return reponse
       })
   } else {
     // Faire une requete pour upgrader avec le certificat
@@ -341,6 +343,7 @@ export function authentifier(data) {
     })
     .then(reponse=>{
       if(reponse.nomUsager && _callbackSetUsager) _callbackSetUsager(reponse.nomUsager)
+      return reponse
     })
   }
 }
