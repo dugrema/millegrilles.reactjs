@@ -79,7 +79,7 @@ export async function initialiserCertificateStore(caCert, opts) {
   }
 }
 
-export function initialiserCallbackCleMillegrille(cb) {
+export function setCallbackCleMillegrille(cb) {
   // console.debug("Initialisation du callback pour cle de MilleGrille")
   _callbackCleMillegrille = cb
 }
@@ -103,7 +103,10 @@ export function verifierCertificat(certificat, opts) {
   if(typeof(chainePEM) === 'string') {
     certificat = forgePki.certificateFromPem(certificat)
   }
-  return certificateStore.verifierChaine(certificat, opts)
+  
+  const resultat = certificateStore.verifierChaine(certificat, opts)
+  // console.debug("Resultat verifier chaine : %O", resultat)
+  return resultat?true:false
 }
 
 export function formatterMessage(message, domaineAction, opts) {
@@ -197,45 +200,19 @@ export function dechiffrerDocument(ciphertext, messageCle, opts) {
 }
 
 export async function chargerCleMillegrille(clePrivee) {
-  console.debug("Charger cle millegrille : %O", clePrivee)
-  // var cleMillegrilleSubtle = null
+  // console.debug("Charger cle millegrille : %O", clePrivee)
+  if( ! _cleMillegrille ) {
+    _cleMillegrille = clePrivee
+  }
+
   if(typeof(clePrivee) === 'string') {
     // Probablement format PEM
-    ed25519.privateKeyFromPem(clePrivee)
-  } 
-  //else if(clePrivee.privateKeyBytes) {
-    // Ok, deja format forge
-    // clePrivee = forgePki.privateKeyFromPem(clePrivee)
-  //} 
-  // else if(clePrivee.clePriveeDecrypt && clePrivee.clePriveeSigner) {
-  //   // Formats subtle
-  //   _cleMillegrille = {
-  //     clePriveeDecrypt: clePrivee.clePriveeDecrypt,
-  //     clePriveeSign: clePrivee.clePriveeSigner,
-  //   }
-  // } 
-  else {
+    clePrivee = ed25519.privateKeyFromPem(clePrivee)
+  } else {
     throw new Error("Format de cle privee inconnu")
   }
 
-  try {
-    // console.debug("Importer cle privee subtle - decrypt")
-    if( ! _cleMillegrille ) {
-      _cleMillegrille = clePrivee
-    }
-
-    try {
-      // console.debug("Callback etat")
-      _callbackCleMillegrille(true)
-    } catch(err) {
-      // OK
-    }
-
-  } catch(err) {
-    console.error("Erreur preparation cle subtle : %O", err)
-    throw err
-  }
-
+  if(_callbackCleMillegrille) _callbackCleMillegrille(true)
 }
 
 export async function clearCleMillegrille() {
