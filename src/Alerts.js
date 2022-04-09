@@ -2,6 +2,8 @@ import React, {useState, useEffect, useCallback} from 'react'
 import Alert from 'react-bootstrap/Alert'
 import Button from 'react-bootstrap/Button'
 import Modal from 'react-bootstrap/Modal'
+import Row from 'react-bootstrap/Row'
+import Col from 'react-bootstrap/Col'
 
 export function AlertTimeout(props) {
 
@@ -19,11 +21,16 @@ export function AlertTimeout(props) {
     if(delay !== false && !delay) delay = 10000
 
     const [timeoutAlert, setTimeoutAlert] = useState('')
+    const [afficherStack, setAfficheStack] = useState(false)
 
     const [message, setMessage] = useState('')
     const [err, setErr] = useState('')
 
     const closeCb = useCallback(()=>{ setValue('') }, [setValue])
+    const afficherStackCb = useCallback(()=>setAfficheStack(true), [setAfficheStack])
+
+    // Reset afficher stack sur changement de valeur
+    useEffect(()=>setAfficheStack(false), [value, setAfficheStack])
 
     useEffect(()=>{
         console.info("Alerts value : %O", value)
@@ -64,15 +71,19 @@ export function AlertTimeout(props) {
         <Alert show={message?true:false} variant={variant} onClose={closeCb} dismissible>
             <Alert.Heading>{titre}</Alert.Heading>
             {message}
-            <ShowStackTrace err={err} />
+            <ShowStackTrace show={afficherStack} afficherStackCb={afficherStackCb} err={err} />
         </Alert>
     )
 }
 
 function ShowStackTrace(props) {
-    const err = props.err
+    const { err, show, afficherStackCb } = props
 
     if(!err) return ''
+
+    if(err && !show) return (
+        <Row><Col><Button variant="secondary" onClick={afficherStackCb}>Detail</Button></Col></Row>
+    )
 
     let stack = ''
     if(err.stack) {
