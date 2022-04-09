@@ -47,6 +47,7 @@ export * from './labelsRessources'
 export * as usagerDao from './usagerDao'
 
 export * from './Alerts'
+export * from './CleMillegrille'
 
 export { AfficherActivationsUsager } from './ActivationCodeUsager'
 
