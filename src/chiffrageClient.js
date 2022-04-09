@@ -202,15 +202,18 @@ export function dechiffrerDocument(ciphertext, messageCle, opts) {
 export async function chargerCleMillegrille(clePrivee) {
   // console.debug("Charger cle millegrille : %O", clePrivee)
   if( ! _cleMillegrille ) {
-    _cleMillegrille = clePrivee
+    // _cleMillegrille = clePrivee
+
+    if(typeof(clePrivee) === 'string') {
+      // Probablement format PEM
+      _cleMillegrille = ed25519.privateKeyFromPem(clePrivee)
+      _cleMillegrille.pem = clePrivee
+    } else {
+      throw new Error("Format de cle privee inconnu")
+    }
+  
   }
 
-  if(typeof(clePrivee) === 'string') {
-    // Probablement format PEM
-    clePrivee = ed25519.privateKeyFromPem(clePrivee)
-  } else {
-    throw new Error("Format de cle privee inconnu")
-  }
 
   if(_callbackCleMillegrille) _callbackCleMillegrille(true)
 }
@@ -224,43 +227,101 @@ export async function clearCleMillegrille() {
   }
 }
 
-export async function rechiffrerAvecCleMillegrille(secretsChiffres, pemRechiffrage, opts) {
+export async function rechiffrerAvecCleMillegrille(
+  connexion, pemRechiffrage, setNombreClesRechiffrees, setNombreErreurs, opts) {
   /*
     secretsChiffres : correlation = buffer
     pemRechiffrage : certificat a utiliser pour rechiffrer
   */
   opts = opts || {}
-  const DEBUG = opts.DEBUG
+  const DEBUG = opts.DEBUG || false,
+        batchSize = opts.batchSize || 2
 
-  if(!_cleMillegrille || !_cleMillegrille.decrypt) {
+  if(!_cleMillegrille) {
     throw new Error("Cle de MilleGrille non chargee")
   }
 
-  // Importer la cle publique en format Subtle a partir du pem de certificat
-  const certificat = forgePki.certificateFromPem(pemRechiffrage)
-  var clePublique = forgePki.publicKeyToPem(certificat.publicKey)
-  const regEx = /\n?\-{5}[A-Z ]+\-{5}\n?/g
-  clePublique = clePublique.replaceAll(regEx, '')
-  clePublique = await importerClePubliqueSubtle(clePublique)
-  if(DEBUG) console.debug("Cle publique extraite du pem : %O", clePublique)
+  console.debug("cle de millegrille : %O", _cleMillegrille)
 
-  const promises = Object.keys(secretsChiffres).map(async correlation => {
-    var buffer = secretsChiffres[correlation]
-    buffer = await dechiffrerCleSecreteSubtle(_cleMillegrille.decrypt, buffer)
-    buffer = await chiffrerCleSecreteSubtle(clePublique, buffer)
-    if(DEBUG) console.debug("Cle %s rechiffree", correlation)
-    return {[correlation]: buffer}
-  })
+  const certificat = forgePki.certificateFromPem(pemRechiffrage),
+        publicKey = certificat.publicKey.publicKeyBytes
 
-  var resultats = await Promise.all(promises)
-  if(DEBUG) console.debug("Resultats rechiffrage : %O", resultats)
+  if(DEBUG) console.debug("Rechiffrer cles avec cert %O", certificat)
 
-  // Concatener toutes les reponses
-  const secretsRechiffres = resultats.reduce((secretsRechiffres, item)=>{
-    return {...secretsRechiffres, ...item}
-  }, {})
+  let nombreClesRechiffrees = 0,
+      nombreErreurs = 0,
+      plusRecenteCle = 0,
+      excludeHachageBytes = null
 
-  return secretsRechiffres
+  while(true) {
+    const clesNonDechiffrables = await connexion.requeteClesNonDechiffrables(batchSize, plusRecenteCle, excludeHachageBytes)
+
+    const {date_creation_max, cles} = clesNonDechiffrables
+    if(!cles || cles.length == 0) break
+
+    if(clesNonDechiffrables.date_creation_max) {
+      if(plusRecenteCle === date_creation_max) {
+        console.warn("2 batch rechiffrage avec meme date max, on incremente pour sortir d'une boucle infinie")
+        plusRecenteCle = date_creation_max + 1
+      } else {
+        plusRecenteCle = date_creation_max
+      }
+    }
+    console.debug("Cles non dechiffrables : %O", clesNonDechiffrables)
+    excludeHachageBytes = cles.map(item=>item.hachage_bytes)
+
+    try {
+      await ed25519Utils.testEd25519()
+      const clesRechiffrees = await Promise.all(cles.map(cle=>{
+        return ed25519Utils.dechiffrerCle(cle.cle, _cleMillegrille)
+          .then(async cleDechiffree=>{
+            console.debug("Cle dechiffree : %O", cleDechiffree)
+            const cleRechiffree = await ed25519Utils.chiffrerCle(cleDechiffree, publicKey)
+            return cleRechiffree
+          })
+          .catch(err=>{
+            console.error("Erreur dechiffrage cle : %O", err)
+            return {ok: false, err: err}
+          })
+        // chiffrerCle(cleSecrete, clePublique, opts)
+      }))
+      console.debug("Cles rechiffrees : %O", clesRechiffrees)
+    } catch(err) {
+      console.error("Erreur rechiffrage batch cles : %O", err)
+      return
+    }
+
+    nombreClesRechiffrees += cles.length
+
+    setNombreClesRechiffrees(nombreClesRechiffrees)
+    setNombreErreurs(nombreErreurs)
+  }
+
+  // // Importer la cle publique en format Subtle a partir du pem de certificat
+  // const certificat = forgePki.certificateFromPem(pemRechiffrage)
+  // var clePublique = forgePki.publicKeyToPem(certificat.publicKey)
+  // const regEx = /\n?\-{5}[A-Z ]+\-{5}\n?/g
+  // clePublique = clePublique.replaceAll(regEx, '')
+  // clePublique = await importerClePubliqueSubtle(clePublique)
+  // if(DEBUG) console.debug("Cle publique extraite du pem : %O", clePublique)
+
+  // const promises = Object.keys(secretsChiffres).map(async correlation => {
+  //   var buffer = secretsChiffres[correlation]
+  //   buffer = await dechiffrerCleSecreteSubtle(_cleMillegrille.decrypt, buffer)
+  //   buffer = await chiffrerCleSecreteSubtle(clePublique, buffer)
+  //   if(DEBUG) console.debug("Cle %s rechiffree", correlation)
+  //   return {[correlation]: buffer}
+  // })
+
+  // var resultats = await Promise.all(promises)
+  // if(DEBUG) console.debug("Resultats rechiffrage : %O", resultats)
+
+  // // Concatener toutes les reponses
+  // const secretsRechiffres = resultats.reduce((secretsRechiffres, item)=>{
+  //   return {...secretsRechiffres, ...item}
+  // }, {})
+
+  // return secretsRechiffres
 }
 
 export async function chiffrerSecret(secrets, pemRechiffrage, opts) {
