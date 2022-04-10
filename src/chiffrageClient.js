@@ -182,13 +182,11 @@ export async function rechiffrerAvecCleMillegrille(
   */
   opts = opts || {}
   const DEBUG = opts.DEBUG || false,
-        batchSize = opts.batchSize || 2
+        batchSize = opts.batchSize || 100
 
   if(!_cleMillegrille) {
     throw new Error("Cle de MilleGrille non chargee")
   }
-
-  console.debug("cle de millegrille : %O", _cleMillegrille)
 
   const certificat = forgePki.certificateFromPem(pemRechiffrage),
         publicKey = certificat.publicKey.publicKeyBytes,
@@ -215,14 +213,14 @@ export async function rechiffrerAvecCleMillegrille(
         plusRecenteCle = date_creation_max
       }
     }
-    console.debug("Cles non dechiffrables : %O", clesNonDechiffrables)
+    if(DEBUG) console.debug("Cles non dechiffrables : %O", clesNonDechiffrables)
     excludeHachageBytes = cles.map(item=>item.hachage_bytes)
 
     try {
       const clesRechiffrees = await Promise.all(cles.map(cle=>{
         return ed25519Utils.dechiffrerCle(cle.cle, _cleMillegrille)
           .then(async cleDechiffree=>{
-            console.debug("Cle dechiffree : %O", cleDechiffree)
+            // if(DEBUG) console.debug("Cle dechiffree : %O", cleDechiffree)
             const cleRechiffree = await ed25519Utils.chiffrerCle(cleDechiffree, publicKey)
 
             const cleComplete = {
@@ -238,10 +236,11 @@ export async function rechiffrerAvecCleMillegrille(
           })
           .catch(err=>{
             console.error("Erreur dechiffrage cle : %O", err)
+            nombreErreurs++
             return {ok: false, err: err}
           })
       }))
-      console.debug("Cles rechiffrees : %O", clesRechiffrees)
+      if(DEBUG) console.debug("Cles rechiffrees : %O", clesRechiffrees)
 
       const clesPretes = clesRechiffrees.filter(cle=>cle.ok!==false)
       const commande = {
@@ -251,7 +250,7 @@ export async function rechiffrerAvecCleMillegrille(
         commande, 'MaitreDesCles', 
         {action: 'rechiffrerCles', partition: fingerprintMaitredescles}
       )
-      console.debug("Commande signee : %O", commandeSignee)
+      if(DEBUG) console.debug("Commande signee : %O", commandeSignee)
 
     } catch(err) {
       console.error("Erreur rechiffrage batch cles : %O", err)
