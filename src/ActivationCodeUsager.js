@@ -42,11 +42,11 @@ export function AfficherActivationsUsager(props) {
                 erreurCb={erreurCb} />
 
             <br />
-            <Alert variant="danger" show={csr&&!nomUsagerMatchCsr}>
+            <Alert variant="danger" show={(csr&&!nomUsagerMatchCsr)?true:false}>
                 <p>Le code recu ({nomUsagerCsr}) ne correspond pas au compte {nomUsager}</p>
             </Alert>
             <Alert variant="success" show={nomUsagerMatchCsr?true:false}>
-                <p>Code du compte {nomUsagerCsr} pret</p>
+                <p>Le code du compte {nomUsagerCsr} correspond, verification OK.</p>
             </Alert>
  
         </div>
