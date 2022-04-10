@@ -2,7 +2,7 @@ import {io as openSocket} from 'socket.io-client'
 import { FormatteurMessageEd25519 } from '@dugrema/millegrilles.utiljs/src/formatteurMessage'
 import { extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
 
-import hachage from './hachage'  // Wiring hachage pour utiljs
+import * as hachage from './hachage'  // Wiring hachage pour utiljs
 import './chiffrage'
 
 import { 

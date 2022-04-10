@@ -1,4 +1,10 @@
-import * as hachage from '@dugrema/millegrilles.utiljs/src/hachage'
+import {
+    hacher, verifierHachage, 
+    Hacheur, VerificateurHachage, 
+    calculerDigest,
+    hacherCertificat, comparerArraybuffers,
+    setHacheurs,
+} from '@dugrema/millegrilles.utiljs/src/hachage'
 import { createSHA256, createSHA512, createBLAKE2b, createBLAKE2s } from 'hash-wasm'
 
 // Injecte les methodes de hachage natives avec setHacheurs pour la librairie utiljs
@@ -35,6 +41,22 @@ const hacheurs = {
 }
 
 // console.debug("Set hacheurs : %O", hacheurs)
-hachage.setHacheurs(hacheurs)
+setHacheurs(hacheurs)
 
-export default { hacheurs, ...hachage }
+// export default {
+//     hacher, verifierHachage, 
+//     Hacheur, VerificateurHachage, 
+//     calculerDigest,
+//     hacherCertificat, comparerArraybuffers,
+//     setHacheurs, 
+//     hacheurs,
+// }
+
+export { 
+    hacher, verifierHachage, 
+    Hacheur, VerificateurHachage, 
+    calculerDigest,
+    hacherCertificat, comparerArraybuffers,
+    setHacheurs, 
+    hacheurs,
+}

@@ -45,7 +45,7 @@ export function AfficherActivationsUsager(props) {
             <Alert variant="danger" show={csr&&!nomUsagerMatchCsr}>
                 <p>Le code recu ({nomUsagerCsr}) ne correspond pas au compte {nomUsager}</p>
             </Alert>
-            <Alert variant="success" show={nomUsagerMatchCsr}>
+            <Alert variant="success" show={nomUsagerMatchCsr?true:false}>
                 <p>Code du compte {nomUsagerCsr} pret</p>
             </Alert>
  
