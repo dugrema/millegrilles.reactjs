@@ -9,12 +9,16 @@ import ('./hachage')
 // La librarie WASM doit etre chargee de maniere async
 var _wasmcrypto = null
 
-async function importWasmCrypto() {
+function importWasmCrypto() {
     if(!_wasmcrypto) {
         _wasmcrypto = import('@dugrema/wasm-xchacha20poly1305/wasm_xchacha20poly1305.js')
             .then(wasmcrypto=>{
                 _wasmcrypto = wasmcrypto
-                return _wasmcrypto
+                return wasmcrypto
+            })
+            .catch(err=>{
+                console.error("Erreur chargement WASM Crypto : %O", err)
+                return err
             })
     }
     return _wasmcrypto

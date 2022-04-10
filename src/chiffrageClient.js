@@ -1,19 +1,7 @@
 import { base64 } from 'multiformats/bases/base64'
 import { pki as forgePki, ed25519 } from '@dugrema/node-forge'
 
-// import { 
-//   hacherCertificat,
-//   forgecommon, formatteurMessage as formatteurMessageLib,
-//   // importerClePubliqueSubtle, importerClePriveeSubtle,
-//   // chiffrerDocument as _chiffrerDocument, 
-//   // dechiffrerDocument as _dechiffrerDocument,
-//   // preparerCleSecreteSubtle as _preparerCleSecreteSubtle,
-//   // dechiffrerSubtle
-// } from '@dugrema/millegrilles.utiljs/src/index'
-// import {chiffrerCleSecreteSubtle, dechiffrerCleSecreteSubtle} from '@dugrema/millegrilles.utiljs/src/chiffrage'
-
-// import { setHacheurs, hacherCertificat } from '@dugrema/millegrilles.utiljs/src/hachage'
-import { CertificateStore, validerChaineCertificats, extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon'
+import { CertificateStore, extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon'
 import { FormatteurMessageEd25519, SignateurMessageEd25519 } from '@dugrema/millegrilles.utiljs/src/formatteurMessage'
 import hachage from './hachage'
 import * as chiffrage from './chiffrage'
@@ -23,42 +11,11 @@ export {chiffrage}
 
 const { hacherCertificat } = hachage
 
-// Set hachage
-// console.debug("Hachage chiffrageClient : %O", hacheurs)
-//setHacheurs(hacheurs)
-
-
-// const { CertificateStore, validerChaineCertificats, extraireExtensionsMillegrille } = forgecommon
-// const { FormatteurMessageEd25519, SignateurMessageEd25519 } = formatteurMessageLib
-
-// import { 
-//   forgecommon, formatteurMessage as formatteurMessageLib, hachage, 
-
-//   chiffrerCleSecreteSubtle, dechiffrerCleSecreteSubtle,
-//   importerClePubliqueSubtle, importerClePriveeSubtle,
-//   chiffrerDocument as _chiffrerDocument, dechiffrerDocument as _dechiffrerDocument,
-//   preparerCleSecreteSubtle as _preparerCleSecreteSubtle,
-//   dechiffrerSubtle,
-
-// } from '@dugrema/millegrilles.utiljs'
-
-// const { CertificateStore, validerChaineCertificats, extraireExtensionsMillegrille } = forgecommon
-// const { FormatteurMessageSubtle, SignateurMessageSubtle } = formatteurMessageLib
-// const { hacherCertificat } = hachage
-// const {
-//   chiffrerCleSecreteSubtle, dechiffrerCleSecreteSubtle,
-//   importerClePubliqueSubtle, importerClePriveeSubtle,
-//   chiffrerDocument: _chiffrerDocument, dechiffrerDocument: _dechiffrerDocument,
-//   preparerCleSecreteSubtle: _preparerCleSecreteSubtle,
-// } = chiffrage
-
 const TAILLE_BUFFER = 1 * 1024 * 1024
 
 var certificateStore = null   // CertificateStore pour valider x.509
 var certificatMillegrille = null   // Objet du certificat de la MilleGrille {cert, fingerprint}
 var _clePrivee = null
-// var clePriveeSubtleDecrypt = null  // Cle privee format subtle, pour dechiffrage
-// var clePriveeSubtleSign = null     // Cle privee format subtle, pour signature
 var formatteurMessage = null  // Formatteur de message avec signature
 
 // Conserver cle de millegrille format subtle
@@ -139,15 +96,6 @@ export async function _validerCertificatChiffrage(certificatPem, opts) {
 
   const certificatForge = verifierCertificat(certificatPem, opts)
 
-  // const infoCertificat = await validerChaineCertificats(
-  //   certificatPem,
-  //   {...opts, clientStore: certificateStore}
-  // )
-
-  // if( ! certificateStore.verifierChaine(certificatPem) ) {
-  //   throw new Error("Certificat de chiffrage invalide")
-  // }
-  //
   if(DEBUG) console.debug("Certificat forge : %O", infoCertificat)
   // const certificatForge = await infoCertificat.cert
   const extensions = extraireExtensionsMillegrille(certificatForge)
@@ -214,7 +162,6 @@ export async function chargerCleMillegrille(clePrivee) {
   
   }
 
-
   if(_callbackCleMillegrille) _callbackCleMillegrille(true)
 }
 
@@ -271,7 +218,6 @@ export async function rechiffrerAvecCleMillegrille(
     excludeHachageBytes = cles.map(item=>item.hachage_bytes)
 
     try {
-      await ed25519Utils.testEd25519()
       const clesRechiffrees = await Promise.all(cles.map(cle=>{
         return ed25519Utils.dechiffrerCle(cle.cle, _cleMillegrille)
           .then(async cleDechiffree=>{
@@ -297,31 +243,6 @@ export async function rechiffrerAvecCleMillegrille(
     setNombreErreurs(nombreErreurs)
   }
 
-  // // Importer la cle publique en format Subtle a partir du pem de certificat
-  // const certificat = forgePki.certificateFromPem(pemRechiffrage)
-  // var clePublique = forgePki.publicKeyToPem(certificat.publicKey)
-  // const regEx = /\n?\-{5}[A-Z ]+\-{5}\n?/g
-  // clePublique = clePublique.replaceAll(regEx, '')
-  // clePublique = await importerClePubliqueSubtle(clePublique)
-  // if(DEBUG) console.debug("Cle publique extraite du pem : %O", clePublique)
-
-  // const promises = Object.keys(secretsChiffres).map(async correlation => {
-  //   var buffer = secretsChiffres[correlation]
-  //   buffer = await dechiffrerCleSecreteSubtle(_cleMillegrille.decrypt, buffer)
-  //   buffer = await chiffrerCleSecreteSubtle(clePublique, buffer)
-  //   if(DEBUG) console.debug("Cle %s rechiffree", correlation)
-  //   return {[correlation]: buffer}
-  // })
-
-  // var resultats = await Promise.all(promises)
-  // if(DEBUG) console.debug("Resultats rechiffrage : %O", resultats)
-
-  // // Concatener toutes les reponses
-  // const secretsRechiffres = resultats.reduce((secretsRechiffres, item)=>{
-  //   return {...secretsRechiffres, ...item}
-  // }, {})
-
-  // return secretsRechiffres
 }
 
 export async function chiffrerSecret(secrets, pemRechiffrage, opts) {
@@ -367,34 +288,7 @@ export async function chiffrerSecret(secrets, pemRechiffrage, opts) {
   return {cles: secretsRechiffres, partition}
 }
 
-// export async function preparerCleSecreteSubtle(cleSecreteChiffree, iv) {
-//   return _preparerCleSecreteSubtle(cleSecreteChiffree, iv, clePriveeSubtleDecrypt)
-// }
-
 export function dechiffrerCleSecrete(cleSecreteChiffree) {
   console.debug("Cle secrete chiffree : %O", cleSecreteChiffree)
   return ed25519Utils.dechiffrerCle(cleSecreteChiffree, _clePrivee)
 }
-
-// Re-export des imports
-//export { dechiffrerSubtle }
-
-// comlinkExpose({
-//   initialiserCertificateStore, initialiserFormatteurMessage,
-//   initialiserCallbackCleMillegrille,
-//   chargerCleMillegrilleSubtle, clearCleMillegrilleSubtle,
-//   verifierCertificat, formatterMessage,
-//   chiffrerDocument, dechiffrerDocument,
-//   rechiffrerAvecCleMillegrille, signerMessageCleMillegrille,
-//   clearInfoSecrete, preparerCleSecreteSubtle,
-// })
-
-// export {
-//   initialiserCertificateStore, initialiserFormatteurMessage,
-//   initialiserCallbackCleMillegrille,
-//   chargerCleMillegrilleSubtle, clearCleMillegrilleSubtle,
-//   verifierCertificat, formatterMessage,
-//   chiffrerDocument, dechiffrerDocument,
-//   rechiffrerAvecCleMillegrille, signerMessageCleMillegrille,
-//   clearInfoSecrete, preparerCleSecreteSubtle,
-// }

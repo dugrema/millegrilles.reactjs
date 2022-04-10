@@ -1,12 +1,10 @@
 // Execute le hook setHacheurs pour hachage dans millegrilles.utiljs
-import hachage from './hachage'
+export * as hachage from './hachage'
 
 // Executer hook pour chiffreurs (WASM)
 import './chiffrage.ciphers'
 
-export { hachage }
-import { chiffrage } from './chiffrage'
-export { chiffrage }
+export { chiffrage } from './chiffrage'
 
 export * as ed25519 from '@dugrema/millegrilles.utiljs/src/chiffrage.ed25519'
 export * as idmg from '@dugrema/millegrilles.utiljs/src/idmg'
