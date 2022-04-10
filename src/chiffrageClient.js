@@ -199,6 +199,8 @@ export async function rechiffrerAvecCleMillegrille(
       plusRecenteCle = 0,
       excludeHachageBytes = null
 
+  let dernierePromise = null
+
   while(true) {
     const clesNonDechiffrables = await connexion.requeteClesNonDechiffrables(batchSize, plusRecenteCle, excludeHachageBytes)
 
@@ -220,17 +222,14 @@ export async function rechiffrerAvecCleMillegrille(
       const clesRechiffrees = await Promise.all(cles.map(cle=>{
         return ed25519Utils.dechiffrerCle(cle.cle, _cleMillegrille)
           .then(async cleDechiffree=>{
-            // if(DEBUG) console.debug("Cle dechiffree : %O", cleDechiffree)
+            if(DEBUG) console.debug("Cle dechiffree : %O", cleDechiffree)
+            // return {...cle, cle: cleDechiffree}
             const cleRechiffree = await ed25519Utils.chiffrerCle(cleDechiffree, publicKey)
 
             const cleComplete = {
               ...cle, 
-              cles: {
-                [fingerprintMaitredescles]: cleRechiffree,  // Nouvelle cle
-                [certificatMillegrille.fingerprint]: cle.cle,  // Cle originale
-              }
+              cle: cleRechiffree,
             }
-            delete cleComplete.cle  // Cle originale, maintenant sous cles
 
             return cleComplete
           })
@@ -243,26 +242,28 @@ export async function rechiffrerAvecCleMillegrille(
       if(DEBUG) console.debug("Cles rechiffrees : %O", clesRechiffrees)
 
       const clesPretes = clesRechiffrees.filter(cle=>cle.ok!==false)
-      const commande = {
-        cles: clesPretes,
-      }
-      const commandeSignee = await connexion.formatterMessage(
-        commande, 'MaitreDesCles', 
-        {action: 'rechiffrerCles', partition: fingerprintMaitredescles}
-      )
-      if(DEBUG) console.debug("Commande signee : %O", commandeSignee)
+      const commande = { cles: clesPretes }
+      dernierePromise = connexion.rechiffrerClesBatch(commande, fingerprintMaitredescles)
+        .then(reponse=>{
+          if(DEBUG) console.debug("Reponse rechiffrerClesBatch : %O", reponse)
+          nombreClesRechiffrees += cles.length
+        })
+        .catch(err=>{
+          console.error("Erreur traitement batch : %O", err)
+        })
+        .finally(()=>{
+          setNombreClesRechiffrees(nombreClesRechiffrees)
+          setNombreErreurs(nombreErreurs)
+        })
 
     } catch(err) {
       console.error("Erreur rechiffrage batch cles : %O", err)
       return
     }
 
-    nombreClesRechiffrees += cles.length
-
-    setNombreClesRechiffrees(nombreClesRechiffrees)
-    setNombreErreurs(nombreErreurs)
   }
 
+  return dernierePromise
 }
 
 export async function chiffrerSecret(secrets, pemRechiffrage, opts) {
