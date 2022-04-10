@@ -191,7 +191,8 @@ export async function rechiffrerAvecCleMillegrille(
   console.debug("cle de millegrille : %O", _cleMillegrille)
 
   const certificat = forgePki.certificateFromPem(pemRechiffrage),
-        publicKey = certificat.publicKey.publicKeyBytes
+        publicKey = certificat.publicKey.publicKeyBytes,
+        fingerprintMaitredescles = await hacherCertificat(certificat)
 
   if(DEBUG) console.debug("Rechiffrer cles avec cert %O", certificat)
 
@@ -223,15 +224,35 @@ export async function rechiffrerAvecCleMillegrille(
           .then(async cleDechiffree=>{
             console.debug("Cle dechiffree : %O", cleDechiffree)
             const cleRechiffree = await ed25519Utils.chiffrerCle(cleDechiffree, publicKey)
-            return cleRechiffree
+
+            const cleComplete = {
+              ...cle, 
+              cles: {
+                [fingerprintMaitredescles]: cleRechiffree,  // Nouvelle cle
+                [certificatMillegrille.fingerprint]: cle.cle,  // Cle originale
+              }
+            }
+            delete cleComplete.cle  // Cle originale, maintenant sous cles
+
+            return cleComplete
           })
           .catch(err=>{
             console.error("Erreur dechiffrage cle : %O", err)
             return {ok: false, err: err}
           })
-        // chiffrerCle(cleSecrete, clePublique, opts)
       }))
       console.debug("Cles rechiffrees : %O", clesRechiffrees)
+
+      const clesPretes = clesRechiffrees.filter(cle=>cle.ok!==false)
+      const commande = {
+        cles: clesPretes,
+      }
+      const commandeSignee = await connexion.formatterMessage(
+        commande, 'MaitreDesCles', 
+        {action: 'rechiffrerCles', partition: fingerprintMaitredescles}
+      )
+      console.debug("Commande signee : %O", commandeSignee)
+
     } catch(err) {
       console.error("Erreur rechiffrage batch cles : %O", err)
       return
