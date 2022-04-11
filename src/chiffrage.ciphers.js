@@ -1,10 +1,10 @@
 /* Facade pour crypto de nodejs. */
 import { setCiphers } from '@dugrema/millegrilles.utiljs/src/chiffrage.ciphers'
-import { hacher, Hacheur } from '@dugrema/millegrilles.utiljs/src/hachage'
+import { hacher, Hacheur } from './hachage'
 import { base64 } from 'multiformats/bases/base64'
 
 // S'assurer de charger les methodes de hachage
-import ('./hachage')
+// import ('./hachage')
 
 // La librarie WASM doit etre chargee de maniere async
 var _wasmcrypto = null

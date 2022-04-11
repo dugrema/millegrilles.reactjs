@@ -22,7 +22,8 @@ var _callbackSetEtatConnexion,
     _callbackFormatteurMessage,
     _urlCourant = '',
     _connecte = false,
-    _certificatsMaitreDesCles = ''
+    _certificatsMaitreDesCles = '',
+    _x509Worker
 
 export function setX509Worker(x509Worker) {
   _x509Worker = x509Worker

@@ -9,7 +9,7 @@ import { base64 } from 'multiformats/bases/base64'
 
 import { getAcceptedFileReader, streamAsyncIterable } from './stream.js'
 import { preparerCipher, preparerCommandeMaitrecles }  from './chiffrage'
-import hachage from './hachage'
+import * as hachage from './hachage'
 
 // const { splitPEMCerts } = forgecommon
 
