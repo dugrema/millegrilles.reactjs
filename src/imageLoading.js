@@ -87,13 +87,14 @@ export function imageResourceLoader(traitementFichiersWorker, thumbnail, imageFu
             // Charger le premier blob qui est pret
             try {
                 const blobPret = await Promise.any([imagePromise, miniPromise])
-                setSrc(blobPret)
+                if(setSrc) setSrc(blobPret)
 
                 // Attendre que le blob de l'image complete soit pret, puis afficher
                 // Note : aucun effet si le premier blob pret etait l'image
                 try {
                     const blobImage = await imagePromise
-                    setSrc(blobImage)
+                    if(setSrc) setSrc(blobImage)
+                    return blobImage
                 } catch(err) {
                     if(err && err.response && err.response.status === 404) {
                         console.warn("Image %s inconnue (404)", imageFuuid)
@@ -101,6 +102,8 @@ export function imageResourceLoader(traitementFichiersWorker, thumbnail, imageFu
                         console.debug("Erreur chargement de l'image %s : %O", imageFuuid, err)
                     }
                 }
+
+                return blobPret
     
             } catch(err) {
                 // Aucune image n'a charge
@@ -108,10 +111,11 @@ export function imageResourceLoader(traitementFichiersWorker, thumbnail, imageFu
 
                 // Tenter de trouver un blob valide
                 const blobPret = await Promise.race([miniPromise, imagePromise])
-                setSrc(blobPret)
+                if(setSrc) setSrc(blobPret)
+                return blobPret
             }
         },
-        unload: () => {
+        unload: async () => {
             miniLoader.unload().catch(err=>console.debug("Erreur unload mini thumbnail %s", thumbnailFuuid))
             imageLoader.unload().catch(err=>console.debug("Erreur unload image %s", imageFuuid))
         }

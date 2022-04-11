@@ -5,18 +5,23 @@ import Button from 'react-bootstrap/Button'
 import Carousel from 'react-bootstrap/Carousel'
 import VideoViewer from './VideoViewer'
 
+import {trouverLabelImage} from './labelsRessources'
+import {imageResourceLoader} from './imageLoading'
+
 import styles from './styles.module.css'
 
-export default props => {
+function ModalViewer(props) {
 
     const {tuuidSelectionne, fichiers, DEBUG} = props
 
     const handle = useFullScreenHandle()
-    // const [fichiersFiltres, setFichiersFiltres] = useState('')
     const [afficherHeaderFooter, setAfficherHeaderFooter] = useState(true)
-    const [nomFichier, setNomFichier] = useState('')
     const [downloadSrc, setDownloadSrc] = useState('')
     const [idxFichier, setIdxFichier] = useState('')
+    const [images, setImages] = useState('')
+    const [item, setItem] = useState('')
+    const [viewer, setViewer] = useState('ItemViewer')
+    
     const onClick = useCallback(event=>{
         event.stopPropagation()
         setAfficherHeaderFooter(handle.active)
@@ -36,42 +41,56 @@ export default props => {
         props.handleClose(event)
     }, [handle])
 
-    const onSelect = useCallback(idx=>{
+    const onSelectCb = useCallback(idx=>{
         const fichier = fichiers[idx]
-        setNomFichier(fichier.nom)
+        setItem(fichier)
         setIdxFichier(idx)
     }, [fichiers])
 
-    const setDownloadSrcAction = useCallback(src=>{
-        // console.debug("SET source download : %O", src)
-        setDownloadSrc(src)
-    }, [])
+    const setDownloadSrcAction = setDownloadSrc  // useCallback(setDownloadSrc, [setDownloadSrc])
 
-    const items = preparerItems({
-        fichiers, 
-        onClick, 
-        setDownloadSrc: setDownloadSrcAction, 
-        fullscreenHandle: handle, 
-        idxCourant: idxFichier,
-        DEBUG,
-    })
-    
-    const defaultActiveIndex = fichiers.reduce((idxDefault, item, idx)=>{
-        if(item.tuuid === tuuidSelectionne) return idx
-        return idxDefault
-    }, '')
+    // Calculer l'index de l'item a afficher dans le carousel
+    useEffect(()=>{
+        for(var idx=0; idx<fichiers.length; idx++) {
+            const fichier = fichiers[idx]
+            if(fichier.tuuid === tuuidSelectionne) {
+                setIdxFichier(idx)
+                setItem(fichier)
+                return
+            }
+        }
+
+        // No match
+        setIdxFichier('')
+        setItem('')
+    }, [fichiers, tuuidSelectionne, setIdxFichier, setItem])
+
+    // Conserver liste des images. Utilise par le carousel.
+    useEffect(()=>{
+        if(!fichiers) return setImages('')
+        const images = fichiers.filter(item=>{
+            const mimetype = item.mimetype?item.mimetype.split(';').shift():''
+            return mimetype.startsWith('image/')
+        })
+        setImages(images)
+    }, [fichiers, setImages])
 
     useEffect(()=>{
-        const fichier = defaultActiveIndex!==''?fichiers[defaultActiveIndex]:''
-        if(fichier) {
-            setIdxFichier(defaultActiveIndex)
-            setNomFichier(fichier.nom)
-        } else if(defaultActiveIndex==='') {
-            // Reset
-            setIdxFichier('')
-            setNomFichier('')
+        if(item && item.mimetype) {
+            try {
+                const mimetype = item.mimetype?item.mimetype.split(';').shift():''
+                const mimetypeBase = mimetype.split('/').shift()
+                if(mimetypeBase === 'image') {
+                    setViewer('ImageCarousel')
+                    return
+                } 
+            } catch(err) {
+                console.debug("Erreur detection mimetype : %O", item)
+            }
         }
-    }, [defaultActiveIndex, fichiers])
+        // Default
+        setViewer('ItemViewer')
+    }, [item, setViewer])
 
     const downloadSrcClick = useCallback( event => {
         // https://www.delftstack.com/howto/javascript/javascript-download/
@@ -79,11 +98,11 @@ export default props => {
         // const url = window.URL.createObjectURL(new Blob([response.data], {type: 'video/mp4'}));
         const link = document.createElement('a')
         link.href = downloadSrc
-        link.setAttribute('download', nomFichier)
+        link.setAttribute('download', item.nom)
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
-    }, [downloadSrc, nomFichier])
+    }, [downloadSrc, item])
 
     const viewSrcClick = useCallback( event => {
         // console.debug("View %O", downloadSrc)
@@ -93,12 +112,18 @@ export default props => {
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
-    }, [downloadSrc, nomFichier])
+    }, [downloadSrc])
+
+    let Viewer
+    switch(viewer) {
+        case('ImageCarousel'): Viewer = ImageCarousel; break
+        default: Viewer = ItemViewer
+    }
 
     return (
         <Modal 
             variant="dark" 
-            show={props.show && items?true:false} 
+            show={props.show && item?true:false} 
             onHide={handleCloseModal} 
             fullscreen={true} 
             animation={false}
@@ -107,7 +132,7 @@ export default props => {
 
             {afficherHeaderFooter?
                 <Modal.Header>
-                    <Modal.Title>{nomFichier}</Modal.Title>
+                    <Modal.Title>{item.nom}</Modal.Title>
                     <div className={styles['modal-heading-buttons']}>
                         <Button variant="secondary" onClick={downloadSrcClick} disabled={!downloadSrc} title="Download" className={styles.accessoire}>
                             <i className="fa fa-download"/>
@@ -125,17 +150,13 @@ export default props => {
 
             <Modal.Body>
                 <FullScreen handle={handle}>
-                    <Carousel 
-                        className={styles['carousel-viewer']}
-                        onSelect={onSelect}
-                        defaultActiveIndex={defaultActiveIndex}
-                        interval={null}
-                        wrap={false}
-                        indicators={false}
-                        touch={false}
-                        >
-                        {items}
-                    </Carousel>
+                    <div className={styles['carousel-viewer']}>
+                        <Viewer 
+                            item={item} 
+                            images={images} 
+                            onSelect={onSelectCb}
+                            onClick={onClick} />
+                    </div>
                 </FullScreen>
             </Modal.Body>
 
@@ -148,35 +169,130 @@ export default props => {
 
         </Modal>
     )
+
 }
 
-function preparerItems(props) {
+export default ModalViewer
+
+function ItemViewer(props) {
+    console.debug("ItemViewer proppies : %O", props)
+    const {item, onClick, setDownloadSrc, DEBUG} = props
+
+    // Par defaut show et preparer sont true (si params absent)
+    const show = props.show === undefined?true:props.show
+    const preparer = props.preparer === undefined?true:props.preparer
+
+    if(!item) return ''  // Rien a faire
+
+    try {
+        console.debug("Mapping fichier : %O", item)
+        
+        const mimetype = item.mimetype?item.mimetype.split(';').shift():''
+        const mimetypeBase = mimetype.split('/').shift()
+
+        console.debug("Mimetype fichier : %O", mimetype)
+
+        let Viewer = null
+        if(mimetype === 'application/pdf') Viewer = PreviewFile
+        else if(mimetypeBase === 'image') Viewer = PreviewImage
+        else if(mimetypeBase === 'video') Viewer = PreviewVideo
+
+        console.debug("Type viewer selectionne : %O", Viewer)
+
+        if(!Viewer) return <p>Format non supporte</p>
+
+        // return <p>Allo2</p>
+
+        return (
+            <Viewer 
+                item={item}
+                show={show}
+                preparer={preparer}
+                onClick={onClick} 
+                setDownloadSrc={setDownloadSrc} 
+                DEBUG={DEBUG} />
+        )
+    } catch(err) {
+        console.error("Erreur traitement ItemViewer: %O", err)
+        return '' 
+    }
+}
+
+function ImageCarousel(props) {
+    console.debug("ImageCarousel proppies : %O", props)
+
+    const { images, item, onSelect, onClick, setDownloadSrc, DEBUG } = props
+
+    const [defaultActiveIndex, setDefaultActiveIndex] = useState('')
+
+    console.debug("DefaultActiveIdx : %s", defaultActiveIndex)
+
+    // Determiner idx de l'image selectionnee
+    useEffect(()=>{
+        const tuuid = item.fileId
+        for(let idx=0; idx<images.length; idx++) {
+            const image = images[idx]
+            if(image.fileId === tuuid) {
+                return setDefaultActiveIndex(idx)
+            }
+        }
+        setDefaultActiveIndex('')
+    }, [images, item])
+
+    if(defaultActiveIndex === '') return ''
+
+    return (
+        <Carousel 
+            className={styles['carousel-viewer']}
+            onSelect={onSelect}
+            defaultActiveIndex={defaultActiveIndex}
+            interval={null}
+            wrap={false}
+            indicators={false}
+            touch={false}>
+            
+            {images.map((item, idx)=>{
+                const show = defaultActiveIndex === idx
+                const preparer = idx >= defaultActiveIndex - 1 && idx <= defaultActiveIndex + 2
+                return (
+                    <Carousel.Item key={item.tuuid}>
+                        <PreviewImage 
+                            item={item} 
+                            show={show}
+                            preparer={preparer}
+                            onClick={onClick} 
+                            setDownloadSrc={setDownloadSrc} 
+                            DEBUG={DEBUG} />
+                    </Carousel.Item>
+                )
+            })}
+
+        </Carousel>        
+    )
+
+}
+
+function preparerImages(props) {
     const {fichiers, onClick, idxCourant, setDownloadSrc, DEBUG} = props
 
     if(!fichiers || idxCourant==='') return ''  // Rien a faire
 
+    // Mapper les images seulement
     return fichiers
+        .filter(item=>{
+            const mimetype = item.mimetype?item.mimetype.split(';').shift():''
+            if(!mimetype) return false
+            const mimetypeBase = mimetype.split(';').shift()
+            return mimetypeBase === 'image'
+        })
         .map((item, idx)=>{
             // console.debug("Mapping fichier : %O", item)
-            let Viewer = ''
+            let Viewer = PreviewImage
             
-            const mimetype = item.mimetype?item.mimetype.split(';').shift():''
-            const mimetypeBase = mimetype.split('/').shift()
-            if(mimetype === 'application/pdf') {
-                if(idx >= idxCourant -1 && idx <= idxCourant + 1) {
-                    Viewer = PreviewFile
-                }
-            } else if(mimetypeBase === 'image') {
+            if(mimetypeBase === 'image') {
                 if(idx >= idxCourant -1 && idx <= idxCourant + 1) {
                     // Charger 1 index precedent et 2 suivants (4 images chargees a la fois)
-                    Viewer = PreviewImage
-                }
-            } else if(mimetypeBase === 'video') {
-                if(idx === idxCourant) {
-                    Viewer = PreviewVideo
-                } else if(idx >= idxCourant -1 && idx <= idxCourant + 1) {
-                    // Permet de conserver l'image - force l'arret immediat du video sur switch
-                    Viewer = PreviewImage
+                    
                 }
             }
 
@@ -199,64 +315,86 @@ function preparerItems(props) {
 
 function PreviewImage(props) {
 
-    // console.debug("PreviewImage PROPPYS : %O", props)
-    const {loader, onClick, setDownloadSrc, idxItem, idxCourant} = props
+    console.debug("PreviewImage PROPPYS : %O", props)
+    const {workers, item, onClick, setDownloadSrc, preparer, show} = props
+    const {traitementFichiers} = workers
+    const { loader } = item
 
-    const [srcThumbnail, setSrcThumbnail] = useState('')
+    // Show et preparer sont true si non defini dans les props
+    if(show === undefined) show = true
+    if(preparer === undefined) preparer = true
+    const loadImage = show || preparer  // Togggle qui indique qu'on doit preparer l'image (utilise par useEffect)
+
     const [srcImage, setSrcImage] = useState('')
+    const [complet, setComplet] = useState(false)
     const [err, setErr] = useState('')
 
-    // Thumbnail
+    // Load / unload
     useEffect(()=>{
-        if(loader) {
-            const loaderInstance = loader('thumbnail')
-            if(loaderInstance) {
-                const {srcPromise, clean} = loaderInstance
-                srcPromise
-                    .then(src=>{
-                        console.debug("Thumbnail charge : %O", src)
-                        setSrcThumbnail(src)
-                    })
-                    .catch(err=>{
-                        console.error("Erreur chargement thumbnail : %O", err)
-                        // setErr(err)
-                    })
-                return () => {
-                    clean()  // Executer sur exit
-                }
-            }
+        if(!loader) return
+        console.debug("Utilisation loader : %O", loader)
+        if(loadImage) {
+            loader.load(setSrcImage)
+                .catch(err=>{
+                    console.error("Erreur load image : %O", err)
+                    setErr(err)
+                })
+                .finally(()=>setComplet(true))
+            return () => loader.unload().catch(err=>console.warn("Erreur unload image : %O", err))
         }
-    }, [loader, setSrcThumbnail])
+    }, [loader, loadImage, setSrcImage, setErr, setComplet])
 
-    // Image
-    useEffect(()=>{
-        if(loader) {
-            const loaderInstance = loader('image')
-            if(loaderInstance) {
-                const {srcPromise, clean} = loaderInstance
-                srcPromise
-                    .then(src=>{
-                        setSrcImage(src)
-                    })
-                    .catch(err=>{
-                        console.error("Erreur chargement image : %O", err)
-                        setErr(err)
-                    })
-                return () => {
-                    clean()  // Executer sur exit
-                }
-            }
-        }
-    }, [loader, setSrcImage, setErr])
+    // // Thumbnail
+    // useEffect(()=>{
+    //     if(loader) {
+    //         const loaderInstance = loader('thumbnail')
+    //         if(loaderInstance) {
+    //             const {srcPromise, clean} = loaderInstance
+    //             srcPromise
+    //                 .then(src=>{
+    //                     console.debug("Thumbnail charge : %O", src)
+    //                     setSrcThumbnail(src)
+    //                 })
+    //                 .catch(err=>{
+    //                     console.error("Erreur chargement thumbnail : %O", err)
+    //                     // setErr(err)
+    //                 })
+    //             return () => {
+    //                 clean()  // Executer sur exit
+    //             }
+    //         }
+    //     }
+    // }, [loader, setSrcThumbnail])
 
-    useEffect(()=>{
-        if(srcImage && idxItem === idxCourant) {
-            setDownloadSrc(srcImage)
-            // return () => {
-            //     setDownloadSrc('')  // Cleanup bouton download
-            // }
-        }
-    }, [srcImage, idxItem, idxCourant, setDownloadSrc])
+    // // Image
+    // useEffect(()=>{
+    //     if(loader) {
+    //         const loaderInstance = loader('image')
+    //         if(loaderInstance) {
+    //             const {srcPromise, clean} = loaderInstance
+    //             srcPromise
+    //                 .then(src=>{
+    //                     setSrcImage(src)
+    //                 })
+    //                 .catch(err=>{
+    //                     console.error("Erreur chargement image : %O", err)
+    //                     setErr(err)
+    //                 })
+    //             return () => {
+    //                 clean()  // Executer sur exit
+    //             }
+    //         }
+    //     }
+    // }, [loader, setSrcImage, setErr])
+
+    // useEffect(()=>{
+    //     if(srcImage && idxItem === idxCourant) {
+    //         setDownloadSrc(srcImage)
+    //         // return () => {
+    //         //     setDownloadSrc('')  // Cleanup bouton download
+    //         // }
+    //     }
+    // }, [srcImage, idxItem, idxCourant, setDownloadSrc])
 
     if(err) {
         return <p>Erreur de chargement : {''+err}</p>
@@ -265,11 +403,6 @@ function PreviewImage(props) {
     if(!srcImage) {
         return (
             <div>
-                <div>
-                    {srcThumbnail?
-                        <img src={srcThumbnail} />
-                    :''}
-                </div>
                 <p>
                     <i className="fa fa-spinner fa-spin"/> ... Chargement en cours ...
                 </p>
