@@ -222,6 +222,7 @@ function ImageCarousel(props) {
 
     // Determiner idx de l'image selectionnee
     useEffect(()=>{
+        setDownloadSrc('')  // Reset download src
         const tuuid = item.fileId
         for(let idx=0; idx<images.length; idx++) {
             const image = images[idx]
@@ -230,7 +231,7 @@ function ImageCarousel(props) {
             }
         }
         setDefaultActiveIndex('')
-    }, [images, item])
+    }, [images, item, setDownloadSrc])
 
     if(defaultActiveIndex === '') return ''
 
@@ -265,46 +266,46 @@ function ImageCarousel(props) {
 
 }
 
-function preparerImages(props) {
-    const {fichiers, onClick, idxCourant, setDownloadSrc, DEBUG} = props
+// function preparerImages(props) {
+//     const {fichiers, onClick, idxCourant, setDownloadSrc, DEBUG} = props
 
-    if(!fichiers || idxCourant==='') return ''  // Rien a faire
+//     if(!fichiers || idxCourant==='') return ''  // Rien a faire
 
-    // Mapper les images seulement
-    return fichiers
-        .filter(item=>{
-            const mimetype = item.mimetype?item.mimetype.split(';').shift():''
-            if(!mimetype) return false
-            const mimetypeBase = mimetype.split(';').shift()
-            return mimetypeBase === 'image'
-        })
-        .map((item, idx)=>{
-            // console.debug("Mapping fichier : %O", item)
-            let Viewer = PreviewImage
+//     // Mapper les images seulement
+//     return fichiers
+//         .filter(item=>{
+//             const mimetype = item.mimetype?item.mimetype.split(';').shift():''
+//             if(!mimetype) return false
+//             const mimetypeBase = mimetype.split(';').shift()
+//             return mimetypeBase === 'image'
+//         })
+//         .map((item, idx)=>{
+//             // console.debug("Mapping fichier : %O", item)
+//             let Viewer = PreviewImage
             
-            if(mimetypeBase === 'image') {
-                if(idx >= idxCourant -1 && idx <= idxCourant + 1) {
-                    // Charger 1 index precedent et 2 suivants (4 images chargees a la fois)
+//             if(mimetypeBase === 'image') {
+//                 if(idx >= idxCourant -1 && idx <= idxCourant + 1) {
+//                     // Charger 1 index precedent et 2 suivants (4 images chargees a la fois)
                     
-                }
-            }
+//                 }
+//             }
 
-            return (
-                <Carousel.Item key={item.tuuid}>
-                    {Viewer?
-                        <Viewer loader={item.loader} 
-                                idxItem={idx}
-                                idxCourant={idxCourant} 
-                                mimetype={mimetype} 
-                                onClick={onClick} 
-                                setDownloadSrc={setDownloadSrc} 
-                                DEBUG={DEBUG} />
-                        :''
-                    }
-                </Carousel.Item>
-            )
-        })
-}
+//             return (
+//                 <Carousel.Item key={item.tuuid}>
+//                     {Viewer?
+//                         <Viewer loader={item.loader} 
+//                                 idxItem={idx}
+//                                 idxCourant={idxCourant} 
+//                                 mimetype={mimetype} 
+//                                 onClick={onClick} 
+//                                 setDownloadSrc={setDownloadSrc} 
+//                                 DEBUG={DEBUG} />
+//                         :''
+//                     }
+//                 </Carousel.Item>
+//             )
+//         })
+// }
 
 function PreviewImage(props) {
 
@@ -321,6 +322,11 @@ function PreviewImage(props) {
     const [srcImage, setSrcImage] = useState('')
     const [complet, setComplet] = useState(false)
     const [err, setErr] = useState('')
+    const [srcLocal, setSrcLocal] = useState('')
+
+    useEffect(()=>{
+        if(show && srcLocal) setDownloadSrc(srcLocal)
+    }, [show, srcLocal, setDownloadSrc])
 
     // Load / unload
     useEffect(()=>{
@@ -328,83 +334,42 @@ function PreviewImage(props) {
         // console.debug("Utilisation loader : %O", loader)
         if(loadImage) {
             loader.load(setSrcImage)
+                .then(src=>setSrcLocal(src))
                 .catch(err=>{
                     console.error("Erreur load image : %O", err)
                     setErr(err)
                 })
                 .finally(()=>setComplet(true))
-            return () => loader.unload().catch(err=>console.warn("Erreur unload image : %O", err))
+            return () => {
+                loader.unload()
+                    .then(()=>{
+                        setSrcImage('')
+                        setComplet(false)
+                    })
+                    .catch(err=>console.warn("Erreur unload image : %O", err))
+            }
         }
     }, [loader, loadImage, setSrcImage, setErr, setComplet])
 
-    // // Thumbnail
-    // useEffect(()=>{
-    //     if(loader) {
-    //         const loaderInstance = loader('thumbnail')
-    //         if(loaderInstance) {
-    //             const {srcPromise, clean} = loaderInstance
-    //             srcPromise
-    //                 .then(src=>{
-    //                     console.debug("Thumbnail charge : %O", src)
-    //                     setSrcThumbnail(src)
-    //                 })
-    //                 .catch(err=>{
-    //                     console.error("Erreur chargement thumbnail : %O", err)
-    //                     // setErr(err)
-    //                 })
-    //             return () => {
-    //                 clean()  // Executer sur exit
-    //             }
-    //         }
-    //     }
-    // }, [loader, setSrcThumbnail])
-
-    // // Image
-    // useEffect(()=>{
-    //     if(loader) {
-    //         const loaderInstance = loader('image')
-    //         if(loaderInstance) {
-    //             const {srcPromise, clean} = loaderInstance
-    //             srcPromise
-    //                 .then(src=>{
-    //                     setSrcImage(src)
-    //                 })
-    //                 .catch(err=>{
-    //                     console.error("Erreur chargement image : %O", err)
-    //                     setErr(err)
-    //                 })
-    //             return () => {
-    //                 clean()  // Executer sur exit
-    //             }
-    //         }
-    //     }
-    // }, [loader, setSrcImage, setErr])
-
-    // useEffect(()=>{
-    //     if(srcImage && idxItem === idxCourant) {
-    //         setDownloadSrc(srcImage)
-    //         // return () => {
-    //         //     setDownloadSrc('')  // Cleanup bouton download
-    //         // }
-    //     }
-    // }, [srcImage, idxItem, idxCourant, setDownloadSrc])
-
-    if(err) {
-        return <p>Erreur de chargement : {''+err}</p>
-    }
-
-    if(!srcImage) {
-        return (
-            <div>
-                <p>
-                    <i className="fa fa-spinner fa-spin"/> ... Chargement en cours ...
-                </p>
-            </div>
-        )
-    }
-
     return (
-        <img src={srcImage} onClick={onClick} />
+        <div>
+            {err?
+                <p>Erreur de chargement : {''+err}</p>
+                :''
+            }
+
+            {srcImage?
+                <img src={srcImage} onClick={onClick} />
+                :''
+            }
+            
+            {!complet?
+                <p>
+                        <i className="fa fa-spinner fa-spin"/> ... Chargement en cours ...
+                </p>
+                :''
+            }
+        </div>
     )
 }
 
