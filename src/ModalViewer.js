@@ -17,7 +17,6 @@ function ModalViewer(props) {
     const handle = useFullScreenHandle()
     const [afficherHeaderFooter, setAfficherHeaderFooter] = useState(true)
     const [downloadSrc, setDownloadSrc] = useState('')
-    const [idxFichier, setIdxFichier] = useState('')
     const [images, setImages] = useState('')
     const [item, setItem] = useState('')
     const [viewer, setViewer] = useState('ItemViewer')
@@ -42,10 +41,9 @@ function ModalViewer(props) {
     }, [handle])
 
     const onSelectCb = useCallback(idx=>{
-        const fichier = fichiers[idx]
+        const fichier = images[idx]
         setItem(fichier)
-        setIdxFichier(idx)
-    }, [fichiers])
+    }, [images])
 
     const setDownloadSrcAction = setDownloadSrc  // useCallback(setDownloadSrc, [setDownloadSrc])
 
@@ -53,22 +51,21 @@ function ModalViewer(props) {
     useEffect(()=>{
         for(var idx=0; idx<fichiers.length; idx++) {
             const fichier = fichiers[idx]
-            if(fichier.tuuid === tuuidSelectionne) {
-                setIdxFichier(idx)
+            if(fichier && fichier.tuuid === tuuidSelectionne) {
                 setItem(fichier)
                 return
             }
         }
 
         // No match
-        setIdxFichier('')
         setItem('')
-    }, [fichiers, tuuidSelectionne, setIdxFichier, setItem])
+    }, [fichiers, tuuidSelectionne, setItem])
 
     // Conserver liste des images. Utilise par le carousel.
     useEffect(()=>{
         if(!fichiers) return setImages('')
         const images = fichiers.filter(item=>{
+            if(!item) return false
             const mimetype = item.mimetype?item.mimetype.split(';').shift():''
             return mimetype.startsWith('image/')
         })
@@ -120,6 +117,8 @@ function ModalViewer(props) {
         default: Viewer = ItemViewer
     }
 
+    const nomFichier = item?item.nom:''
+
     return (
         <Modal 
             variant="dark" 
@@ -132,7 +131,7 @@ function ModalViewer(props) {
 
             {afficherHeaderFooter?
                 <Modal.Header>
-                    <Modal.Title>{item.nom}</Modal.Title>
+                    <Modal.Title>{nomFichier}</Modal.Title>
                     <div className={styles['modal-heading-buttons']}>
                         <Button variant="secondary" onClick={downloadSrcClick} disabled={!downloadSrc} title="Download" className={styles.accessoire}>
                             <i className="fa fa-download"/>
@@ -155,17 +154,11 @@ function ModalViewer(props) {
                             item={item} 
                             images={images} 
                             onSelect={onSelectCb}
-                            onClick={onClick} />
+                            onClick={onClick}
+                            setDownloadSrc={setDownloadSrcAction} />
                     </div>
                 </FullScreen>
             </Modal.Body>
-
-            {afficherHeaderFooter?
-                <Modal.Footer>
-                    {idxFichier+1} de {fichiers.length}
-                </Modal.Footer>
-                :''
-            }
 
         </Modal>
     )
@@ -175,29 +168,29 @@ function ModalViewer(props) {
 export default ModalViewer
 
 function ItemViewer(props) {
-    console.debug("ItemViewer proppies : %O", props)
+    // console.debug("ItemViewer proppies : %O", props)
     const {item, onClick, setDownloadSrc, DEBUG} = props
 
     // Par defaut show et preparer sont true (si params absent)
     const show = props.show === undefined?true:props.show
     const preparer = props.preparer === undefined?true:props.preparer
 
-    if(!item) return ''  // Rien a faire
+    if(!item) return <p>Aucunes donnees a afficher pour ce fichier.</p>  // Rien a faire
 
     try {
-        console.debug("Mapping fichier : %O", item)
+        // console.debug("Mapping fichier : %O", item)
         
         const mimetype = item.mimetype?item.mimetype.split(';').shift():''
         const mimetypeBase = mimetype.split('/').shift()
 
-        console.debug("Mimetype fichier : %O", mimetype)
+        // console.debug("Mimetype fichier : %O", mimetype)
 
         let Viewer = null
         if(mimetype === 'application/pdf') Viewer = PreviewFile
         else if(mimetypeBase === 'image') Viewer = PreviewImage
         else if(mimetypeBase === 'video') Viewer = PreviewVideo
 
-        console.debug("Type viewer selectionne : %O", Viewer)
+        // console.debug("Type viewer selectionne : %O", Viewer)
 
         if(!Viewer) return <p>Format non supporte</p>
 
@@ -219,13 +212,13 @@ function ItemViewer(props) {
 }
 
 function ImageCarousel(props) {
-    console.debug("ImageCarousel proppies : %O", props)
+    // console.debug("ImageCarousel proppies : %O", props)
 
     const { images, item, onSelect, onClick, setDownloadSrc, DEBUG } = props
 
     const [defaultActiveIndex, setDefaultActiveIndex] = useState('')
 
-    console.debug("DefaultActiveIdx : %s", defaultActiveIndex)
+    // console.debug("DefaultActiveIdx : %s", defaultActiveIndex)
 
     // Determiner idx de l'image selectionnee
     useEffect(()=>{
@@ -315,7 +308,7 @@ function preparerImages(props) {
 
 function PreviewImage(props) {
 
-    console.debug("PreviewImage PROPPYS : %O", props)
+    // console.debug("PreviewImage PROPPYS : %O", props)
     const {workers, item, onClick, setDownloadSrc, preparer, show} = props
     const {traitementFichiers} = workers
     const { loader } = item
@@ -332,7 +325,7 @@ function PreviewImage(props) {
     // Load / unload
     useEffect(()=>{
         if(!loader) return
-        console.debug("Utilisation loader : %O", loader)
+        // console.debug("Utilisation loader : %O", loader)
         if(loadImage) {
             loader.load(setSrcImage)
                 .catch(err=>{
@@ -506,7 +499,7 @@ function PreviewVideo(props) {
 function PreviewFile(props) {
     const { loader, mimetype, setDownloadSrc, idxItem, idxCourant } = props
 
-    console.debug("PreviewFile proppys : %O", props)
+    // console.debug("PreviewFile proppys : %O", props)
 
     const [src, setSrc] = useState('')
     useEffect(()=>{
