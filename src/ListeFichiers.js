@@ -209,6 +209,11 @@ function ListeFichiersRow(props) {
           {fileId, folderId} = data
     const {onSelectioner, onOuvrir, onContextMenu, selectionne, touchEnabled} = props
 
+    // Thumbnails
+    const thumbnail = data.thumbnail || {},
+          {thumbnailIcon, thumbnailSrc, miniLoader} = thumbnail
+    const thumbnailLoader = miniLoader
+
     const onClickAction = useCallback(event=>{
         if(touchEnabled) return  // Rien a faire
         if(onSelectioner && !touchEnabled) onSelectioner(event, {fileId, folderId})
@@ -251,8 +256,7 @@ function ListeFichiersRow(props) {
                 const classNameCol = param.className || ''
                 const className = styles[classNameCol] || param.className
                 const Formatteur = param.formatteur
-                const showThumbnail = param.showThumbnail || false,
-                      thumbnailIcon = data.thumbnailIcon
+                const showThumbnail = param.showThumbnail || false
                 const showBoutonContexte = param.showBoutonContexte || false
 
                 const contenu = data[nomColonne] || ''
@@ -263,8 +267,8 @@ function ListeFichiersRow(props) {
 
                 let thumbnail = ''
                 if(showThumbnail) {
-                    if(data.thumbnailSrc || data.thumbnailLoader) {
-                        thumbnail = <Thumbnail src={data.thumbnailSrc} loader={data.thumbnailLoader} mini={true} />
+                    if(thumbnailSrc || thumbnailLoader) {
+                        thumbnail = <Thumbnail src={thumbnailSrc} loader={thumbnailLoader} mini={true} />
                     } else if(thumbnailIcon) {
                         thumbnail = <div className={styles.thumbnailmini}>{thumbnailIcon}</div>
                     } else {
@@ -374,7 +378,11 @@ function ListeFichiersThumbnails(props) {
 function FichierThumbnail(props) {
 
     const {data, className, onSelectioner, onOuvrir, onContextMenu, touchEnabled, small} = props,
-          {fileId, folderId, thumbnailIcon, thumbnailSrc, thumbnailLoader, thumbnailCaption, duree} = data
+          {fileId, folderId, duree} = data,
+          thumbnail = data.thumbnail || {},
+          {thumbnailIcon, thumbnailSrc, miniLoader, smallLoader, thumbnailCaption} = thumbnail
+
+    const thumbnailLoader = small?miniLoader:smallLoader  // small veut dire mini dans le parametre
 
     const onClickAction = useCallback(event=>{
         if(touchEnabled) return  // Rien a faire
