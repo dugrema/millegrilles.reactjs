@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import {Container, Row, Col, Button, Modal} from 'react-bootstrap'
+import VisibilitySensor from 'react-visibility-sensor'
 
 import {Thumbnail, ThumbnailHeader, ThumbnailFooter, ThumbnailBoutonContexte} from './Thumbnail'
 import { isTouchEnabled } from './detecterAppareils'
@@ -124,7 +125,8 @@ async function majSelection(event, value, rows, selectionPrecedente, selectionne
 /** Liste de fichiers avec details sur lignes, colonnes configurables */
 function ListeFichiersLignes(props) {
 
-    const {colonnes, rows, onSelectioner, onOuvrir, onContextMenu, touchEnabled} = props
+    const {colonnes, rows, onSelectioner, onOuvrir, onContextMenu, touchEnabled, suivantCb} = props
+
     if(!colonnes || !rows) return ''  // Ecran n'est pas encore configure
 
     const selectionnes = props.selectionne || []
@@ -150,8 +152,29 @@ function ListeFichiersLignes(props) {
                         />
                 )
             })}
-            
+
+            <BoutonSuivantListe suivantCb={suivantCb} />
+
         </div>
+    )
+}
+
+function BoutonSuivantListe(props) {
+
+    const {suivantCb} = props
+
+    const visibleSuivantCb = useCallback(isVisible=>{if(suivantCb&&isVisible)suivantCb()}, [suivantCb])
+
+    if(!suivantCb) return ''  // Cacher le bouton si suivantCb est vide (fin de la liste)
+
+    return (
+        <VisibilitySensor onChange={visibleSuivantCb}>
+            <Row className="section-suivante">
+                <Col>
+                    <Button onClick={suivant}><i className='fa fa-chevron-down'/></Button>
+                </Col>
+            </Row>
+        </VisibilitySensor>
     )
 }
 
