@@ -1,4 +1,4 @@
-import {trouverLabelImage} from './labelsRessources'
+import {trouverLabelImage, trouverLabelVideo} from './labelsRessources'
 
 const CONST_TIMEOUT_THUMBNAIL_BLOB = 15000
 
@@ -188,6 +188,39 @@ export function imageResourceLoader(getFichierChiffre, images, opts) {
         unload: async (selecteur) => {
             if(selecteur === 'thumbnail') selecteur = 'thumb'
             if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite d'image
+            const loader = loaders[selecteur]
+            return loader.unload()
+        }
+    }
+
+    return loader
+}
+
+export function videoResourceLoader(getFichierChiffre, videos, opts) {
+    opts = opts || {}
+    const supporteWebm = opts.supporteWebm?true:false
+
+    const labels = Object.keys(videos)
+    const labelHauteResolution = trouverLabelVideo(labels, {supporteWebm})
+    // console.debug("Labels : %O", labels)
+
+    // Generer loaders pour tous les labels (sauf thumbnail)
+    const loaders = labels
+    .reduce((acc, item)=>{
+        const video = videos[item]
+        acc[item] = loadFichierChiffre(getFichierChiffre, video.fuuid_video)
+        return acc
+    }, {})
+
+    const loader = {
+        load: async (selecteur, setSrc) => {
+            if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite de video
+            // console.debug("Loader video %s", selecteur)
+            const loader = loaders[selecteur]
+            return loader.load(setSrc)
+        },
+        unload: async (selecteur) => {
+            if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite de video
             const loader = loaders[selecteur]
             return loader.unload()
         }

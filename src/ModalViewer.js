@@ -79,7 +79,7 @@ function ModalViewer(props) {
                     return
                 } 
             } catch(err) {
-                console.debug("Erreur detection mimetype : %O", item)
+                console.debug("Erreur detection mimetype %O : %O", item, err)
             }
         }
         // Default
@@ -175,7 +175,7 @@ function ItemViewer(props) {
     if(!item) return <p>Aucunes donnees a afficher pour ce fichier.</p>  // Rien a faire
 
     try {
-        console.debug("Mapping fichier : %O", item)
+        // console.debug("Mapping fichier : %O", item)
         
         const mimetype = item.mimetype?item.mimetype.split(';').shift():''
         const mimetypeBase = mimetype.split('/').shift()
@@ -380,9 +380,7 @@ function PreviewVideo(props) {
     // const [message, setMessage] = useState(<p> <i className="fa fa-spinner fa-spin" />... Chargement en cours ...</p>)
 
     const { item, onClick, setDownloadSrc, preparer, show, erreurCb } = props
-    const { loader, mimetype } = item
-    const { thumbnail } = item || {}
-    const { smallLoader } = thumbnail
+    const { videoLoader, imageLoader, mimetype } = item
 
     // Show et preparer sont true si non defini dans les props
     if(show === undefined) show = true
@@ -399,24 +397,45 @@ function PreviewVideo(props) {
         if(show && srcLocal) setDownloadSrc(srcLocal)
     }, [show, srcLocal, setDownloadSrc])
 
-    // Load / unload
+    // Load / unload poster
     useEffect(()=>{
-        if(!smallLoader) return
+        if(!imageLoader) return
         // console.debug("Utilisation loader : %O", loader)
         if(loadFichier) {
             // Thumbnail / poster video
-            if(smallLoader) {
-                smallLoader.load(null, {setFirst: setSrcImage})
-                    .then(setSrcImage)
-                    .catch(err=>{
-                        console.warn("Erreur chargement thumbnail/poster : %O", err)
-                    })
-            }
+            imageLoader.load(null, setSrcImage)
+                .then(setSrcImage)
+                .catch(err=>{
+                    console.warn("Erreur chargement thumbnail/poster : %O", err)
+                })
             return () => {
-                if(smallLoader) smallLoader.unload().catch(err=>console.debug("Erreur unload thumbnail : %O", err))
+                imageLoader.unload().catch(err=>console.debug("Erreur unload thumbnail : %O", err))
             }
         }
-    }, [smallLoader, loadFichier, setSrcImage, setErr])
+    }, [imageLoader, loadFichier, setSrcImage, setErr])
+
+    useEffect(()=>{
+        if(!videoLoader) return
+        if(loadFichier) {
+            // Thumbnail / poster video
+            videoLoader.load(selecteurVideo)
+                .then(setSrcLocal)
+                .catch(err=>{
+                    console.error("Erreur chargement video : %O", err)
+                    setErr(err)
+                })
+                .finally(()=>{
+                    setComplet(true)
+                })
+            return () => {
+                imageLoader.unload().catch(err=>console.debug("Erreur unload video : %O", err))
+                setSrcImage('')
+                setSrcLocal('')
+                setComplet(false)
+            }
+        }
+
+    }, [videoLoader, loadFichier, setSrcImage, setSrcLocal, setComplet, setErr])
 
     return (
         <div>
@@ -424,8 +443,10 @@ function PreviewVideo(props) {
                 <p>Erreur de chargement : {''+err}</p>
                 :''
             }
-           
-            {!complet?(
+
+            {complet?
+                <VideoViewer src={srcLocal} poster={srcImage} />
+            :(
                 <div>
                     {srcImage?
                         <img src={srcImage} />
@@ -435,7 +456,7 @@ function PreviewVideo(props) {
                             <i className="fa fa-spinner fa-spin"/> ... Chargement en cours ...
                     </p>
                 </div>
-            ):''}
+            )}
         </div>
     )
 
