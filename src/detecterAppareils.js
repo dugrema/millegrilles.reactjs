@@ -58,9 +58,8 @@ export function supporteFormatWebm() {
 
   // "probably"
   const canPlayType = video.canPlayType('video/webm; codecs="vp9, vorbis"')
-  // console.debug("!!! supportFormatWebm %O", canPlayType)
 
-  return canPlayType?true:false
+  return canPlayType==='probably'?true:false
 }
 
 export function supporteFileStream() {
