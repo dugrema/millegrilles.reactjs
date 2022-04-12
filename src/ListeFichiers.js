@@ -234,8 +234,8 @@ function ListeFichiersRow(props) {
 
     // Thumbnails
     const thumbnail = data.thumbnail || {},
-          {thumbnailIcon, thumbnailSrc, miniLoader} = thumbnail
-    const thumbnailLoader = miniLoader
+          {thumbnailIcon, thumbnailSrc} = thumbnail
+    const thumbnailLoader = data.imageLoader
 
     const onClickAction = useCallback(event=>{
         if(touchEnabled) return  // Rien a faire
@@ -405,9 +405,11 @@ function FichierThumbnail(props) {
     const {data, className, onSelectioner, onOuvrir, onContextMenu, touchEnabled, small} = props,
           {fileId, folderId, duree} = data,
           thumbnail = data.thumbnail || {},
-          {thumbnailIcon, thumbnailSrc, miniLoader, smallLoader, thumbnailCaption} = thumbnail
+          {thumbnailIcon, thumbnailSrc, thumbnailCaption} = thumbnail
+    
+    const imageLoader = data.imageLoader
 
-    const thumbnailLoader = small?miniLoader:smallLoader  // small veut dire mini dans le parametre
+    // const thumbnailLoader = small?miniLoader:smallLoader  // small veut dire mini dans le parametre
 
     const onClickAction = useCallback(event=>{
         if(touchEnabled) return  // Rien a faire
@@ -437,7 +439,7 @@ function FichierThumbnail(props) {
             onTouchEnd={onTouchEndAction}
             onContextMenu={onContextMenuAction}
             src={thumbnailSrc}
-            loader={thumbnailLoader}
+            loader={imageLoader}
             placeholder={thumbnailIcon}
             className={className}
             small={small}

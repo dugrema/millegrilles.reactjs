@@ -5,10 +5,15 @@ import styles from './styles.module.css'
 export function Thumbnail(props) {
     const { mini, small } = props
     
-    let styleBase
-    if(small) styleBase = styles.thumbnailsmall
-    else if(mini) styleBase = styles.thumbnailmini
-    else styleBase = styles.thumbnail
+    let styleBase, labelImage = 'small'
+    if(small) {
+        styleBase = styles.thumbnailsmall
+    } else if(mini) {
+        styleBase = styles.thumbnailmini
+        labelImage = 'thumb'
+    } else {
+        styleBase = styles.thumbnail
+    }
 
     const className = [styleBase, (props.className || '')].join(' ')
     const {src, loader, placeholder} = props
@@ -21,11 +26,11 @@ export function Thumbnail(props) {
         if(!loader) return  // Rien a faire
 
         // Executer le loader
-        loader.load(null, {setFirst: setImgSrc}).then(setImgSrc).catch(err => console.error("Thumbnail Erreur chargement image : %O", err))
+        loader.load(labelImage, setImgSrc).then(setImgSrc).catch(err => console.error("Thumbnail Erreur chargement image : %O", err))
 
         // Retourne unloader pour nettoyer le composant
-        if(loader.unload) return () => loader.unload()
-    }, [loader, mini])
+        if(loader.unload) return () => loader.unload(labelImage)
+    }, [loader, labelImage])
 
     return (
         <Card 

@@ -9,8 +9,6 @@ import styles from './styles.module.css'
 
 function ModalViewer(props) {
 
-    console.debug("ModalViewer proppries : %O", props)
-
     const {tuuidSelectionne, fichiers, DEBUG} = props
 
     const handle = useFullScreenHandle()
@@ -310,7 +308,7 @@ function PreviewImage(props) {
 
     // console.debug("PreviewImage PROPPYS : %O", props)
     const { item, onClick, setDownloadSrc, preparer, show } = props
-    const { loader } = item
+    const { imageLoader } = item
 
     // Show et preparer sont true si non defini dans les props
     if(show === undefined) show = true
@@ -328,10 +326,10 @@ function PreviewImage(props) {
 
     // Load / unload
     useEffect(()=>{
-        if(!loader) return
+        if(!imageLoader) return
         // console.debug("Utilisation loader : %O", loader)
         if(loadImage) {
-            loader.load(null, {setFirst: setSrcImage})
+            imageLoader.load(null, setSrcImage)
                 .then(src=>{
                     setSrcLocal(src)
                     setSrcImage(src)
@@ -342,7 +340,7 @@ function PreviewImage(props) {
                 })
                 .finally(()=>setComplet(true))
             return () => {
-                loader.unload()
+                imageLoader.unload()
                     .then(()=>{
                         setSrcImage('')
                         setComplet(false)
@@ -350,7 +348,7 @@ function PreviewImage(props) {
                     .catch(err=>console.warn("Erreur unload image : %O", err))
             }
         }
-    }, [loader, loadImage, setSrcImage, setErr, setComplet])
+    }, [imageLoader, loadImage, setSrcImage, setErr, setComplet])
 
     return (
         <div>
@@ -375,98 +373,154 @@ function PreviewImage(props) {
 }
 
 function PreviewVideo(props) {
-    const { loader, onClick, setDownloadSrc, idxItem, idxCourant } = props
+    // const { loader, onClick, setDownloadSrc, idxItem, idxCourant } = props
+
+    // const [srcImage, setSrcImage] = useState('')
+    // const [srcVideo, setSrcVideo] = useState('')
+    // const [message, setMessage] = useState(<p> <i className="fa fa-spinner fa-spin" />... Chargement en cours ...</p>)
+
+    const { item, onClick, setDownloadSrc, preparer, show, erreurCb } = props
+    const { loader, mimetype } = item
+    const { thumbnail } = item || {}
+    const { smallLoader } = thumbnail
+
+    // Show et preparer sont true si non defini dans les props
+    if(show === undefined) show = true
+    if(preparer === undefined) preparer = true
+    const loadFichier = show || preparer  // Togggle qui indique qu'on doit preparer l'image (utilise par useEffect)
 
     const [srcImage, setSrcImage] = useState('')
-    const [srcVideo, setSrcVideo] = useState('')
-    const [message, setMessage] = useState(<p> <i className="fa fa-spinner fa-spin" />... Chargement en cours ...</p>)
+    const [complet, setComplet] = useState(false)
+    const [srcLocal, setSrcLocal] = useState('')
+    const [err, setErr] = useState('')
+    const [selecteurVideo, setSelecteurVideo] = useState('')
 
     useEffect(()=>{
-        if(loader) {
-            const loaderImage = loader('thumbnail')
-            // const loaderImage = loader('image')
+        if(show && srcLocal) setDownloadSrc(srcLocal)
+    }, [show, srcLocal, setDownloadSrc])
 
-            if(loaderImage && loaderImage.srcPromise) {
-                const {srcPromise: srcImagePromise, clean: cleanImage} = loaderImage
-                srcImagePromise
-                    .then(src=>{
-                        // console.debug("Image chargee : %O", src)
-                        setSrcImage(src)
-                    })
+    // Load / unload
+    useEffect(()=>{
+        if(!smallLoader) return
+        // console.debug("Utilisation loader : %O", loader)
+        if(loadFichier) {
+            // Thumbnail / poster video
+            if(smallLoader) {
+                smallLoader.load(null, {setFirst: setSrcImage})
+                    .then(setSrcImage)
                     .catch(err=>{
-                        console.error("Erreur chargement image : %O", err)
-                        setMessage(''+err)
+                        console.warn("Erreur chargement thumbnail/poster : %O", err)
                     })
-                return () => {
-                    // Executer sur exit
-                    // console.debug("Cleanup video (image)")
-                    if(cleanImage) cleanImage()
-                }
+            }
+            return () => {
+                if(smallLoader) smallLoader.unload().catch(err=>console.debug("Erreur unload thumbnail : %O", err))
             }
         }
-    }, [loader, setSrcImage, setSrcVideo])
-
-    useEffect(()=>{
-        if(loader && srcImage && idxItem === idxCourant) {
-            const loaderVideo = loader('video')
-            if(loaderVideo && loaderVideo.srcPromise) {
-                setMessage(<p><i className="fa fa-spinner fa-spin"/> ... Loading ...</p>)
-                // Charger video
-                loaderVideo.srcPromise.then(src=>{
-                    setSrcVideo(src)
-                    setMessage('')
-                }).catch(err=>{
-                    console.error("Erreur chargement video : %O", err)
-                    setMessage(''+err)
-                })
-                return () => {
-                    // Executer sur exit
-                    if(loaderVideo.clean) loaderVideo.clean()
-                }
-            } else {
-                setMessage(<p> !!! Video non disponible !!! </p>)
-            }
-        }
-    }, [loader, srcImage, idxItem, idxCourant, setSrcImage, setSrcVideo, setMessage])
-
-    useEffect(()=>{
-        if(srcVideo && idxItem === idxCourant) {
-            setDownloadSrc(srcVideo)
-            // return () => {
-            //     setDownloadSrc('')  // Cleanup bouton download
-            // }
-        }
-    }, [srcVideo, idxItem, idxCourant])
-
-    if(srcVideo) {
-        return (
-            <VideoViewer src={srcVideo} poster={srcImage} />
-        )
-    }
-
-    if(srcImage) {
-
-        return (
-            <div>
-                <img src={srcImage} onClick={onClick} />
-                <div>
-                    {message}
-                </div>
-            </div>
-        )
-    }
+    }, [smallLoader, loadFichier, setSrcImage, setErr])
 
     return (
-        <div>{message}</div>
+        <div>
+            {err?
+                <p>Erreur de chargement : {''+err}</p>
+                :''
+            }
+           
+            {!complet?(
+                <div>
+                    {srcImage?
+                        <img src={srcImage} />
+                        :''
+                    }
+                    <p>
+                            <i className="fa fa-spinner fa-spin"/> ... Chargement en cours ...
+                    </p>
+                </div>
+            ):''}
+        </div>
     )
+
+    // useEffect(()=>{
+    //     if(loader) {
+    //         const loaderImage = loader('thumbnail')
+    //         // const loaderImage = loader('image')
+
+    //         if(loaderImage && loaderImage.srcPromise) {
+    //             const {srcPromise: srcImagePromise, clean: cleanImage} = loaderImage
+    //             srcImagePromise
+    //                 .then(src=>{
+    //                     // console.debug("Image chargee : %O", src)
+    //                     setSrcImage(src)
+    //                 })
+    //                 .catch(err=>{
+    //                     console.error("Erreur chargement image : %O", err)
+    //                     setMessage(''+err)
+    //                 })
+    //             return () => {
+    //                 // Executer sur exit
+    //                 // console.debug("Cleanup video (image)")
+    //                 if(cleanImage) cleanImage()
+    //             }
+    //         }
+    //     }
+    // }, [loader, setSrcImage, setSrcVideo])
+
+    // useEffect(()=>{
+    //     if(loader && srcImage && idxItem === idxCourant) {
+    //         const loaderVideo = loader('video')
+    //         if(loaderVideo && loaderVideo.srcPromise) {
+    //             setMessage(<p><i className="fa fa-spinner fa-spin"/> ... Loading ...</p>)
+    //             // Charger video
+    //             loaderVideo.srcPromise.then(src=>{
+    //                 setSrcVideo(src)
+    //                 setMessage('')
+    //             }).catch(err=>{
+    //                 console.error("Erreur chargement video : %O", err)
+    //                 setMessage(''+err)
+    //             })
+    //             return () => {
+    //                 // Executer sur exit
+    //                 if(loaderVideo.clean) loaderVideo.clean()
+    //             }
+    //         } else {
+    //             setMessage(<p> !!! Video non disponible !!! </p>)
+    //         }
+    //     }
+    // }, [loader, srcImage, idxItem, idxCourant, setSrcImage, setSrcVideo, setMessage])
+
+    // useEffect(()=>{
+    //     if(srcVideo && idxItem === idxCourant) {
+    //         setDownloadSrc(srcVideo)
+    //         // return () => {
+    //         //     setDownloadSrc('')  // Cleanup bouton download
+    //         // }
+    //     }
+    // }, [srcVideo, idxItem, idxCourant])
+
+    // if(srcVideo) {
+    //     return (
+    //         <VideoViewer src={srcVideo} poster={srcImage} />
+    //     )
+    // }
+
+    // if(srcImage) {
+
+    //     return (
+    //         <div>
+    //             <img src={srcImage} onClick={onClick} />
+    //             <div>
+    //                 {message}
+    //             </div>
+    //         </div>
+    //     )
+    // }
+
+    // return (
+    //     <div>{message}</div>
+    // )
 
 }
 
 function PreviewFile(props) {
-    // const { loader, mimetype, setDownloadSrc, idxItem, idxCourant } = props
-
-    console.debug("PreviewFile proppys : %O", props)
-
     const { item, onClick, setDownloadSrc, preparer, show, erreurCb } = props
     const { loader, mimetype } = item
     const { thumbnail } = item || {}
@@ -523,31 +577,6 @@ function PreviewFile(props) {
         }
     }, [loader, loadFichier, setSrcLocal, setSrcThumbnail, setErr, setComplet])
 
-
-    // const [src, setSrc] = useState('')
-    // useEffect(()=>{
-    //     if(loader) {
-    //         const {srcPromise, clean} = loader('original')
-    //         srcPromise
-    //             .then(src=>{
-    //                 setSrc(src)
-    //             })
-    //             .catch(err=>{console.error("Erreur chargement fichier : %O", err)})
-    //         return () => {
-    //             clean  // Executer sur exit
-    //         }
-    //     }
-    // }, [loader])
-
-    // useEffect(()=>{
-    //     if(src && idxItem === idxCourant) {
-    //         setDownloadSrc(src)
-    //         // return () => {
-    //         //     setDownloadSrc('')  // Cleanup bouton download
-    //         // }
-    //     }
-    // }, [src, idxItem, idxCourant])
-
     return (
         <div>
             {err?
@@ -577,11 +606,4 @@ function PreviewFile(props) {
         </div>
     )
 
-    if(!srcLocal) return ''
-
-    return (
-        <object data={src} type={mimetype}>
-            alt : <a href={src}>Ouvrir</a>
-        </object>
-    )
 }

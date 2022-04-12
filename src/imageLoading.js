@@ -1,3 +1,4 @@
+import {trouverLabelImage} from './labelsRessources'
 
 const CONST_TIMEOUT_THUMBNAIL_BLOB = 15000
 
@@ -6,7 +7,7 @@ const CONST_TIMEOUT_THUMBNAIL_BLOB = 15000
 export function loadFichierChiffre(getFichierChiffre, fuuid, opts) {
     opts = opts || {}
     // const { traitementFichiers } = workers
-    const { delay } = opts
+    const { delay, callbackOnClean } = opts
     const timeoutBlob = opts.timeout || CONST_TIMEOUT_THUMBNAIL_BLOB
 
     let blobPromise = null
@@ -47,7 +48,7 @@ export function loadFichierChiffre(getFichierChiffre, fuuid, opts) {
             }
         },
         unload: async () => {
-            console.debug("Unload fichier %s", fuuid)
+            // console.debug("Unload fichier %s", fuuid)
             if(controller) {
                 controller.abort()
                 controller = null
@@ -63,11 +64,13 @@ export function loadFichierChiffre(getFichierChiffre, fuuid, opts) {
                             URL.revokeObjectURL(urlBlob)
                             blobPromise = null  // Vider promise, permet un reload
                             timeoutCleanup = null
+                            if(callbackOnClean) callbackOnClean()
                         }, timeoutBlob)
                     }
                 } catch(err) {
-                    console.debug("Erreur nettoyage blob %s : %O", fuuid, err) 
+                    // console.debug("Erreur nettoyage blob %s : %O", fuuid, err) 
                     blobPromise = null  // Vider promise, permet un reload
+                    if(callbackOnClean) callbackOnClean()
                 }
             }
         }
@@ -143,6 +146,50 @@ export function fileResourceLoader(getFichierChiffre, fichierFuuid, opts) {
         unload: async () => {
             miniLoader.unload().catch(err=>console.debug("Erreur unload mini thumbnail %s", thumbnailFuuid))
             fileLoader.unload().catch(err=>console.debug("Erreur unload image %s", fichierFuuid))
+        }
+    }
+
+    return loader
+}
+
+export function imageResourceLoader(getFichierChiffre, images, opts) {
+    opts = opts || {}
+    const supporteWebp = opts.supporteWebp===false?false:true
+
+    const thumbnail = images.thumbnail || images.thumb
+
+    const labels = Object.keys(images)
+    const labelHauteResolution = trouverLabelImage(labels, {supporteWebp})
+    // console.debug("Labels : %O", labels)
+
+    // Generer loaders pour tous les labels (sauf thumbnail)
+    const loaders = labels
+    .filter(label=>label!=='thumb'&&label!=='thumbnail')
+    .reduce((acc, item)=>{
+        const image = images[item]
+        acc[item] = fileResourceLoader(getFichierChiffre, image.hachage, {thumbnail})
+        return acc
+    }, {})
+
+    // Ajouter loader de thumbnail
+    if(thumbnail && thumbnail.hachage && thumbnail.data_chiffre) {
+        const thumbnailFuuid = thumbnail.hachage
+        const dataChiffre = thumbnail.data_chiffre
+        loaders['thumb'] = loadFichierChiffre(getFichierChiffre, thumbnailFuuid, {dataChiffre})
+    }
+
+    const loader = {
+        load: async (selecteur, setSrc) => {
+            if(selecteur === 'thumbnail') selecteur = 'thumb'
+            if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite d'image
+            const loader = loaders[selecteur]
+            return loader.load(setSrc, {setFirst: setSrc})
+        },
+        unload: async (selecteur) => {
+            if(selecteur === 'thumbnail') selecteur = 'thumb'
+            if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite d'image
+            const loader = loaders[selecteur]
+            return loader.unload()
         }
     }
 
