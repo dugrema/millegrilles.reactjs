@@ -169,9 +169,9 @@ function BoutonSuivantListe(props) {
 
     return (
         <VisibilitySensor onChange={visibleSuivantCb}>
-            <Row className="section-suivante">
+            <Row className={styles['section-suivante']}>
                 <Col>
-                    <Button onClick={visibleSuivantCb}><i className='fa fa-chevron-down'/></Button>
+                    <Button variant="secondary" onClick={visibleSuivantCb}><i className='fa fa-chevron-down'/></Button>
                 </Col>
             </Row>
         </VisibilitySensor>
@@ -363,7 +363,7 @@ function ListeFichiersRow(props) {
 // }
 
 function ListeFichiersThumbnails(props) {
-    const {rows, onSelectioner, onOuvrir, onContextMenu, touchEnabled, modeView} = props
+    const {rows, onSelectioner, onOuvrir, onContextMenu, touchEnabled, modeView, suivantCb} = props
     if(!rows) return ''  // Ecran n'est pas encore configure
 
     let modeSmall = ''
@@ -394,6 +394,8 @@ function ListeFichiersThumbnails(props) {
                 )
             })}
             
+            <BoutonSuivantListe suivantCb={suivantCb} />
+
         </div>
     )
 }
@@ -459,7 +461,7 @@ function FichierThumbnail(props) {
 
 function ListeFichiersRecents(props) {
 
-    const {rows} = props
+    const {rows, suivantCb} = props
     if(!rows) return ''  // Ecran n'est pas encore configure
 
     const [jours, setJours] = useState('')
@@ -480,6 +482,9 @@ function ListeFichiersRecents(props) {
                     <GroupeJour key={keyStr} {...props} value={item} />
                 )
             })}
+
+            <BoutonSuivantListe suivantCb={suivantCb} />
+
         </div>
     )
 }

@@ -385,6 +385,13 @@ BODY {
   margin-left: 2rem;
 }
 
+.section-suivante {
+  padding-top: 2em;
+  padding-bottom: 2em;
+  width: 100%;
+  text-align: center;
+}
+
 @media screen and (max-width: 767px) {
   .fichierstable .fichierstablerow .lignehover {
     display: block;
