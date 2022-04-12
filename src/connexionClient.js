@@ -103,7 +103,7 @@ async function onConnect(infoPromise) {
     info = await emitBlocking('getInfoIdmg', {}, {noformat: true})
   }
 
-  console.debug("connexionClient.onConnect %O", info)
+  // console.debug("connexionClient.onConnect %O", info)
   if(_callbackSetUsager && info.nomUsager) {
     // console.debug("connexionClient.onConnect setUsager %s", info.nomUsager)
     _callbackSetUsager(info.nomUsager)

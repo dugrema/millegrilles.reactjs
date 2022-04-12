@@ -17,10 +17,10 @@ export function loadImageChiffree(traitementFichiersWorker, fuuid, opts) {
             opts = opts || {}
 
             if(!blobPromise) {
-                console.debug("Reload blob pour %s", fuuid)
+                // console.debug("Reload blob pour %s", fuuid)
                 blobPromise = reloadImage(traitementFichiersWorker.getThumbnail, fuuid, opts)
             } else if(timeoutCleanup) {
-                console.debug("Reutilisation blob pour thumbnail %s", fuuid)
+                // console.debug("Reutilisation blob pour thumbnail %s", fuuid)
                 clearTimeout(timeoutCleanup)
                 timeoutCleanup = null
             }
@@ -34,7 +34,7 @@ export function loadImageChiffree(traitementFichiersWorker, fuuid, opts) {
                 if(setSrc) setSrc(urlBlob)
                 return urlBlob
             } catch(err) {
-                console.debug("Erreur chargement blob %s : %O", fuuid, err)
+                // console.debug("Erreur chargement blob %s : %O", fuuid, err)
                 // Cleanup
                 blobPromise = null
                 if(urlBlob) URL.revokeObjectURL(urlBlob)
@@ -42,14 +42,14 @@ export function loadImageChiffree(traitementFichiersWorker, fuuid, opts) {
             }
         },
         unload: async () => {
-            console.debug("Unload thumbnail %s", fuuid)
+            // console.debug("Unload thumbnail %s", fuuid)
             if(blobPromise) {
                 try {
                     const urlBlob = await blobPromise
                     // console.debug("Cleanup URL blob : %O", urlBlob)
                     if(urlBlob) {
                         timeoutCleanup = setTimeout(()=>{
-                            console.debug("Cleanup blob pour %s", fuuid)
+                            // console.debug("Cleanup blob pour %s", fuuid)
                             URL.revokeObjectURL(urlBlob)
                             blobPromise = null  // Vider promise, permet un reload
                             timeoutCleanup = null
