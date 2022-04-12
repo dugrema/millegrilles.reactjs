@@ -171,7 +171,7 @@ function BoutonSuivantListe(props) {
         <VisibilitySensor onChange={visibleSuivantCb}>
             <Row className="section-suivante">
                 <Col>
-                    <Button onClick={suivant}><i className='fa fa-chevron-down'/></Button>
+                    <Button onClick={visibleSuivantCb}><i className='fa fa-chevron-down'/></Button>
                 </Col>
             </Row>
         </VisibilitySensor>
