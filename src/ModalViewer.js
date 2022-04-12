@@ -5,12 +5,11 @@ import Button from 'react-bootstrap/Button'
 import Carousel from 'react-bootstrap/Carousel'
 import VideoViewer from './VideoViewer'
 
-import {trouverLabelImage} from './labelsRessources'
-import {imageResourceLoader} from './imageLoading'
-
 import styles from './styles.module.css'
 
 function ModalViewer(props) {
+
+    console.debug("ModalViewer proppries : %O", props)
 
     const {tuuidSelectionne, fichiers, DEBUG} = props
 
@@ -178,7 +177,7 @@ function ItemViewer(props) {
     if(!item) return <p>Aucunes donnees a afficher pour ce fichier.</p>  // Rien a faire
 
     try {
-        // console.debug("Mapping fichier : %O", item)
+        console.debug("Mapping fichier : %O", item)
         
         const mimetype = item.mimetype?item.mimetype.split(';').shift():''
         const mimetypeBase = mimetype.split('/').shift()
@@ -310,8 +309,7 @@ function ImageCarousel(props) {
 function PreviewImage(props) {
 
     // console.debug("PreviewImage PROPPYS : %O", props)
-    const {workers, item, onClick, setDownloadSrc, preparer, show} = props
-    const {traitementFichiers} = workers
+    const { item, onClick, setDownloadSrc, preparer, show } = props
     const { loader } = item
 
     // Show et preparer sont true si non defini dans les props
@@ -333,8 +331,11 @@ function PreviewImage(props) {
         if(!loader) return
         // console.debug("Utilisation loader : %O", loader)
         if(loadImage) {
-            loader.load(setSrcImage)
-                .then(src=>setSrcLocal(src))
+            loader.load(null, {setFirst: setSrcImage})
+                .then(src=>{
+                    setSrcLocal(src)
+                    setSrcImage(src)
+                })
                 .catch(err=>{
                     console.error("Erreur load image : %O", err)
                     setErr(err)
@@ -462,35 +463,121 @@ function PreviewVideo(props) {
 }
 
 function PreviewFile(props) {
-    const { loader, mimetype, setDownloadSrc, idxItem, idxCourant } = props
+    // const { loader, mimetype, setDownloadSrc, idxItem, idxCourant } = props
 
-    // console.debug("PreviewFile proppys : %O", props)
+    console.debug("PreviewFile proppys : %O", props)
 
-    const [src, setSrc] = useState('')
+    const { item, onClick, setDownloadSrc, preparer, show, erreurCb } = props
+    const { loader, mimetype } = item
+    const { thumbnail } = item || {}
+    const { smallLoader } = thumbnail
+
+    // Show et preparer sont true si non defini dans les props
+    if(show === undefined) show = true
+    if(preparer === undefined) preparer = true
+    const loadFichier = show || preparer  // Togggle qui indique qu'on doit preparer l'image (utilise par useEffect)
+
+    const [srcThumbnail, setSrcThumbnail] = useState('')
+    const [complet, setComplet] = useState(false)
+    const [srcLocal, setSrcLocal] = useState('')
+    const [err, setErr] = useState('')
+
     useEffect(()=>{
-        if(loader) {
-            const {srcPromise, clean} = loader('original')
-            srcPromise
-                .then(src=>{
-                    setSrc(src)
+        if(show && srcLocal) setDownloadSrc(srcLocal)
+    }, [show, srcLocal, setDownloadSrc])
+
+    // Load / unload
+    useEffect(()=>{
+        if(!loader) return
+        // console.debug("Utilisation loader : %O", loader)
+        if(loadFichier) {
+            // Thumbnail / poster video
+            if(smallLoader) {
+                smallLoader.load(null, {setFirst: setSrcThumbnail})
+                    .then(setSrcThumbnail)
+                    .catch(err=>{
+                        console.warn("Erreur chargement thumbnail : %O", err)
+                    })
+            }
+
+            // Loader fichier source (original)
+            loader.load()
+                .then(src=>setSrcLocal(src))
+                .catch(err=>{
+                    console.error("Erreur load fichier : %O", err)
+                    setErr(err)
                 })
-                .catch(err=>{console.error("Erreur chargement fichier : %O", err)})
+                .finally(()=>setComplet(true))
+
             return () => {
-                clean  // Executer sur exit
+                if(smallLoader) smallLoader.unload().catch(err=>console.debug("Erreur unload thumbnail : %O", err))
+                loader.unload()
+                    .then(()=>{
+                        setSrcThumbnail('')
+                        setSrcLocal('')
+                        setComplet(false)
+                        setErr('')
+                    })
+                    .catch(err=>console.warn("Erreur unload fichier : %O", err))
             }
         }
-    }, [loader])
+    }, [loader, loadFichier, setSrcLocal, setSrcThumbnail, setErr, setComplet])
 
-    useEffect(()=>{
-        if(src && idxItem === idxCourant) {
-            setDownloadSrc(src)
-            // return () => {
-            //     setDownloadSrc('')  // Cleanup bouton download
-            // }
-        }
-    }, [src, idxItem, idxCourant])
 
-    if(!src) return ''
+    // const [src, setSrc] = useState('')
+    // useEffect(()=>{
+    //     if(loader) {
+    //         const {srcPromise, clean} = loader('original')
+    //         srcPromise
+    //             .then(src=>{
+    //                 setSrc(src)
+    //             })
+    //             .catch(err=>{console.error("Erreur chargement fichier : %O", err)})
+    //         return () => {
+    //             clean  // Executer sur exit
+    //         }
+    //     }
+    // }, [loader])
+
+    // useEffect(()=>{
+    //     if(src && idxItem === idxCourant) {
+    //         setDownloadSrc(src)
+    //         // return () => {
+    //         //     setDownloadSrc('')  // Cleanup bouton download
+    //         // }
+    //     }
+    // }, [src, idxItem, idxCourant])
+
+    return (
+        <div>
+            {err?
+                <p>Erreur de chargement : {''+err}</p>
+                :''
+            }
+
+            {srcLocal?
+                <object data={srcLocal} type={mimetype}>
+                    alt : <a href={srcLocal}>Ouvrir</a>
+                </object>
+                :
+                ''
+            }
+            
+            {!complet?(
+                <div>
+                    {srcThumbnail?
+                        <img src={srcThumbnail} />
+                        :''
+                    }
+                    <p>
+                            <i className="fa fa-spinner fa-spin"/> ... Chargement en cours ...
+                    </p>
+                </div>
+            ):''}
+        </div>
+    )
+
+    if(!srcLocal) return ''
 
     return (
         <object data={src} type={mimetype}>
