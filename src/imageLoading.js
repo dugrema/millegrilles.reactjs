@@ -52,7 +52,7 @@ export function loadFichierChiffre(getFichierChiffre, fuuid, opts) {
             if(controller) {
                 controller.abort()
                 controller = null
-                console.info("Download de %s aborted", fuuid)
+                // console.info("Download de %s aborted", fuuid)
             }
             if(blobPromise) {
                 try {

@@ -65,7 +65,7 @@ export function trouverLabelVideo(videoLabels, opts) {
     })
 
     videoLabels.sort(trierLabelsVideos)
-    console.debug("Videos labels tries : %O", videoLabels)
+    // console.debug("Videos labels tries : %O", videoLabels)
     return videoLabels[0]
 }
 
