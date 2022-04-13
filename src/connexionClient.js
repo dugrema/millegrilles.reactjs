@@ -13,11 +13,11 @@ import {
 // Re-exporter fonctions de chiffrageClient
 export { formatterMessage, chargerCleMillegrille, signerMessageCleMillegrille, clearCleMillegrille } 
 
-var _socket = null,
+let _socket = null,
     _formatteurMessage = null,
     _connecteUneFois = false
 
-var _callbackSetEtatConnexion,
+let _callbackSetEtatConnexion,
     _callbackSetUsager,
     _callbackFormatteurMessage,
     _urlCourant = '',
@@ -164,12 +164,13 @@ export function socketOn(eventName, callback) {
     if(callback) callback(false)
     return
   }
-  _socket.on(eventName, message => { callback(message) })
+  _socket.on(eventName, callback)
 }
 
 export function socketOff(eventName, callback) {
-  if( ! _socket && callback ) {
-    callback(false)
+  // console.debug("socketOff !!! Retrait evenement %O avec callback %O", eventName, callback)
+  if( ! _socket ) {
+    return false
   } else if(callback) {
     _socket.off(eventName, callback)
   } else {
@@ -267,7 +268,8 @@ export async function subscribe(nomEventSocketio, cb, params, opts) {
   if(resultat && resultat.ok === true) {
     resultat.routingKeys.forEach(item=>{
       // console.debug("subscribe %s Ajouter socketOn %s", nomEventSocketio, item)
-      socketOn(item, cb)
+      // socketOn(item, cb)  // Note : pas sur pourquoi ca ne fonctionne pas (recoit erreur value)
+      socketOn(item, message => cb(message))
     })
   } else {
     const err = new Error("Erreur subscribe %s", nomEventSocketio)
@@ -282,15 +284,22 @@ export async function subscribe(nomEventSocketio, cb, params, opts) {
  * @param {*} cb Callback a retirer
  */
 export async function unsubscribe(nomEventSocketio, cb, params, opts) {
-  params = params || {}
-  opts = opts || {}
-  socketOff(nomEventSocketio)
-  const resultat = await emitBlocking(nomEventSocketio, params, opts)
-  if(resultat && resultat.ok === true) {
-    resultat.routingKeys.forEach(item=>{
-      // console.debug("unsubscribe %s enregistrerCallbackEvenementsNoeuds socketOff %s", nomEventSocketio, item)
-      socketOff(item, cb)
-    })
+  try {
+    params = params || {}
+    opts = opts || {}
+    socketOff(nomEventSocketio)
+    const resultat = await emitBlocking(nomEventSocketio, params, opts)
+    if(resultat && resultat.ok === true) {
+      resultat.routingKeys.forEach(item=>{
+        // socketOff(item, cb)
+        if(_socket) {
+          //_socket.off(nomEventSocketio, cb)  // voir subscribe(), on ne peut pas retirer par cb
+          _socket.removeAllListeners(item)
+        }
+      })
+    }
+  } catch(err) {
+    console.error("Erreur unsubscribe : %O", err)
   }
 }
 
