@@ -117,7 +117,7 @@ async function connecterSocketio(url, opts) {
   opts = opts || {}
   const DEBUG = opts.DEBUG
 
-  const transports = opts.transports || ['websocket']
+  const transports = opts.transports || ['websocket', 'polling']
 
   if( ! _socket ) {
 
