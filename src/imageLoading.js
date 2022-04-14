@@ -4,7 +4,7 @@ const CONST_TIMEOUT_THUMBNAIL_BLOB = 15000
 
 // Charge un fichier chiffre.
 // Utilise un cache/timer pour reutiliser le blob si l'image est chargee/dechargee rapidement.
-export function loadFichierChiffre(getFichierChiffre, fuuid, opts) {
+export function loadFichierChiffre(getFichierChiffre, fuuid, mimetype, opts) {
     opts = opts || {}
     // const { traitementFichiers } = workers
     const { delay, callbackOnClean } = opts
@@ -22,7 +22,7 @@ export function loadFichierChiffre(getFichierChiffre, fuuid, opts) {
                 // console.debug("Reload blob pour %s", fuuid)
                 if(controller) controller.abort() // S'assurer d'annuler un download en limbo
                 controller = new AbortController()
-                blobPromise = reloadFichier(getFichierChiffre, fuuid, {...opts, controller})
+                blobPromise = reloadFichier(getFichierChiffre, fuuid, mimetype, {...opts, controller})
             } else if(timeoutCleanup) {
                 // console.debug("Reutilisation blob pour thumbnail %s", fuuid)
                 clearTimeout(timeoutCleanup)
@@ -77,14 +77,16 @@ export function loadFichierChiffre(getFichierChiffre, fuuid, opts) {
     }
 }
 
-async function reloadFichier(getFichierChiffre, fuuid, opts) {
-    const blob = await getFichierChiffre(fuuid, opts)
+async function reloadFichier(getFichierChiffre, fuuid, mimetype, opts) {
+    opts = opts || {}
+    const blob = await getFichierChiffre(fuuid, {...opts, mimetype})
     return URL.createObjectURL(blob)
 }
 
 // Genere un loader concurrentiel qui affiche le premier de mini/small et tente
 // d'afficher small lorsqu'il est pret
-export function fileResourceLoader(getFichierChiffre, fichierFuuid, opts) {
+export function fileResourceLoader(getFichierChiffre, fichierFuuid, mimetype, opts) {
+    console.debug("!!! fileResourceLoader : %s mimetype %s", fichierFuuid, mimetype)
     opts = opts || {}
     const { thumbnail } = opts
 
@@ -93,9 +95,9 @@ export function fileResourceLoader(getFichierChiffre, fichierFuuid, opts) {
     if(thumbnail && thumbnail.hachage && thumbnail.data_chiffre) {
         const thumbnailFuuid = thumbnail.hachage
         const dataChiffre = thumbnail.data_chiffre
-        miniLoader = loadFichierChiffre(getFichierChiffre, thumbnailFuuid, {dataChiffre})
+        miniLoader = loadFichierChiffre(getFichierChiffre, thumbnailFuuid, thumbnail.mimetype, {dataChiffre})
     }
-    const fileLoader = loadFichierChiffre(getFichierChiffre, fichierFuuid)
+    const fileLoader = loadFichierChiffre(getFichierChiffre, fichierFuuid, mimetype)
 
     const loader = {
         load: async (setSrc, setters) => {
@@ -167,7 +169,7 @@ export function imageResourceLoader(getFichierChiffre, images, opts) {
     .filter(label=>label!=='thumb'&&label!=='thumbnail')
     .reduce((acc, item)=>{
         const image = images[item]
-        acc[item] = fileResourceLoader(getFichierChiffre, image.hachage, {thumbnail})
+        acc[item] = fileResourceLoader(getFichierChiffre, image.hachage, image.mimetype, {thumbnail})
         return acc
     }, {})
 
@@ -175,7 +177,7 @@ export function imageResourceLoader(getFichierChiffre, images, opts) {
     if(thumbnail && thumbnail.hachage && thumbnail.data_chiffre) {
         const thumbnailFuuid = thumbnail.hachage
         const dataChiffre = thumbnail.data_chiffre
-        loaders['thumb'] = loadFichierChiffre(getFichierChiffre, thumbnailFuuid, {dataChiffre})
+        loaders['thumb'] = loadFichierChiffre(getFichierChiffre, thumbnailFuuid, thumbnail.mimetype, {dataChiffre})
     }
 
     const loader = {
@@ -208,7 +210,7 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
     const loaders = labels
     .reduce((acc, item)=>{
         const video = videos[item]
-        acc[item] = loadFichierChiffre(getFichierChiffre, video.fuuid_video)
+        acc[item] = loadFichierChiffre(getFichierChiffre, video.fuuid_video, video.mimetype)
         return acc
     }, {})
 
