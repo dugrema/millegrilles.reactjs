@@ -1,6 +1,6 @@
 {
   "name": "millegrilles.reactjs",
-  "version": "2022.2.0",
+  "version": "2022.3.0",
   "description": "Composants communs pour MilleGrilles front-end avec ReactJS",
   "author": "dugrema",
   "license": "MIT",
@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@blackbox-vision/react-qr-reader": "^5.0.0",
-    "@dugrema/millegrilles.utiljs": "git+ssh://git.maceroc.com/git/millegrilles.utiljs#2022.2",
+    "@dugrema/millegrilles.utiljs": "git+ssh://git.maceroc.com/git/millegrilles.utiljs#2022.3",
     "@dugrema/wasm-xchacha20poly1305": "^0.3.0",
     "axios": "^0.26.1",
     "base64url": "^3.0.1",
