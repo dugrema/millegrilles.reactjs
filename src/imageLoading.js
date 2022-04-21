@@ -86,7 +86,7 @@ async function reloadFichier(getFichierChiffre, fuuid, mimetype, opts) {
 // Genere un loader concurrentiel qui affiche le premier de mini/small et tente
 // d'afficher small lorsqu'il est pret
 export function fileResourceLoader(getFichierChiffre, fichierFuuid, mimetype, opts) {
-    console.debug("!!! fileResourceLoader : %s mimetype %s", fichierFuuid, mimetype)
+    // console.debug("!!! fileResourceLoader : %s mimetype %s", fichierFuuid, mimetype)
     opts = opts || {}
     const { thumbnail } = opts
 

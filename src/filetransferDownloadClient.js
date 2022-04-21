@@ -6,7 +6,7 @@ import { base64 } from "multiformats/bases/base64"
 
 import { dechiffrer } from './chiffrage'
 
-var _urlDownload = '/fichiers',
+var _urlDownload = '/collections/fichiers',
     _nomIdb = 'collections',
     _certificatCa = null
 
