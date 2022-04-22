@@ -94,9 +94,12 @@ export async function _validerCertificatChiffrage(certificatPem, opts) {
 
   if(!certificateStore) throw new Error("CertificatStore non initialise pour verifier certificat de chiffrage")
 
-  const certificatForge = verifierCertificat(certificatPem, opts)
+  const certificatForge = forgePki.certificateFromPem(certificatPem)
+  if(!verifierCertificat(certificatPem, opts)) {
+    throw new Error("chiffrageClient._validerCertificatChiffrage Certificat forge invalide : %O", certificatForge)
+  }
 
-  if(DEBUG) console.debug("Certificat forge : %O", infoCertificat)
+  if(DEBUG) console.debug("Certificat forge : %O", certificatForge)
   // const certificatForge = await infoCertificat.cert
   const extensions = extraireExtensionsMillegrille(certificatForge)
   if(DEBUG) console.debug("Extensions MilleGrille du certificat : %O", extensions)
@@ -123,7 +126,7 @@ export async function chiffrerDocument(doc, domaine, certificatChiffragePem, opt
   console.debug("Certificat millegrille : %O", certificatMillegrille)
 
   // Valider le certificat - lance une exception si invalide
-  const infoCertificatChiffrage = await _validerCertificatChiffrage(certificatChiffragePem)
+  const infoCertificatChiffrage = await _validerCertificatChiffrage(certificatChiffragePem, opts)
   console.debug("InfoCert chiffrage: %O", infoCertificatChiffrage)
 
   const certificatsListeChiffrage = [certificatChiffragePem.shift()]
