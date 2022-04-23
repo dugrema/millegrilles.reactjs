@@ -23,6 +23,7 @@ let _callbackSetEtatConnexion,
     _urlCourant = '',
     _connecte = false,
     _certificatsMaitreDesCles = '',
+    _timeoutCertificatsMaitreDesCles,
     _x509Worker
 
 export function setX509Worker(x509Worker) {
@@ -323,6 +324,10 @@ export async function getCertificatsMaitredescles() {
     // Cacher la reponse
     // console.debug("Cert maitre des cles mis en cache : %O", reponse)
     _certificatsMaitreDesCles = reponse
+    _timeoutCertificatsMaitreDesCles = setTimeout(()=>{
+      _certificatsMaitreDesCles = null
+      _timeoutCertificatsMaitreDesCles = null
+    }, 300000)  // Clear apres 5 minutes
   }
   return reponse
 }
