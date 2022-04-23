@@ -24,7 +24,6 @@ var _chiffrage = null
 
 // Callback etat : (nbFichiersPending, pctFichierEnCours, {encours: uuid, complete: uuid})
 var _callbackEtatUpload = null,
-    _certificatCa = null,
     _publicKeyCa = null,
     _fingerprintCa = null,
     _certificat = null,
@@ -153,29 +152,6 @@ async function traiterUploads() {
         }
     }
     
-    // for(_uploadEnCours = _uploadsPending.shift(); _uploadEnCours; _uploadEnCours = _uploadsPending.shift()) {
-    //     // console.debug("Traitement fichier %O", _uploadEnCours)
-    //     _uploadEnCours.status = STATUS_ENCOURS
-    //     emettreEtat({complete}).catch(err=>(console.warn("Erreur maj etat : %O", err)))
-    //     try {
-    //         // Uploader le fichier. Le status est modifie selon la reponse du POST (HTTP 201 ou 202)
-    //         await uploadFichier()
-    //     } catch(err) {
-    //         console.error("Erreur PUT fichier : %O", err)
-    //         _uploadEnCours.status = STATUS_ERREUR
-    //         _uploadEnCours.err = {msg: ''+err, stack: err.stack}
-    //     } finally {
-    //         if(!_uploadEnCours.annuler) {
-    //             _uploadsCompletes.push(_uploadEnCours)
-    //         }
-    //         complete = _uploadEnCours.correlation
-    //         _uploadEnCours.complete = true
-
-    //         _uploadEnCours = null
-    //         emettreEtat({complete}).catch(err=>(console.warn("Erreur maj etat : %O", err)))
-    //     }
-    // }
-
 }
 
 /** Effectue l'upload d'un fichier. */
@@ -269,7 +245,7 @@ async function terminerTraitementFichier(uploadEnCours) {
     delete commandeMaitreDesCles._partition
 
     const maitreDesClesSignees = await _chiffrage.formatterMessage(
-        commandeMaitreDesCles, 'MaitreDesCles', {partition: partitionMaitreDesCles, action: 'sauvegarderCle', DEBUG: true})
+        commandeMaitreDesCles, 'MaitreDesCles', {partition: partitionMaitreDesCles, action: 'sauvegarderCle', DEBUG: false})
     uploadEnCours.commandeMaitreDesCles = maitreDesClesSignees
     
     const transactionSignee = await _chiffrage.formatterMessage(
@@ -374,7 +350,7 @@ export function up_setCallbackUpload(cb) {
 }
 
 export function up_setCertificatCa(certificat) {
-    _certificatCa = certificat
+    // _certificatCa = certificat
     const cert = pki.certificateFromPem(certificat)
     _publicKeyCa = cert.publicKey.publicKeyBytes
     hachage.hacherCertificat(cert)
@@ -457,9 +433,3 @@ export function up_retryErreur(opts) {
     emettreEtat()
     traiterUploads()  // Demarrer traitement si pas deja en cours
 }
-
-// comlinkExpose({
-//     getEtatCourant,
-//     ajouterFichiersUpload, annulerUpload, clearCompletes, retryErreur,
-//     setCallbackUpload, setCertificat, setDomaine, setChiffrage,
-// })

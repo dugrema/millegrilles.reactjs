@@ -32,6 +32,9 @@ export { ModalViewer }
 import FilePicker from './FilePicker'
 export { FilePicker }
 
+import TransfertModal from './TransfertModal'
+export { TransfertModal }
+
 import LayoutApplication, { HeaderApplication, FooterApplication, IconeConnexion } from './LayoutApplication'
 export { LayoutApplication, HeaderApplication, FooterApplication, IconeConnexion }
 
