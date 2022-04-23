@@ -354,26 +354,6 @@ function DownloadsErreur(props) {
     )
 }
 
-// function DownloadPending(props) {
-
-//     const { value, annulerDownloadAction } = props
-
-//     return (
-//         <Row>
-//             <Col xs={6} lg={7}>{value.filename}</Col>
-//             <Col>
-//                 <Button 
-//                     variant="secondary" 
-//                     value={value.fuuid} 
-//                     onClick={annulerDownloadAction}
-//                 >
-//                     Annuler
-//                 </Button>
-//             </Col>
-//         </Row>
-//     )
-// }
-
 function DownloadPending(props) {
 
     const { value, annulerDownloadAction } = props
