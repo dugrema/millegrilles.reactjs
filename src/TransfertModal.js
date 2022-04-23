@@ -116,17 +116,14 @@ function TabUpload(props) {
 const CACHE_TEMP_NAME = 'fichiersDechiffresTmp'
 
 async function handleDownloadUpdate(transfertFichiers, params, setEtatDownload) {
-    // console.debug("handleDownloadUpdate params: %O", params)
-    // const {pending, pct, filename, fuuid} = params
     const etat = await transfertFichiers.down_getEtatCourant()
     const etatComplet = {...params, ...etat}
-    // console.debug("Etat download courant : %O", etatComplet)
     setEtatDownload(etatComplet)
 
     if(params.fuuidReady) {
         const infoFichier = etat.downloads.filter(item=>item.fuuid===params.fuuidReady).pop()
-        // console.debug("Download cache avec fuuid: %s, fichier: %O", params.fuuidReady, infoFichier)
         try {
+            // console.debug("InfoFichier download : %O", infoFichier)
             downloadCache(params.fuuidReady, {filename: infoFichier.filename})
         } catch(err) {
             console.error("Erreur download cache : %O", err)
@@ -185,6 +182,7 @@ function EtatDownload(props) {
     const { workers, etat } = props
     const { transfertFichiers } = workers
     const { downloads } = etat || []
+    const downloadEnCours = etat.downloadEnCours || ''
 
     const downloadClick = useCallback(event=>{
         const fuuid = event.currentTarget.value
@@ -215,48 +213,166 @@ function EtatDownload(props) {
             .catch(err=>{console.error("Erreur retry download %O", err)})
     }, [transfertFichiers])
 
+    const downloadsPending = downloads.filter(item=>item.status===1)
+    // const downloadEnCours = downloads.filter(item=>item.status===2).pop() || ''
+    const downloadsCompletes = downloads.filter(item=>item.status===3)
+    const downloadsErreur = downloads.filter(item=>item.status===4)
+    let pctFichierEnCours = 0
+    if(etat.loaded && etat.size) pctFichierEnCours = Math.floor(etat.loaded / etat.size * 100)
+    
+    const compteEnCours = downloadsPending.length + (downloadEnCours?1:0)
+
+    const downloadActif = (compteEnCours)?true:false
+
     return (
         <div>
-            <p>Downloads</p>
-            <Row>
+            <Row className={styles['modal-row-header']}>
+                <Col xs={6}>
+                    Downloads en cours {compteEnCours?<Badge>{compteEnCours}</Badge>:''}
+                </Col>
                 <Col>
-                    <Button variant="secondary" onClick={supprimerTousDownloadsAction}>Clear downloads</Button>
+                    {downloadActif?
+                        <ProgressBar now={pctFichierEnCours} label={pctFichierEnCours+'%'} className={styles.progressmin} />
+                        :''
+                    }
                 </Col>
             </Row>
-            {downloads.map(item=>{
 
-                if(item.status === 1) {
-                    return <DownloadPending key={item.fuuid} value={item} annulerDownloadAction={annulerDownloadAction} />
-                }
-                if(item.status === 2) {
-                    return <DownloadEnCours key={item.fuuid} etat={etat} value={item} annulerDownloadAction={annulerDownloadAction} />
-                }
-                if(item.status === 3) {
-                    return (
-                        <DownloadComplete
-                            key={item.fuuid} 
-                            value={item} 
-                            downloadClick={downloadClick} 
-                            supprimerDownloadAction={supprimerDownloadAction} 
-                        />
-                    )
-                }
-                if(item.status === 4) {
-                    return (
-                        <DownloadErreur 
+            {downloadActif?''
+                :
+                <Row>
+                    <Col>Aucun download en cours</Col>
+                </Row>
+            }
+
+            {downloadEnCours?
+                <DownloadEnCours key={downloadEnCours.fuuid} etat={etat} value={downloadEnCours} annulerDownloadAction={annulerDownloadAction} />
+                :''
+            }
+
+            {downloadsPending.map(item=>{
+                return <DownloadPending key={item.fuuid} etat={etat} value={item} annulerDownloadAction={annulerDownloadAction} />
+            })}
+
+            <DownloadsErreur
+                downloadsErreur={downloadsErreur} 
+                supprimerDownloadAction={supprimerDownloadAction} 
+                retryDownloadAction={retryDownloadAction} />
+
+            <DownloadsSucces 
+                downloadsCompletes={downloadsCompletes} 
+                supprimerDownloadAction={supprimerDownloadAction} 
+                supprimerTousDownloadsAction={supprimerTousDownloadsAction} 
+                downloadClick={downloadClick} />
+        </div>
+    )
+}
+
+function DownloadsSucces(props) {
+    const { supprimerDownloadAction, supprimerTousDownloadsAction, downloadClick } = props
+    const downloadsCompletes = props.downloadsCompletes || []
+
+    const [show, setShow] = useState(false)
+
+    const nbDownload = downloadsCompletes.length
+
+    if(nbDownload === 0) return ''
+
+    return (
+        <div>
+            <Row className={styles['modal-row-header']}>
+                <Col xs={6}>
+                    Downloads reussis {nbDownload?<Badge>{nbDownload}</Badge>:''}
+                </Col>
+                <Col className={styles['boutons-droite']}>
+                    <Button variant="secondary" onClick={()=>setShow(!show)}>
+                        {show?
+                            <i className="fa fa-minus-square-o" />
+                            :
+                            <i className="fa fa-plus-square-o" />
+                        }
+                    </Button>
+
+                    <Button 
+                        variant="secondary" 
+                        onClick={supprimerTousDownloadsAction}
+                        disabled={nbDownload===0}>
+                            <i className="fa fa-lg fa-times-circle"/>
+                    </Button>                
+                </Col>
+            </Row>
+            {show?
+                nbDownload>0?
+                downloadsCompletes.map(item=>{
+                        return <DownloadComplete
+                                key={item.fuuid}
+                                value={item}
+                                downloadClick={downloadClick}
+                                supprimerDownloadAction={supprimerDownloadAction} />
+                    })
+                    :
+                    <p>Aucun upload complete</p>
+            :''}
+        </div>
+    )
+}
+
+function DownloadsErreur(props) {
+    const { supprimerDownloadAction, supprimerTousDownloadsAction, retryDownloadAction } = props
+    const downloadsErreur = props.downloadsErreur || []
+
+    const nbUpload = downloadsErreur.length
+
+    if(nbUpload === 0) return ''
+
+    return (
+        <div>
+            <Row className={styles['modal-row-header']}>
+                <Col xs={6}>
+                    Downloads en erreur {nbUpload?<Badge bg="danger">{nbUpload}</Badge>:''}
+                </Col>
+                <Col className={styles['boutons-droite']}>
+                    <Button 
+                        variant="secondary" 
+                        onClick={supprimerTousDownloadsAction}
+                        disabled={nbUpload===0}>
+                            <i className="fa fa-lg fa-times-circle"/>
+                    </Button>                
+                </Col>
+            </Row>
+            {nbUpload>0?
+                downloadsErreur.map(item=>{
+                        return <DownloadErreur 
                             key={item.fuuid} 
                             value={item} 
                             supprimerDownloadAction={supprimerDownloadAction} 
                             retryDownloadAction={retryDownloadAction}
                         />
-                    )
-                }
-
-                return ''
-            })}
+                    })
+            :''}
         </div>
     )
 }
+
+// function DownloadPending(props) {
+
+//     const { value, annulerDownloadAction } = props
+
+//     return (
+//         <Row>
+//             <Col xs={6} lg={7}>{value.filename}</Col>
+//             <Col>
+//                 <Button 
+//                     variant="secondary" 
+//                     value={value.fuuid} 
+//                     onClick={annulerDownloadAction}
+//                 >
+//                     Annuler
+//                 </Button>
+//             </Col>
+//         </Row>
+//     )
+// }
 
 function DownloadPending(props) {
 
@@ -265,13 +381,12 @@ function DownloadPending(props) {
     return (
         <Row>
             <Col>{value.filename}</Col>
-            <Col>
+            <Col className={styles['boutons-droite']}>
                 <Button 
                     variant="secondary" 
                     value={value.fuuid} 
-                    onClick={annulerDownloadAction}
-                >
-                    Annuler
+                    onClick={annulerDownloadAction}>
+                    <i className="fa fa-lg fa-times-circle"/>
                 </Button>
             </Col>
         </Row>
@@ -280,19 +395,16 @@ function DownloadPending(props) {
 
 function DownloadEnCours(props) {
     const { etat, value, annulerDownloadAction } = props
-    const pct = etat.pct
 
     return (
-        <Row>
-            <Col>{value.filename}</Col>
-            <Col>{pct}</Col>
-            <Col>
+        <Row className={styles['modal-row-encours']}>
+            <Col xs={6} lg={5}>{value.filename}</Col>
+            <Col className={styles['boutons-droite']}>
                 <Button 
                     variant="secondary" 
                     value={value.fuuid} 
-                    onClick={annulerDownloadAction}
-                >
-                    Annuler
+                    onClick={annulerDownloadAction}>
+                    <i className="fa fa-lg fa-times-circle"/>
                 </Button>
             </Col>
         </Row>
@@ -304,22 +416,24 @@ function DownloadComplete(props) {
 
     return (
         <Row>
-            <Col>{value.filename}</Col>
-            <Col>
+            <Col xs={6} lg={7}>{value.filename}</Col>
+            <Col className={styles['boutons-droite']}>
                 <Button 
                     variant="secondary" 
-                    value={value.fuuid} 
+                    size="sm" 
+                    value={value.fuuid}
                     data-filename={value.filename}
                     onClick={downloadClick}
-                >
-                    Download
+                    className={styles.lignehover}>
+                    <i className="fa fa-lg fa-cloud-download"/>
                 </Button>
                 <Button 
                     variant="secondary" 
-                    value={value.fuuid} 
+                    size="sm" 
+                    value={value.fuuid}
                     onClick={supprimerDownloadAction}
-                >
-                    Supprimer
+                    className={styles.lignehover}>
+                    <i className="fa fa-lg fa-times-circle"/>
                 </Button>
             </Col>
         </Row>
@@ -327,31 +441,50 @@ function DownloadComplete(props) {
 }
 
 function DownloadErreur(props) {
+    // console.debug("DownloadError proppies : %O", props)
     const { value, supprimerDownloadAction, retryDownloadAction } = props
+    const err = value.err || {}
+
+    const [showErreur, setShowErreur] = useState(false)
+
+    const toggleShow = useCallback(()=>setShowErreur(!showErreur), [showErreur, setShowErreur])
 
     return (
-        <Row>
-            <Col>{value.filename}</Col>
-            <Col>Erreur</Col>
-            <Col>
-                <Button 
-                    variant="secondary" 
-                    value={value.fuuid} 
-                    onClick={retryDownloadAction}
-                >
-                    Retry
-                </Button>
-                <Button 
-                    variant="secondary" 
-                    value={value.fuuid} 
-                    onClick={supprimerDownloadAction}
-                >
-                    Supprimer
-                </Button>
-            </Col>
-        </Row>
+        <div>
+            <Row className={styles['modal-row-erreur']}>
+                <Col xs={6} lg={7} className={styles['modal-nomfichier']}>{value.filename} <i className="fa fa-cross"/></Col>
+                <Col className={styles['boutons-droite']}>
+                    <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        value={value.fuuid}
+                        onClick={retryDownloadAction}>
+                        <i className="fa fa-lg fa-refresh"/>
+                    </Button>
+                    <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        onClick={toggleShow}>
+                        <i className="fa fa-lg fa-info-circle"/>
+                    </Button>
+                    <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        value={value.fuuid} 
+                        onClick={supprimerDownloadAction}>
+                        <i className="fa fa-lg fa-times-circle"/>
+                    </Button>
+                </Col>
+            </Row>
+            <Alert variant="danger" show={showErreur}>
+                <Alert.Heading>Erreur download</Alert.Heading>
+                {err.msg?<p>{err.msg}</p>:''}
+                {err.stack?<pre>{err.stack}</pre>:''}
+            </Alert>
+        </div>
     )
 }
+
 
 function EtatUpload(props) {
 
