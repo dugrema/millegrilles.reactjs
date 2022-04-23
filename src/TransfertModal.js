@@ -377,18 +377,26 @@ function EtatUpload(props) {
 
     const uploadsPending = etat.uploadsPending || []
     const uploadsCompletes = etat.uploadsCompletes || []
+    const uploadEnCours = etat.uploadEnCours || {}
+    const pctFichierEnCours = uploadEnCours.pctFichierEnCours || ''
     const uploadsSucces = uploadsCompletes.filter(item=>item.status===5)
     const uploadsErreur = uploadsCompletes.filter(item=>item.status===4)
     
     const compteEnCours = uploadsPending.length + (etat.uploadEnCours?1:0)
 
-    const uploadActif = (compteEnCours || uploadsCompletes.length>0)?true:false
+    const uploadActif = (compteEnCours)?true:false
 
     return (
         <div>
             <Row className={styles['modal-row-header']}>
-                <Col>
+                <Col xs={6}>
                     Uploads en cours {compteEnCours?<Badge>{compteEnCours}</Badge>:''}
+                </Col>
+                <Col>
+                    {uploadActif?
+                        <ProgressBar now={pctFichierEnCours} label={pctFichierEnCours+'%'} className={styles.progressmin} />
+                        :''
+                    }
                 </Col>
             </Row>
 
@@ -521,9 +529,8 @@ function UploadEnCours(props) {
     const pct = etat.pctFichierEnCours
 
     return (
-        <Row>
-            <Col xs={12} lg={5}>{value.transaction.nom}</Col>
-            <Col xs={8} lg={4}><ProgressBar now={pct} label={pct+'%'} className={styles.progressmin} /></Col>
+        <Row className={styles['modal-row-encours']}>
+            <Col xs={6} lg={5}>{value.transaction.nom}</Col>
             <Col className={styles['boutons-droite']}>
                 <Button 
                     variant="secondary" 

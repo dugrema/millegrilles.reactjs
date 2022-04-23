@@ -22,10 +22,13 @@ BODY {
 }
 .modal-row-header {
   padding-top: 1rem;
-  font-weight: bold;
+  font-weight: 800;
 }
 .modal-row-error .modal-nomfichier {
   color: red;
+}
+.modal-row-encours {
+  font-weight: 600;
 }
 
 .progressmin {
