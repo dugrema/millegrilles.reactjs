@@ -1,9 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { proxy } from 'comlink'
 import Modal from 'react-bootstrap/Modal'
+import Badge from 'react-bootstrap/Badge'
+import Alert from 'react-bootstrap/Alert'
 import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import Button from 'react-bootstrap/Button'
+import ProgressBar from 'react-bootstrap/ProgressBar'
+import { AlertTimeout } from './Alerts'
+
+import styles from './styles.module.css'
 
 function TransfertModal(props) {
 
@@ -12,6 +18,8 @@ function TransfertModal(props) {
 
     const [etatDownload, setEtatDownload] = useState({})
     const [etatUpload, setEtatUpload] = useState({})
+    const [errDownload, setErrDownload] = useState('')
+    const [errUpload, setErrUpload] = useState('')
 
     // Transferer etat transfert global
     useEffect(()=>{
@@ -50,19 +58,33 @@ function TransfertModal(props) {
     return (
         <Modal 
             show={props.show} 
-            onHide={props.fermer} 
-        >
+            onHide={props.fermer}
+            size="lg">
+
             <Modal.Header closeButton>
                 <Modal.Title>
                     Transfert de fichiers
                 </Modal.Title>
             </Modal.Header>
 
-            <EtatDownload workers={workers} etat={etatDownload} />
-
-            <hr />
-
-            <EtatUpload workers={workers} etat={etatUpload} />
+            <Modal.Body>
+                <Row>
+                    <Col xs={12} lg={6}>
+                        <TabDownload 
+                            workers={workers}
+                            etatDownload={etatDownload}
+                            errDownload={errDownload} 
+                            setErrDownload={setErrDownload} />
+                    </Col>
+                    <Col xs={12} lg={6}>
+                        <TabUpload 
+                            workers={workers} 
+                            etatUpload={etatUpload}
+                            errUpload={errUpload} 
+                            setErrUpload={setErrUpload} />
+                    </Col>
+                </Row>
+            </Modal.Body>
 
         </Modal>
     )
@@ -70,6 +92,26 @@ function TransfertModal(props) {
 }
 
 export default TransfertModal
+
+function TabDownload(props) {
+    const {workers, etatDownload, errDownload, setErrDownload} = props
+    return (
+        <div>
+            <AlertTimeout variant="danger" value={errDownload} setValue={setErrDownload} delay={20000} titre="Erreur durant download" />
+            <EtatDownload workers={workers} etat={etatDownload} erreurCb={setErrDownload} />    
+        </div>
+    )
+}
+
+function TabUpload(props) {
+    const {workers, etatUpload, errUpload, setErrUpload} = props
+    return (
+        <div>
+            <AlertTimeout variant="danger" value={errUpload} setValue={setErrUpload} delay={20000} titre="Erreur durant upload" />
+            <EtatUpload workers={workers} etat={etatUpload} erreurCb={setErrUpload} />
+        </div>
+    )
+}
 
 const CACHE_TEMP_NAME = 'fichiersDechiffresTmp'
 
@@ -84,7 +126,12 @@ async function handleDownloadUpdate(transfertFichiers, params, setEtatDownload) 
     if(params.fuuidReady) {
         const infoFichier = etat.downloads.filter(item=>item.fuuid===params.fuuidReady).pop()
         // console.debug("Download cache avec fuuid: %s, fichier: %O", params.fuuidReady, infoFichier)
-        downloadCache(params.fuuidReady, {filename: infoFichier.filename})
+        try {
+            downloadCache(params.fuuidReady, {filename: infoFichier.filename})
+        } catch(err) {
+            console.error("Erreur download cache : %O", err)
+            throw err  // Todo : erreurCb
+        }
     }
 }
 
@@ -120,8 +167,6 @@ function promptSaveFichier(blob, opts) {
         if (filename) a.download = filename
         if (opts.newTab) a.target = '_blank'
         a.click()
-    } catch (err) {
-        console.error("Erreur download : %O", err)
     } finally {
         if (objectUrl) {
             try {
@@ -310,8 +355,6 @@ function DownloadErreur(props) {
 
 function EtatUpload(props) {
 
-    // console.debug("EtatUpload : %O", props)
-
     const { workers, etat } = props
     const { transfertFichiers } = workers
 
@@ -334,31 +377,122 @@ function EtatUpload(props) {
 
     const uploadsPending = etat.uploadsPending || []
     const uploadsCompletes = etat.uploadsCompletes || []
+    const uploadsSucces = uploadsCompletes.filter(item=>item.status===5)
+    const uploadsErreur = uploadsCompletes.filter(item=>item.status===4)
     
+    const compteEnCours = uploadsPending.length + (etat.uploadEnCours?1:0)
+
+    const uploadActif = (compteEnCours || uploadsCompletes.length>0)?true:false
+
     return (
         <div>
-            <p>Uploads</p>
-            <Row>
+            <Row className={styles['modal-row-header']}>
                 <Col>
-                    <Button variant="secondary" onClick={supprimerTousUploadsAction}>Clear uploads</Button>
+                    Uploads en cours {compteEnCours?<Badge>{compteEnCours}</Badge>:''}
                 </Col>
             </Row>
-            {uploadsPending.map(item=>{
-                return <UploadPending key={item.correlation} value={item} annuler={annulerUploadAction} />
-            })}
+
+            {uploadActif?''
+                :
+                <Row>
+                    <Col>Aucun upload en cours</Col>
+                </Row>
+            }
+
             {etat.uploadEnCours?
                 <UploadEnCours etat={etat} value={etat.uploadEnCours} annuler={annulerUploadAction} />
                 :''
             }
-            {uploadsCompletes.map(item=>{
-                if(item.status === 3) {
-                    return <UploadComplete key={item.correlation} value={item} supprimer={supprimerUploadAction} />
-                }
-                if(item.status === 4) {
-                    return <UploadErreur key={item.correlation} value={item} supprimer={supprimerUploadAction} />
-                }
-                return ''
+
+            {uploadsPending.map(item=>{
+                return <UploadPending key={item.correlation} value={item} annuler={annulerUploadAction} />
             })}
+
+            <UploadsErreur
+                uploadsErreur={uploadsErreur} 
+                supprimerUploadAction={supprimerUploadAction} />
+
+            <UploadsSucces 
+                uploadsSucces={uploadsSucces} 
+                supprimerUploadAction={supprimerUploadAction} 
+                supprimerTousUploadsAction={supprimerTousUploadsAction} />
+        </div>
+    )
+}
+
+function UploadsSucces(props) {
+    const { supprimerUploadAction, supprimerTousUploadsAction } = props
+    const uploadsSucces = props.uploadsSucces || []
+
+    const [show, setShow] = useState(false)
+
+    const nbUpload = uploadsSucces.length
+
+    if(nbUpload === 0) return ''
+
+    return (
+        <div>
+            <Row className={styles['modal-row-header']}>
+                <Col xs={6}>
+                    Uploads reussis {nbUpload?<Badge>{nbUpload}</Badge>:''}
+                </Col>
+                <Col className={styles['boutons-droite']}>
+                    <Button variant="secondary" onClick={()=>setShow(!show)}>
+                        {show?
+                            <i className="fa fa-minus-square-o" />
+                            :
+                            <i className="fa fa-plus-square-o" />
+                        }
+                    </Button>
+
+                    <Button 
+                        variant="secondary" 
+                        onClick={supprimerTousUploadsAction}
+                        disabled={nbUpload===0}>
+                            <i className="fa fa-lg fa-times-circle"/>
+                    </Button>                
+                </Col>
+            </Row>
+            {show?
+                nbUpload>0?
+                    uploadsSucces.map(item=>{
+                        return <UploadComplete key={item.correlation} value={item} supprimer={supprimerUploadAction} />
+                    })
+                    :
+                    <p>Aucun upload complete</p>
+            :''}
+        </div>
+    )
+}
+
+function UploadsErreur(props) {
+    const { supprimerUploadAction, supprimerTousUploadsAction } = props
+    const uploadsErreur = props.uploadsErreur || []
+
+    const nbUpload = uploadsErreur.length
+
+    if(nbUpload === 0) return ''
+
+    return (
+        <div>
+            <Row className={styles['modal-row-header']}>
+                <Col xs={6}>
+                    Uploads en erreur {nbUpload?<Badge bg="danger">{nbUpload}</Badge>:''}
+                </Col>
+                <Col className={styles['boutons-droite']}>
+                    <Button 
+                        variant="secondary" 
+                        onClick={supprimerTousUploadsAction}
+                        disabled={nbUpload===0}>
+                            <i className="fa fa-lg fa-times-circle"/>
+                    </Button>                
+                </Col>
+            </Row>
+            {nbUpload>0?
+                uploadsErreur.map(item=>{
+                        return <UploadErreur key={item.correlation} value={item} supprimer={supprimerUploadAction} />
+                    })
+            :''}
         </div>
     )
 }
@@ -370,13 +504,12 @@ function UploadPending(props) {
     return (
         <Row>
             <Col>{value.transaction.nom}</Col>
-            <Col>
+            <Col className={styles['boutons-droite']}>
                 <Button 
                     variant="secondary" 
                     value={value.correlation} 
-                    onClick={annuler}
-                >
-                    Annuler
+                    onClick={annuler}>
+                    <i className="fa fa-lg fa-times-circle"/>
                 </Button>
             </Col>
         </Row>
@@ -389,15 +522,14 @@ function UploadEnCours(props) {
 
     return (
         <Row>
-            <Col>{value.transaction.nom}</Col>
-            <Col>{pct}</Col>
-            <Col>
+            <Col xs={12} lg={5}>{value.transaction.nom}</Col>
+            <Col xs={8} lg={4}><ProgressBar now={pct} label={pct+'%'} className={styles.progressmin} /></Col>
+            <Col className={styles['boutons-droite']}>
                 <Button 
                     variant="secondary" 
                     value={value.correlation} 
-                    onClick={annuler}
-                >
-                    Annuler
+                    onClick={annuler}>
+                    <i className="fa fa-lg fa-times-circle"/>
                 </Button>
             </Col>
         </Row>
@@ -409,14 +541,15 @@ function UploadComplete(props) {
 
     return (
         <Row>
-            <Col>{value.transaction.nom}</Col>
-            <Col>
+            <Col xs={8}>{value.transaction.nom}</Col>
+            <Col className={styles['boutons-droite']}>
                 <Button 
                     variant="secondary" 
+                    size="sm" 
                     value={value.correlation} 
                     onClick={supprimer}
-                >
-                    Supprimer
+                    className={styles.lignehover}>
+                    <i className="fa fa-lg fa-times-circle"/>
                 </Button>
             </Col>
         </Row>
@@ -425,20 +558,37 @@ function UploadComplete(props) {
 
 function UploadErreur(props) {
     const { value, supprimer } = props
+    const err = value.err || {}
+
+    const [showErreur, setShowErreur] = useState(false)
+
+    const toggleShow = useCallback(()=>setShowErreur(!showErreur), [showErreur, setShowErreur])
 
     return (
-        <Row>
-            <Col>{value.transaction.nom}</Col>
-            <Col>Erreur</Col>
-            <Col>
-                <Button 
-                    variant="secondary" 
-                    value={value.fuuid} 
-                    onClick={supprimer}
-                >
-                    Supprimer
-                </Button>
-            </Col>
-        </Row>
+        <div>
+            <Row className={styles['modal-row-erreur']}>
+                <Col xs={8} className={styles['modal-nomfichier']}>{value.transaction.nom} <i className="fa fa-cross"/></Col>
+                <Col className={styles['boutons-droite']}>
+                    <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        onClick={toggleShow}>
+                        <i className="fa fa-lg fa-info-circle"/>
+                    </Button>
+                    <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        value={value.fuuid} 
+                        onClick={supprimer}>
+                        <i className="fa fa-lg fa-times-circle"/>
+                    </Button>
+                </Col>
+            </Row>
+            <Alert variant="danger" show={showErreur}>
+                <Alert.Heading>Erreur upload</Alert.Heading>
+                {err.msg?<p>{err.msg}</p>:''}
+                {err.stack?<pre>{err.stack}</pre>:''}
+            </Alert>
+        </div>
     )
 }
