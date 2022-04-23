@@ -1,6 +1,7 @@
 import React, {useState, useCallback, useEffect} from 'react'
 import Modal from 'react-bootstrap/Modal'
 import { FullScreen, useFullScreenHandle } from 'react-full-screen'
+import Alert from 'react-bootstrap/Alert'
 import Button from 'react-bootstrap/Button'
 import Carousel from 'react-bootstrap/Carousel'
 import VideoViewer from './VideoViewer'
@@ -263,52 +264,13 @@ function ImageCarousel(props) {
 
 }
 
-// function preparerImages(props) {
-//     const {fichiers, onClick, idxCourant, setDownloadSrc, DEBUG} = props
-
-//     if(!fichiers || idxCourant==='') return ''  // Rien a faire
-
-//     // Mapper les images seulement
-//     return fichiers
-//         .filter(item=>{
-//             const mimetype = item.mimetype?item.mimetype.split(';').shift():''
-//             if(!mimetype) return false
-//             const mimetypeBase = mimetype.split(';').shift()
-//             return mimetypeBase === 'image'
-//         })
-//         .map((item, idx)=>{
-//             // console.debug("Mapping fichier : %O", item)
-//             let Viewer = PreviewImage
-            
-//             if(mimetypeBase === 'image') {
-//                 if(idx >= idxCourant -1 && idx <= idxCourant + 1) {
-//                     // Charger 1 index precedent et 2 suivants (4 images chargees a la fois)
-                    
-//                 }
-//             }
-
-//             return (
-//                 <Carousel.Item key={item.tuuid}>
-//                     {Viewer?
-//                         <Viewer loader={item.loader} 
-//                                 idxItem={idx}
-//                                 idxCourant={idxCourant} 
-//                                 mimetype={mimetype} 
-//                                 onClick={onClick} 
-//                                 setDownloadSrc={setDownloadSrc} 
-//                                 DEBUG={DEBUG} />
-//                         :''
-//                     }
-//                 </Carousel.Item>
-//             )
-//         })
-// }
-
 function PreviewImage(props) {
 
     // console.debug("PreviewImage PROPPYS : %O", props)
     const { item, onClick, setDownloadSrc, preparer, show } = props
     const { imageLoader } = item
+    const version_courante = item.version_courante || {},
+          anime = version_courante.anime?true:false
 
     // Show et preparer sont true si non defini dans les props
     if(show === undefined) show = true
@@ -321,18 +283,27 @@ function PreviewImage(props) {
     const [srcLocal, setSrcLocal] = useState('')
 
     useEffect(()=>{
-        if(show && srcLocal) setDownloadSrc(srcLocal)
-    }, [show, srcLocal, setDownloadSrc])
+        if(show) {
+            if(srcLocal) setDownloadSrc(srcLocal)
+            if(anime) setSrcImage(srcLocal)
+        } else if(anime) {
+            // Reset image, redemarre l'animation lors de l'affichage
+            setSrcImage('')
+        }
+    }, [show, srcLocal, anime, setDownloadSrc, setSrcImage])
 
     // Load / unload
     useEffect(()=>{
         if(!imageLoader) return
-        // console.debug("Utilisation loader : %O", loader)
+        // console.debug("Utilisation loader : %O", imageLoader)
+        const label = anime?'original':null
         if(loadImage) {
-            imageLoader.load(null, setSrcImage)
+            imageLoader.load(label, setSrcImage, {erreurCb: setErr})
                 .then(src=>{
                     setSrcLocal(src)
-                    setSrcImage(src)
+                    if(!anime) {
+                        setSrcImage(src)
+                    }
                 })
                 .catch(err=>{
                     console.error("Erreur load image : %O", err)
@@ -352,10 +323,10 @@ function PreviewImage(props) {
 
     return (
         <div>
-            {err?
-                <p>Erreur de chargement : {''+err}</p>
-                :''
-            }
+            <Alert variant="danger" show={err?true:false}>
+                <Alert.Heading>Erreur chargement de l'image</Alert.Heading>
+                Erreur de chargement : {err.message?err.message:''+err}
+            </Alert>
 
             {srcImage?
                 <img src={srcImage} onClick={onClick} />
@@ -439,10 +410,7 @@ function PreviewVideo(props) {
 
     return (
         <div>
-            {err?
-                <p>Erreur de chargement : {''+err}</p>
-                :''
-            }
+            <Alert variant="danger" show={err?true:false}>Erreur de chargement : {''+err}</Alert>
 
             {complet?
                 <VideoViewer src={srcLocal} poster={srcImage} />
@@ -459,85 +427,6 @@ function PreviewVideo(props) {
             )}
         </div>
     )
-
-    // useEffect(()=>{
-    //     if(loader) {
-    //         const loaderImage = loader('thumbnail')
-    //         // const loaderImage = loader('image')
-
-    //         if(loaderImage && loaderImage.srcPromise) {
-    //             const {srcPromise: srcImagePromise, clean: cleanImage} = loaderImage
-    //             srcImagePromise
-    //                 .then(src=>{
-    //                     // console.debug("Image chargee : %O", src)
-    //                     setSrcImage(src)
-    //                 })
-    //                 .catch(err=>{
-    //                     console.error("Erreur chargement image : %O", err)
-    //                     setMessage(''+err)
-    //                 })
-    //             return () => {
-    //                 // Executer sur exit
-    //                 // console.debug("Cleanup video (image)")
-    //                 if(cleanImage) cleanImage()
-    //             }
-    //         }
-    //     }
-    // }, [loader, setSrcImage, setSrcVideo])
-
-    // useEffect(()=>{
-    //     if(loader && srcImage && idxItem === idxCourant) {
-    //         const loaderVideo = loader('video')
-    //         if(loaderVideo && loaderVideo.srcPromise) {
-    //             setMessage(<p><i className="fa fa-spinner fa-spin"/> ... Loading ...</p>)
-    //             // Charger video
-    //             loaderVideo.srcPromise.then(src=>{
-    //                 setSrcVideo(src)
-    //                 setMessage('')
-    //             }).catch(err=>{
-    //                 console.error("Erreur chargement video : %O", err)
-    //                 setMessage(''+err)
-    //             })
-    //             return () => {
-    //                 // Executer sur exit
-    //                 if(loaderVideo.clean) loaderVideo.clean()
-    //             }
-    //         } else {
-    //             setMessage(<p> !!! Video non disponible !!! </p>)
-    //         }
-    //     }
-    // }, [loader, srcImage, idxItem, idxCourant, setSrcImage, setSrcVideo, setMessage])
-
-    // useEffect(()=>{
-    //     if(srcVideo && idxItem === idxCourant) {
-    //         setDownloadSrc(srcVideo)
-    //         // return () => {
-    //         //     setDownloadSrc('')  // Cleanup bouton download
-    //         // }
-    //     }
-    // }, [srcVideo, idxItem, idxCourant])
-
-    // if(srcVideo) {
-    //     return (
-    //         <VideoViewer src={srcVideo} poster={srcImage} />
-    //     )
-    // }
-
-    // if(srcImage) {
-
-    //     return (
-    //         <div>
-    //             <img src={srcImage} onClick={onClick} />
-    //             <div>
-    //                 {message}
-    //             </div>
-    //         </div>
-    //     )
-    // }
-
-    // return (
-    //     <div>{message}</div>
-    // )
 
 }
 
@@ -600,10 +489,7 @@ function PreviewFile(props) {
 
     return (
         <div>
-            {err?
-                <p>Erreur de chargement : {''+err}</p>
-                :''
-            }
+            <Alert variant="danger" show={err?true:false}>Erreur de chargement : {''+err}</Alert>
 
             {srcLocal?
                 <object data={srcLocal} type={mimetype}>

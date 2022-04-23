@@ -16,7 +16,6 @@ export function loadFichierChiffre(getFichierChiffre, fuuid, mimetype, opts) {
     
     return {
         load: async setSrc => {
-            opts = opts || {}
 
             if(!blobPromise) {
                 // console.debug("Reload blob pour %s", fuuid)
@@ -100,8 +99,10 @@ export function fileResourceLoader(getFichierChiffre, fichierFuuid, mimetype, op
     const fileLoader = loadFichierChiffre(getFichierChiffre, fichierFuuid, mimetype)
 
     const loader = {
-        load: async (setSrc, setters) => {
+        load: async (setSrc, setters, opts) => {
             setters = setters || {}
+            opts = opts || {}
+            const { erreurCb } = opts
             const { setFirst, setThumbnail } = setters
 
             let miniPromise = null
@@ -128,8 +129,12 @@ export function fileResourceLoader(getFichierChiffre, fichierFuuid, mimetype, op
                 } catch(err) {
                     if(err && err.response && err.response.status === 404) {
                         console.warn("Fichier %s inconnu (404)", fichierFuuid)
+                        if(erreurCb) erreurCb("Fichier inconnu : 404")
                     } else {
                         console.debug("Erreur chargement de l'image %s : %O", fichierFuuid, err)
+                        if(erreurCb) {
+                            erreurCb({err, message: "Erreur traitement de l'image"})
+                        }
                     }
                 }
 
@@ -138,6 +143,7 @@ export function fileResourceLoader(getFichierChiffre, fichierFuuid, mimetype, op
             } catch(err) {
                 // Aucune image n'a charge
                 console.error("Erreur chargement image %O", err)
+                if(erreurCb) erreurCb({err, message: "Erreur chargement de l'image"})
 
                 // Tenter de trouver un blob valide
                 const blobPret = await Promise.race([miniPromise, imagePromise])
@@ -156,7 +162,10 @@ export function fileResourceLoader(getFichierChiffre, fichierFuuid, mimetype, op
 
 export function imageResourceLoader(getFichierChiffre, images, opts) {
     opts = opts || {}
+    // console.debug("!!! imageResourceLoader images: %O, opts: %O", images, opts)
     const supporteWebp = opts.supporteWebp===false?false:true
+    const anime = opts.anime?true:false
+    const { fuuid, mimetype } = opts
 
     const thumbnail = images.thumbnail || images.thumb
 
@@ -172,6 +181,10 @@ export function imageResourceLoader(getFichierChiffre, images, opts) {
         acc[item] = fileResourceLoader(getFichierChiffre, image.hachage, image.mimetype, {thumbnail})
         return acc
     }, {})
+    if(fuuid && mimetype) {
+        // Loader pour original
+        loaders.original = fileResourceLoader(getFichierChiffre, fuuid, mimetype, {thumbnail})
+    }
 
     // Ajouter loader de thumbnail
     if(thumbnail && thumbnail.hachage && thumbnail.data_chiffre) {
@@ -181,11 +194,13 @@ export function imageResourceLoader(getFichierChiffre, images, opts) {
     }
 
     const loader = {
-        load: async (selecteur, setSrc) => {
+        load: async (selecteur, setSrc, opts) => {
+            // console.debug("Loader selecteur %s  (disponibles: %O)", selecteur, Object.keys(loaders))
             if(selecteur === 'thumbnail') selecteur = 'thumb'
-            if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite d'image
+            else if(!selecteur || !Object.keys(loaders).includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite d'image
+            // console.debug("Selecteur effectif %s", selecteur)
             const loader = loaders[selecteur]
-            return loader.load(setSrc, {setFirst: setSrc})
+            return loader.load(setSrc, {setFirst: setSrc}, opts)
         },
         unload: async (selecteur) => {
             if(selecteur === 'thumbnail') selecteur = 'thumb'
@@ -215,11 +230,11 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
     }, {})
 
     const loader = {
-        load: async (selecteur, setSrc) => {
+        load: async (selecteur, setSrc, opts) => {
             if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite de video
             // console.debug("Loader video %s", selecteur)
             const loader = loaders[selecteur]
-            return loader.load(setSrc)
+            return loader.load(setSrc, null, opts)
         },
         unload: async (selecteur) => {
             if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite de video
