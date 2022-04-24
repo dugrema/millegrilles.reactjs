@@ -43,7 +43,7 @@ export function up_setPathServeur(pathServeur) {
     
 export function up_getEtatCourant() {
 
-    const loadedCourant = _uploadEnCours?_uploadEnCours.batchLoaded:0
+    const loadedCourant = _uploadEnCours?_uploadEnCours.position:0
 
     const totalBytes = [..._uploadsPending, _uploadEnCours, ..._uploadsCompletes].reduce((total, item)=>{
         if(!item) return total
@@ -292,9 +292,10 @@ async function preparerTransform() {
 function onUploadProgress(progress) {
     const {loaded, total} = progress
     // console.debug("Axios progress sur %s : %d/%d", _uploadEnCours.correlation, loaded, total)
-    _uploadEnCours.batchLoaded = loaded
-    _uploadEnCours.batchTotal = total
     if( !isNaN(loaded) && !isNaN(total) ) {
+        _uploadEnCours.batchLoaded = loaded
+        _uploadEnCours.batchTotal = total
+
         const pctProgres = Math.floor(loaded / total * 100)
         _uploadEnCours.pctBatchProgres = pctProgres
     }
