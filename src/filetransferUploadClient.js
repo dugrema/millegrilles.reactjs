@@ -205,7 +205,7 @@ async function uploadFichier() {
 
         // Ajouter cle du cert de millegrille
         commandeMaitreDesCles.cles[_fingerprintCa] = transformHandler.secretChiffre
-        console.debug("Commande maitre des cles : %O", commandeMaitreDesCles)
+        // console.debug("Commande maitre des cles : %O", commandeMaitreDesCles)
         _uploadEnCours.commandeMaitreDesCles = commandeMaitreDesCles
 
         _uploadEnCours.transaction.fuuid = hachage_bytes
@@ -357,10 +357,10 @@ export function up_setCertificatCa(certificat) {
     hachage.hacherCertificat(cert)
         .then(fingerprint=>{
             _fingerprintCa = fingerprint
-            console.debug("Fingerprint certificat CA : %s", fingerprint)
+            // console.debug("Fingerprint certificat CA : %s", fingerprint)
         })
         .catch(err=>console.error("Erreur calcul fingerprint CA : %O", err))
-    console.debug("Cle CA chargee : %O, cle : %O", cert, _publicKeyCa)
+    // console.debug("Cle CA chargee : %O, cle : %O", cert, _publicKeyCa)
 }
 
 export function up_setCertificat(certificat) {
