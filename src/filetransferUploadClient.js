@@ -141,8 +141,9 @@ async function traiterUploads() {
                 complete = _uploadEnCours.correlation
                 _uploadEnCours.complete = true
 
+                const { transaction, status } = _uploadEnCours
                 _uploadEnCours = null
-                emettreEtat({complete}).catch(err=>(console.warn("Erreur maj etat : %O", err)))
+                emettreEtat({complete, transaction, status}).catch(err=>(console.warn("Erreur maj etat : %O", err)))
             } catch(err) {
                 console.warn("Erreur finalisation upload fichier : %O", err)
             } finally {
@@ -219,7 +220,6 @@ async function uploadFichier() {
             // console.debug("Fichier %s valide mais sans confirmation (pending)", correlation)
             _uploadEnCours.status = STATUS_NONCONFIRME
         }
-
     } catch(err) {
         if(_uploadEnCours) {
             const correlation = _uploadEnCours.correlation
