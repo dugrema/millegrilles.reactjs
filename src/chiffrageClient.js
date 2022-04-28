@@ -313,6 +313,5 @@ export async function chiffrerSecret(secrets, pemRechiffrage, opts) {
 }
 
 export function dechiffrerCleSecrete(cleSecreteChiffree) {
-  console.debug("Cle secrete chiffree : %O", cleSecreteChiffree)
   return ed25519Utils.dechiffrerCle(cleSecreteChiffree, _clePrivee)
 }

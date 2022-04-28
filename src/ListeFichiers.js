@@ -285,7 +285,7 @@ function ListeFichiersRow(props) {
                 const contenu = data[nomColonne] || ''
                 let spanContenu = <span>{contenu}</span>
                 if(Formatteur) {
-                    spanContenu = <span><Formatteur value={contenu} /></span>
+                    spanContenu = <span><Formatteur value={contenu} data={data} /></span>
                 }
 
                 let thumbnail = ''

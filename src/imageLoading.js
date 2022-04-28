@@ -131,7 +131,9 @@ export function fileResourceLoader(getFichierChiffre, fichierFuuid, mimetype, op
                         console.warn("Fichier %s inconnu (404)", fichierFuuid)
                         if(erreurCb) erreurCb("Fichier inconnu : 404")
                     } else {
-                        console.debug("Erreur chargement de l'image %s : %O", fichierFuuid, err)
+                        if(err.message !== 'canceled') {
+                            console.debug("Erreur chargement de l'image %s : %O", fichierFuuid, err)
+                        }
                         if(erreurCb) {
                             erreurCb({err, message: "Erreur traitement de l'image"})
                         }
