@@ -226,16 +226,22 @@ function ListeFichiersEntete(props) {
 }
 
 function ListeFichiersRow(props) {
+    console.debug("!!! ListeFichiersRow proppies : %O", props)
+
     const colonnes = props.colonnes
+    const { rowLoader } = colonnes
     const paramsColonnes = colonnes.paramsColonnes || {}
-    const {data} = props,
-          {fileId, folderId} = data
+    const {data} = props
     const {onSelectioner, onOuvrir, onContextMenu, selectionne, touchEnabled} = props
 
+    const [dataRow, setDataRow] = useState(data)
+
+    const {fileId, folderId} = dataRow
+
     // Thumbnails
-    const thumbnail = data.thumbnail || {},
+    const thumbnail = dataRow.thumbnail || {},
           {thumbnailIcon, thumbnailSrc} = thumbnail
-    const thumbnailLoader = data.imageLoader
+    const thumbnailLoader = dataRow.imageLoader
 
     const onClickAction = useCallback(event=>{
         if(touchEnabled) return  // Rien a faire
@@ -264,6 +270,15 @@ function ListeFichiersRow(props) {
         if(onContextMenu) onContextMenu(event, {fileId, folderId})
     })
 
+    // Convertir data avec rowLoader au besoin
+    useEffect(()=>{
+        if(data && rowLoader) {
+            Promise.resolve(rowLoader(data))
+                .then(setDataRow)
+                .catch(err=>console.error("Erreur chargement data row %O : %O", data, err))
+        }
+    }, [data, rowLoader, setDataRow])
+
     let classNames = [styles.fichierstablerow]
     if(selectionne) classNames.push(styles.selectionne)
 
@@ -282,10 +297,10 @@ function ListeFichiersRow(props) {
                 const showThumbnail = param.showThumbnail || false
                 const showBoutonContexte = param.showBoutonContexte || false
 
-                const contenu = data[nomColonne] || ''
+                const contenu = dataRow[nomColonne] || ''
                 let spanContenu = <span>{contenu}</span>
                 if(Formatteur) {
-                    spanContenu = <span><Formatteur value={contenu} data={data} /></span>
+                    spanContenu = <span><Formatteur value={contenu} data={dataRow} /></span>
                 }
 
                 let thumbnail = ''
