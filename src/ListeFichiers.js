@@ -226,8 +226,6 @@ function ListeFichiersEntete(props) {
 }
 
 function ListeFichiersRow(props) {
-    console.debug("!!! ListeFichiersRow proppies : %O", props)
-
     const colonnes = props.colonnes
     const { rowLoader } = colonnes
     const paramsColonnes = colonnes.paramsColonnes || {}
