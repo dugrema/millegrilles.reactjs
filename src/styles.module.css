@@ -78,6 +78,10 @@ BODY {
   color: black;
 }
 
+.fichierstable .fichierstablerow .droite {
+  text-align: right;
+}
+
 .fichierstable .fichierstablerow:hover .lignehover {
   display: block;
 }
