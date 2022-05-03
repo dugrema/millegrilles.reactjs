@@ -315,7 +315,7 @@ function ListeFichiersRow(props) {
                 if(showBoutonContexte) {
                     boutonContexte = (
                         <Button 
-                            variant="secondary" 
+                            variant={"secondary " + styles.boutoncontexte} 
                             size="sm" 
                             onClick={onBoutonContext} 
                             className={styles.lignehover}

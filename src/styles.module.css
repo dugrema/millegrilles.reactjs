@@ -88,6 +88,7 @@ BODY {
 
 .fichierstable .selectionne {
   border-left: 2px solid blue;
+  background-color: antiquewhite;
 }
 
 /* Thumbnails */
@@ -187,6 +188,13 @@ BODY {
 .thumbnailsmall IMG {
   width: 80px;
   height: 80px;
+}
+
+.boutoncontexte {
+  font-size: smaller;
+  padding: 0.25rem 0.1rem 0.25rem 0.1rem;
+  /*right: 0.25rem;
+  bottom: 0.25rem;*/
 }
 
 .menucontextuel {
