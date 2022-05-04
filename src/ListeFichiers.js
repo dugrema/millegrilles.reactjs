@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {Container, Row, Col, Button, Modal} from 'react-bootstrap'
 import VisibilitySensor from 'react-visibility-sensor'
 
@@ -227,7 +227,7 @@ function ListeFichiersEntete(props) {
 
 function ListeFichiersRow(props) {
     const colonnes = props.colonnes
-    const { rowLoader } = colonnes
+    const { rowLoader, rowClassname } = colonnes
     const paramsColonnes = colonnes.paramsColonnes || {}
     const {data} = props
     const {onSelectioner, onOuvrir, onContextMenu, selectionne, touchEnabled} = props
@@ -235,6 +235,18 @@ function ListeFichiersRow(props) {
     const [dataRow, setDataRow] = useState(data)
 
     const {fileId, folderId} = dataRow
+
+    const classNames = useMemo(()=>{
+        let classNames = [styles.fichierstablerow]
+        if(selectionne) classNames.push(styles.selectionne)
+        if(rowClassname) {
+            const rowClasses = rowClassname(dataRow)
+            if(rowClasses) {
+                classNames = [...classNames, ...rowClasses.split(' ')]
+            }
+        }
+        return classNames
+    }, [dataRow, selectionne, rowClassname])
 
     // Thumbnails
     const thumbnail = dataRow.thumbnail || {},
@@ -276,9 +288,6 @@ function ListeFichiersRow(props) {
                 .catch(err=>console.error("Erreur chargement data row %O : %O", data, err))
         }
     }, [data, rowLoader, setDataRow])
-
-    let classNames = [styles.fichierstablerow]
-    if(selectionne) classNames.push(styles.selectionne)
 
     return (
         <Row 

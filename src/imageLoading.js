@@ -87,16 +87,16 @@ async function reloadFichier(getFichierChiffre, fuuid, mimetype, opts) {
 export function fileResourceLoader(getFichierChiffre, fichierFuuid, mimetype, opts) {
     // console.debug("!!! fileResourceLoader : %s mimetype %s", fichierFuuid, mimetype)
     opts = opts || {}
-    const { thumbnail } = opts
+    const { thumbnail, cles } = opts
 
     // Preparation du mini-thumbnail (pour fallback ou attente de download) et de l'image pleine grandeur
     let miniLoader = null
     if(thumbnail && thumbnail.hachage && thumbnail.data_chiffre) {
         const thumbnailFuuid = thumbnail.hachage
         const dataChiffre = thumbnail.data_chiffre
-        miniLoader = loadFichierChiffre(getFichierChiffre, thumbnailFuuid, thumbnail.mimetype, {dataChiffre})
+        miniLoader = loadFichierChiffre(getFichierChiffre, thumbnailFuuid, thumbnail.mimetype, {dataChiffre, cles})
     }
-    const fileLoader = loadFichierChiffre(getFichierChiffre, fichierFuuid, mimetype)
+    const fileLoader = loadFichierChiffre(getFichierChiffre, fichierFuuid, mimetype, {cles})
 
     const loader = {
         load: async (setSrc, setters, opts) => {
@@ -167,7 +167,7 @@ export function imageResourceLoader(getFichierChiffre, images, opts) {
     // console.debug("!!! imageResourceLoader images: %O, opts: %O", images, opts)
     const supporteWebp = opts.supporteWebp===false?false:true
     const anime = opts.anime?true:false
-    const { fuuid, mimetype } = opts
+    const { fuuid, mimetype, cles } = opts
 
     const thumbnail = images.thumbnail || images.thumb
 
@@ -180,19 +180,19 @@ export function imageResourceLoader(getFichierChiffre, images, opts) {
     .filter(label=>label!=='thumb'&&label!=='thumbnail')
     .reduce((acc, item)=>{
         const image = images[item]
-        acc[item] = fileResourceLoader(getFichierChiffre, image.hachage, image.mimetype, {thumbnail})
+        acc[item] = fileResourceLoader(getFichierChiffre, image.hachage, image.mimetype, {thumbnail, cles})
         return acc
     }, {})
     if(fuuid && mimetype) {
         // Loader pour original
-        loaders.original = fileResourceLoader(getFichierChiffre, fuuid, mimetype, {thumbnail})
+        loaders.original = fileResourceLoader(getFichierChiffre, fuuid, mimetype, {thumbnail, cles})
     }
 
     // Ajouter loader de thumbnail
     if(thumbnail && thumbnail.hachage && thumbnail.data_chiffre) {
         const thumbnailFuuid = thumbnail.hachage
         const dataChiffre = thumbnail.data_chiffre
-        loaders['thumb'] = loadFichierChiffre(getFichierChiffre, thumbnailFuuid, thumbnail.mimetype, {dataChiffre})
+        loaders['thumb'] = loadFichierChiffre(getFichierChiffre, thumbnailFuuid, thumbnail.mimetype, {dataChiffre, cles})
     }
 
     const loader = {
@@ -227,7 +227,7 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
     const loaders = labels
     .reduce((acc, item)=>{
         const video = videos[item]
-        acc[item] = loadFichierChiffre(getFichierChiffre, video.fuuid_video, video.mimetype)
+        acc[item] = loadFichierChiffre(getFichierChiffre, video.fuuid_video, video.mimetype, {...opts})
         return acc
     }, {})
 
