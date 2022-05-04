@@ -13,7 +13,7 @@ import styles from './styles.module.css'
 
 function TransfertModal(props) {
 
-    const { workers, setEtatTransfert } = props
+    const { workers, setEtatTransfert, erreurCb } = props
     const { transfertFichiers } = workers
 
     const [etatDownload, setEtatDownload] = useState({})
@@ -30,30 +30,41 @@ function TransfertModal(props) {
     // Entretien idb/cache de fichiers
     useEffect(()=>{
         if(!transfertFichiers) return 
-        transfertFichiers.down_entretienCache()
-        // const intervalId = setInterval(()=>{transfertFichiers.down_entretienCache()}, 300000)
-
-        const proxySetEtatDownload = proxy((pending, pct, flags)=>{
-            flags = flags || {}
-            // console.debug("Set nouvel etat download. pending:%d, pct:%d, flags: %O", pending, pct, flags)
-            handleDownloadUpdate(transfertFichiers, {pending, pct, ...flags}, setEtatDownload)
-        })
-        transfertFichiers.down_setCallbackDownload(proxySetEtatDownload)
-
-        // Faire premiere maj
-        handleDownloadUpdate(transfertFichiers, {}, setEtatDownload)
-
-        const proxySetEtatUpload = proxy((nbFichiersPending, pctFichierEnCours, flags)=>{
-            flags = flags || {}
-            handleUploadUpdate(transfertFichiers, {nbFichiersPending, pctFichierEnCours, ...flags}, setEtatUpload)
-        })
-        transfertFichiers.up_setCallbackUpload(proxySetEtatUpload)
-
-        return () => {
-            // clearInterval(intervalId)
+        try {
+            // erreurCb(`Transfert fichiers etat : ${transfertFichiers.down_entretienCache !== null}`)
+            let intervalId = null
             transfertFichiers.down_entretienCache()
+                .then(()=>{
+                    intervalId = setInterval(()=>{transfertFichiers.down_entretienCache().catch(erreurCb)}, 300000)
+                })
+                .catch(erreurCb)
+
+            const proxySetEtatDownload = proxy((pending, pct, flags)=>{
+                flags = flags || {}
+                // console.debug("Set nouvel etat download. pending:%d, pct:%d, flags: %O", pending, pct, flags)
+                handleDownloadUpdate(transfertFichiers, {pending, pct, ...flags}, setEtatDownload)
+            })
+            transfertFichiers.down_setCallbackDownload(proxySetEtatDownload).catch(erreurCb)
+
+            // Faire premiere maj
+            handleDownloadUpdate(transfertFichiers, {}, setEtatDownload).catch(erreurCb)
+
+            const proxySetEtatUpload = proxy((nbFichiersPending, pctFichierEnCours, flags)=>{
+                flags = flags || {}
+                handleUploadUpdate(transfertFichiers, {nbFichiersPending, pctFichierEnCours, ...flags}, setEtatUpload)
+            })
+            transfertFichiers.up_setCallbackUpload(proxySetEtatUpload).catch(erreurCb)
+
+            return () => {
+                if(intervalId) {
+                    clearInterval(intervalId)
+                    transfertFichiers.down_entretienCache().catch(erreurCb)
+                }
+            }
+        } catch(err) {
+            erreurCb(err, 'Erreur chargement transfert modal')
         }
-    }, [transfertFichiers])
+    }, [transfertFichiers, erreurCb])
 
     return (
         <Modal 
