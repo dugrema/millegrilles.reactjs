@@ -266,7 +266,7 @@ async function terminerTraitementFichier(uploadEnCours) {
         data: confirmationResultat,
     })
 
-    console.info("!!! Fichier verification (POST) reponse : %O", reponse)
+    // console.info("!!! Fichier verification (POST) reponse : %O", reponse)
 
     if(reponse.data.ok === false) {
         const data = reponse.data
