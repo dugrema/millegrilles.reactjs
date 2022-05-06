@@ -79,9 +79,10 @@ export async function up_ajouterFichiersUpload(acceptedFiles, opts) {
     opts = opts || {}
     const cuuid = opts.cuuid    // Collection de destination
 
-    for(let i=0; i<acceptedFiles.length; i++) {
-        const file = acceptedFiles[i]
-        // console.debug("Ajouter upload : %O", file)
+    // for(let i=0; i<acceptedFiles.length; i++) {
+    const infoUploads = acceptedFiles.map(file=>{
+        //const file = acceptedFiles[i]
+        console.debug("Ajouter upload : %O", file)
 
         let dateFichier = null
         try {
@@ -98,23 +99,32 @@ export async function up_ajouterFichiersUpload(acceptedFiles, opts) {
         }
         if(cuuid) transaction['cuuid'] = cuuid
         
+        const infoUpload = {
+            file,
+            size: file.size,
+            correlation: uuidv4(),
+            transaction,
+        }
+
+        // Ajouter a la liste d'uploads a traiter
         _uploadsPending.push({
-          file,
-          size: file.size,
-          status: STATUS_NOUVEAU,
-          correlation: uuidv4(),
-          transaction,
-          position: 0,              // Position du byte de debut de la batch actuelle
-          batchLoaded: 0,           // Bytes charges par la batch actuelle
-          pctFichierEnCours: 0,     // Pct de progres total du fichier en cours
-          cancelTokenSource: null,  // Cancel token pour axios
-          complete: false,
+            ...infoUpload,
+            status: STATUS_NOUVEAU,
+            position: 0,              // Position du byte de debut de la batch actuelle
+            batchLoaded: 0,           // Bytes charges par la batch actuelle
+            pctFichierEnCours: 0,     // Pct de progres total du fichier en cours
+            cancelTokenSource: null,  // Cancel token pour axios
+            complete: false,
         })
-    }
+
+        return infoUpload
+    })
 
     // console.info("Uploads pending : %O", _uploadsPending)
     emettreEtat()
     traiterUploads()  // Demarrer traitement si pas deja en cours
+
+    return infoUploads
 }
 
 async function traiterUploads() {
