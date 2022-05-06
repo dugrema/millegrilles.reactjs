@@ -286,6 +286,8 @@ function ListeFichiersRow(props) {
             Promise.resolve(rowLoader(data))
                 .then(setDataRow)
                 .catch(err=>console.error("Erreur chargement data row %O : %O", data, err))
+        } else {
+            setDataRow(data)
         }
     }, [data, rowLoader, setDataRow])
 
