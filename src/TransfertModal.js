@@ -13,7 +13,7 @@ import styles from './styles.module.css'
 
 function TransfertModal(props) {
 
-    const { workers, setEtatTransfert, erreurCb } = props
+    const { workers, setEtatTransfert, erreurCb, isEtatUploadExterne, etatUploadExterne } = props
     const { transfertFichiers } = workers
 
     const [etatDownload, setEtatDownload] = useState({})
@@ -26,6 +26,14 @@ function TransfertModal(props) {
         // console.debug("Transfert update\nDownload : %O\nUpload: %O", etatDownload, etatUpload)
         setEtatTransfert({download: etatDownload, upload: etatUpload})
     }, [setEtatTransfert, etatDownload, etatUpload])
+
+    // Importer les evenements d'upload (geres a l'externe du module)
+    useEffect(()=>{
+        if(isEtatUploadExterne && etatUploadExterne) {
+            // etatUploadExterne = {nbFichiersPending, pctFichierEnCours, ...flags}
+            handleUploadUpdate(transfertFichiers, etatUploadExterne, setEtatUpload)            
+        }
+    }, [isEtatUploadExterne, etatUploadExterne, transfertFichiers, setEtatUpload])
 
     // Entretien idb/cache de fichiers
     useEffect(()=>{
@@ -49,11 +57,15 @@ function TransfertModal(props) {
             // Faire premiere maj
             handleDownloadUpdate(transfertFichiers, {}, setEtatDownload).catch(erreurCb)
 
-            const proxySetEtatUpload = proxy((nbFichiersPending, pctFichierEnCours, flags)=>{
-                flags = flags || {}
-                handleUploadUpdate(transfertFichiers, {nbFichiersPending, pctFichierEnCours, ...flags}, setEtatUpload)
-            })
-            transfertFichiers.up_setCallbackUpload(proxySetEtatUpload).catch(erreurCb)
+            if(!isEtatUploadExterne) {
+                const proxySetEtatUpload = proxy((nbFichiersPending, pctFichierEnCours, flags)=>{
+                    flags = flags || {}
+                    handleUploadUpdate(transfertFichiers, {nbFichiersPending, pctFichierEnCours, ...flags}, setEtatUpload)
+                })
+                transfertFichiers.up_setCallbackUpload(proxySetEtatUpload).catch(erreurCb)
+            } else {
+                console.info("Hook avec etatUploadExterne")
+            }
 
             return () => {
                 if(intervalId) {
@@ -64,7 +76,7 @@ function TransfertModal(props) {
         } catch(err) {
             erreurCb(err, 'Erreur chargement transfert modal')
         }
-    }, [transfertFichiers, erreurCb])
+    }, [transfertFichiers, isEtatUploadExterne, erreurCb])
 
     return (
         <Modal 
