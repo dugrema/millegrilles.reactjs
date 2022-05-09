@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useEffect} from 'react'
+import React, {useState, useCallback, useEffect, useMemo} from 'react'
 import Modal from 'react-bootstrap/Modal'
 import { FullScreen, useFullScreenHandle } from 'react-full-screen'
 import Alert from 'react-bootstrap/Alert'
@@ -9,6 +9,8 @@ import VideoViewer from './VideoViewer'
 import styles from './styles.module.css'
 
 function ModalViewer(props) {
+
+    // console.debug("ModalViewer props : %O", props)
 
     const {tuuidSelectionne, fichiers, DEBUG} = props
 
@@ -170,8 +172,8 @@ function ItemViewer(props) {
     const {item, onClick, setDownloadSrc, DEBUG} = props
 
     // Par defaut show et preparer sont true (si params absent)
-    const show = props.show === undefined?true:props.show
-    const preparer = props.preparer === undefined?true:props.preparer
+    let show = !!props.show,
+        preparer = !!props.preparer || show
 
     if(!item) return <p>Aucunes donnees a afficher pour ce fichier.</p>  // Rien a faire
 
@@ -187,6 +189,12 @@ function ItemViewer(props) {
         if(mimetype === 'application/pdf') Viewer = PreviewFile
         else if(mimetypeBase === 'image') Viewer = PreviewImage
         else if(mimetypeBase === 'video') Viewer = PreviewVideo
+
+        // console.debug("Viewer isSingle : %s", Viewer.isSingle)
+        if(Viewer.prototype.isSingle) {
+            show = true
+            preparer = true
+        }
 
         // console.debug("Type viewer selectionne : %O", Viewer)
 
@@ -231,6 +239,11 @@ function ImageCarousel(props) {
         setDefaultActiveIndex('')
     }, [images, item, setDownloadSrc])
 
+    const imagesCarousel = useMemo(
+        ()=>preparerItemsCarousel(images, defaultActiveIndex, onClick, setDownloadSrc, (DEBUG)), 
+        [images, defaultActiveIndex, onClick, setDownloadSrc, DEBUG]
+    )
+
     if(defaultActiveIndex === '') return ''
 
     return (
@@ -243,30 +256,41 @@ function ImageCarousel(props) {
             indicators={false}
             touch={false}>
             
-            {images.map((item, idx)=>{
-                const show = defaultActiveIndex === idx
-                const preparer = idx >= defaultActiveIndex - 1 && idx <= defaultActiveIndex + 2
-                return (
-                    <Carousel.Item key={item.tuuid}>
-                        <PreviewImage 
-                            item={item} 
-                            show={show}
-                            preparer={preparer}
-                            onClick={onClick} 
-                            setDownloadSrc={setDownloadSrc} 
-                            DEBUG={DEBUG} />
-                    </Carousel.Item>
-                )
-            })}
+            {imagesCarousel}
 
         </Carousel>        
     )
 
 }
 
+function preparerItemsCarousel(images, defaultActiveIndex, onClick, setDownloadSrc, opts) {
+    // console.debug("!!! preparerItemsCarousel, images %O, defaultActiveIndex %s", images, defaultActiveIndex)
+    opts = opts || {}
+    const DEBUG = opts.DEBUG || false
+
+    return images.map((item, idx)=>{
+        const itemId = item.fileId||item.tuuid||item.fuuid
+        const show = defaultActiveIndex === idx
+        const preparer = idx >= defaultActiveIndex - 1 && idx <= defaultActiveIndex + 2
+
+        return (
+            <Carousel.Item key={itemId}>
+                <PreviewImage 
+                    item={item} 
+                    show={show}
+                    preparer={preparer}
+                    onClick={onClick} 
+                    setDownloadSrc={setDownloadSrc} 
+                    DEBUG={DEBUG} />
+            </Carousel.Item>            
+        )
+    })
+}
+
 function PreviewImage(props) {
 
     // console.debug("PreviewImage PROPPYS : %O", props)
+    // console.debug("PreviewImage tuuid : %O", props.tuuid)
     const { item, onClick, setDownloadSrc, preparer, show } = props
     const { imageLoader } = item
     const version_courante = item.version_courante || {},
@@ -294,10 +318,12 @@ function PreviewImage(props) {
 
     // Load / unload
     useEffect(()=>{
+        // console.debug("!!!PreviewImage loadImage : %O", loadImage)
         if(!imageLoader) return
-        // console.debug("Utilisation loader : %O", imageLoader)
+        // console.debug("Utilisation loader pour image %O", imageLoader)
         const label = anime?'original':null
         if(loadImage) {
+            // console.debug("!!! load image anime: %s, imageLoader: %O, loadImage: %s", anime, imageLoader, loadImage)
             imageLoader.load(label, setSrcImage, {erreurCb: setErr})
                 .then(src=>{
                     setSrcLocal(src)
@@ -311,6 +337,7 @@ function PreviewImage(props) {
                 })
                 .finally(()=>setComplet(true))
             return () => {
+                // console.debug("!!! unload image anime: %s, imageLoader: %O, loadImage: %s", anime, imageLoader, loadImage)
                 imageLoader.unload()
                     .then(()=>{
                         setSrcImage('')
@@ -319,7 +346,7 @@ function PreviewImage(props) {
                     .catch(err=>console.warn("Erreur unload image : %O", err))
             }
         }
-    }, [imageLoader, loadImage, setSrcImage, setErr, setComplet])
+    }, [anime, imageLoader, loadImage, setSrcImage, setErr, setComplet])
 
     return (
         <div>
@@ -429,6 +456,7 @@ function PreviewVideo(props) {
     )
 
 }
+PreviewVideo.prototype.isSingle = true
 
 function PreviewFile(props) {
     const { item, onClick, setDownloadSrc, preparer, show, erreurCb } = props
@@ -514,3 +542,4 @@ function PreviewFile(props) {
     )
 
 }
+PreviewFile.prototype.isSingle = true

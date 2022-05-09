@@ -5,6 +5,7 @@ const CONST_TIMEOUT_THUMBNAIL_BLOB = 15000
 // Charge un fichier chiffre.
 // Utilise un cache/timer pour reutiliser le blob si l'image est chargee/dechargee rapidement.
 export function loadFichierChiffre(getFichierChiffre, fuuid, mimetype, opts) {
+    // console.debug("!!! loadFichierChiffre fuuid %s, mimetype %s, opts : %O", fuuid, mimetype, opts)
     opts = opts || {}
     // const { traitementFichiers } = workers
     const { delay, callbackOnClean } = opts
@@ -200,7 +201,7 @@ export function imageResourceLoader(getFichierChiffre, images, opts) {
             // console.debug("Loader selecteur %s  (disponibles: %O)", selecteur, Object.keys(loaders))
             if(selecteur === 'thumbnail') selecteur = 'thumb'
             else if(!selecteur || !Object.keys(loaders).includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite d'image
-            // console.debug("Selecteur effectif %s", selecteur)
+            // console.trace("Selecteur effectif %s", selecteur)
             const loader = loaders[selecteur]
             return loader.load(setSrc, {setFirst: setSrc}, opts)
         },
