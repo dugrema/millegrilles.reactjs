@@ -42,10 +42,29 @@ export function validerCertificat(chainePem, dateValidation) {
   return false
 }
 
-export async function verifierMessage(message) {
-  const certificat = message['_certificat']
-  const estampille = new Date(message['en-tete'].estampille * 1000)
-  const certValide = verifierCertificat(certificat, estampille)
+export async function verifierMessage(message, opts) {
+  opts = opts || {}
+  const support_idmg_tiers = opts.support_idmg_tiers?true:false
+
+  const certificat = message['_certificat'],
+        certMillegrille = message['_millegrille']
+  const entete = message['en-tete'] || {},
+        estampilleInt = entete.estampille,
+        idmg = entete.idmg
+
+  const estampille = new Date(estampilleInt * 1000)
+  let certValide = false
+  if(idmg === _idmgLocal) {
+    // Utiliser store avec CA local
+    certValide = verifierCertificat(certificat, estampille)
+  } else if(support_idmg_tiers && certMillegrille) {
+    const certCaForge = forgePki.certificateFromPem(certMillegrille)
+    const certificatStore = new CertificateStore(certCaForge)
+    certValide = certificatStore.verifierChaine(certificat, {validityCheckDate: estampille})
+  } else {
+    // console.warn("Erreur validation, aucun match : idmg message %s, idmg local %s", idmg, _idmgLocal)
+    throw new Error("x509Client.verifierMessage idmg tiers non supporte ou sans certificat _millegrille")
+  }
 
   if(!certValide) {
     var err = new Error("Certificat invalide")
