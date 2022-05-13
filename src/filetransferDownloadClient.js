@@ -176,7 +176,6 @@ async function majDownload(hachage_bytes, value) {
 
 /** Fetch fichier, permet d'acceder au reader */
 async function fetchAvecProgress(url, opts) {
-  console.trace("!!! fetchAvecProgress url %s, opts : %O", url, opts)
   opts = opts || {}
   const progressCb = opts.progressCb,
         downloadEnCours = opts.downloadEnCours,
