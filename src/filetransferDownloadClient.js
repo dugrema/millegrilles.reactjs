@@ -4,18 +4,15 @@ import { base64 } from "multiformats/bases/base64"
 
 // import { dechiffrer } from '@dugrema/millegrilles.utiljs/src/chiffrage'
 
-import { dechiffrer } from './chiffrage'
+import { dechiffrer, preparerDecipher } from './chiffrage'
 
 var _urlDownload = '/collections/fichiers',
-    _nomIdb = 'collections',
-    _certificatCa = null
+    _nomIdb = 'collections'
 
 const CACHE_TEMP_NAME = 'fichiersDechiffresTmp',
-      CACHE_DURABLE_NAME = 'fichiersSauvegardes',
-      TAILLE_LIMITE_SUBTLE = 100 * 1024 * 1024,  // La limite de dechiffrage vient de tests sur iPhone 7
+      TAILLE_LIMITE_BLOCKCIPHER = 5 * 1024 * 1024,  // La limite de dechiffrage vient de tests sur iPhone 7
       DECHIFFRAGE_TAILLE_BLOCK = 256 * 1024,
       STORE_DOWNLOADS = 'downloads',
-      STORE_UPLOADS = 'uploads',
       EXPIRATION_CACHE_MS = 24 * 60 * 60 * 1000
 
 // Globals
@@ -39,7 +36,6 @@ export async function down_getEtatCourant() {
 
   const store = db.transaction(STORE_DOWNLOADS, 'readonly').objectStore(STORE_DOWNLOADS)
   let cursor = await store.openCursor()
-  // console.debug("!!! Cursor : %O", cursor)
 
   const downloads = []
 
@@ -180,6 +176,7 @@ async function majDownload(hachage_bytes, value) {
 
 /** Fetch fichier, permet d'acceder au reader */
 async function fetchAvecProgress(url, opts) {
+  console.trace("!!! fetchAvecProgress url %s, opts : %O", url, opts)
   opts = opts || {}
   const progressCb = opts.progressCb,
         downloadEnCours = opts.downloadEnCours,
@@ -317,8 +314,9 @@ async function preparerDataProcessor(iv, tag, opts) {
   opts = opts || {}
   const DEBUG = opts.DEBUG || false
   let {password, passwordChiffre} = opts
-  const tailleLimiteSubtle = opts.tailleLimiteSubtle || TAILLE_LIMITE_SUBTLE
+  const tailleLimiteSubtle = opts.tailleLimiteSubtle || TAILLE_LIMITE_BLOCKCIPHER
   const clePriveePem = opts.clePriveePem
+  let blockCipher = null
 
   if(!password && !passwordChiffre) throw new Error("Il faut fournir opts.password ou opts.passwordChiffre")
   
@@ -330,19 +328,20 @@ async function preparerDataProcessor(iv, tag, opts) {
     password = base64.decode(password)
   }
 
+  let estActif = false
   const dataProcessor = {
     start: async response => {
       // On active le blockCipher si le fichier depasse le seuil pour utiliser subtle
       const size = Number(response.headers.get('content-length'))
       if(size > tailleLimiteSubtle) {
         if(DEBUG) console.debug("Fichier taille %d, on va utiliser le block cipher javascript pur", size)
-        blockCipher = await creerDecipher(password, iv, tag)
-        return true
+        estActif = true
+        blockCipher = await preparerDecipher(password, iv, {tag})
       } else {
         if(DEBUG) console.debug("Fichier taille %d sous seuil, on utilise subtle pour dechiffrer", size)
         // Retourner false, indique que le dataProcessor est inactif
-        return false
       }
+      return estActif
     },
     update: data => {
       if(!blockCipher) throw new Error("Data processor est inactif")
@@ -350,9 +349,10 @@ async function preparerDataProcessor(iv, tag, opts) {
     },
     finish: () => {
       if(!blockCipher) throw new Error("Data processor est inactif")
-      return blockCipher.finish()
+      return blockCipher.finalize()
     },
     password,
+    estActif: () => estActif,
   }
 
   return dataProcessor
@@ -367,7 +367,6 @@ async function downloadCacheFichier(downloadEnCours, opts) {
   // console.debug("downloadCacheFichier %O, Options : %O", downloadEnCours, opts)
   const DEBUG = opts.DEBUG || false
 
-  var blockCipher = null
   var dataProcessor = null
   const {fuuid, url, filename, mimetype, iv, tag, password, passwordChiffre} = downloadEnCours
   if(iv && tag && (password || passwordChiffre)) {
@@ -413,8 +412,10 @@ async function downloadCacheFichier(downloadEnCours, opts) {
       headersModifies.set('content-disposition', `attachment; filename="${encodeURIComponent(filename)}"`)
     }
 
+    let blockCipher = dataProcessor && dataProcessor.estActif()
+
     var response = null
-    if(blockCipher) {  // size > TAILLE_LIMITE_SUBTLE) {
+    if(blockCipher) {  // size > TAILLE_LIMITE_BLOCKCIPHER) {
       // Download et dechiffrage en stream
       if(DEBUG) console.debug("Dechiffrage mode stream")
       response = new Response(stream, {headers: headersModifies, status})
@@ -431,14 +432,14 @@ async function downloadCacheFichier(downloadEnCours, opts) {
         position += value.length
       }
 
-      if(dataProcessor) {
+      if(dataProcessor && dataProcessor.password) {
         // On avait un processor, finir le dechiffrage
-        if(DEBUG) console.debug("Dechiffrer avec subtle")
+        if(DEBUG) console.debug("Dechiffrer apres buffering")
         progressCb(size-1, size, {flag: 'Dechiffrage en cours'})
         // if(!password)
         // password = await _chiffrage.dechiffrerCleSecrete(passwordChiffre)
         buffer = await dechiffrer(buffer, dataProcessor.password, iv, tag)
-        if(DEBUG) console.debug("Dechiffrage avec subtle termine")
+        console.debug("Dechiffrage avec data processor termine")
         progressCb(size, size, {flag: 'Mise en cache'})
       }
       response = new Response(buffer, {headers: headersModifies, status})
