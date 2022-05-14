@@ -575,7 +575,7 @@ export function down_setUrlDownload(urlDownload) {
 }
 
 export function down_setCertificatCa(certificat) {
-  _certificatCa = certificat
+  // _certificatCa = certificat
 }
 
 export async function down_retryDownload(fuuid) {
