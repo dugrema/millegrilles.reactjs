@@ -222,11 +222,18 @@ export async function rechiffrerAvecCleMillegrille(
     excludeHachageBytes = cles.map(item=>item.hachage_bytes)
 
     try {
+      //const debutRechiffrage = new Date().getTime()
       const clesRechiffrees = await Promise.all(cles.map(cle=>{
         return ed25519Utils.dechiffrerCle(cle.cle, _cleMillegrille)
           .then(async cleDechiffree=>{
             if(DEBUG) console.debug("Cle dechiffree : %O", cleDechiffree)
-            // return {...cle, cle: cleDechiffree}
+            if(Array.isArray(cleDechiffree)) {
+              // Convertir en uint8array
+              const cleDechiffreeUintArray = new Uint16Array(32)
+              cleDechiffreeUintArray.set(cleDechiffree)
+              cleDechiffree = cleDechiffreeUintArray
+            }
+
             const cleRechiffree = await ed25519Utils.chiffrerCle(cleDechiffree, publicKey)
 
             const cleComplete = {
@@ -242,6 +249,9 @@ export async function rechiffrerAvecCleMillegrille(
             return {ok: false, err: err}
           })
       }))
+      // const finRechiffrage = new Date().getTime()
+      // const dureeRechiffrage = finRechiffrage - debutRechiffrage
+      // console.debug("Duree rechiffrage cles : %d ms", dureeRechiffrage)
       if(DEBUG) console.debug("Cles rechiffrees : %O", clesRechiffrees)
 
       const clesPretes = clesRechiffrees.filter(cle=>cle.ok!==false)
