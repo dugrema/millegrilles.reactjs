@@ -252,6 +252,7 @@ async function terminerTraitementFichier(uploadEnCours) {
     // console.debug("terminerTraitementFichier %O", uploadEnCours)
     const { commandeMaitreDesCles, transaction } = uploadEnCours
     const partitionMaitreDesCles = commandeMaitreDesCles._partition
+    if(!partitionMaitreDesCles) throw new Error("Partition maitre des cles n'est pas identifiee")
     delete commandeMaitreDesCles._partition
 
     const maitreDesClesSignees = await _chiffrage.formatterMessage(
