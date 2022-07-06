@@ -39,7 +39,7 @@
     "react-player": "^2.10.1",
     "react-visibility-sensor": "^5.1.1",
     "socket.io-client": "^4.5.1",
-    "webpack": "4.46.0"
+    "webpack": "4.44.2"
   },
   "peerDependencies": {
     "@dugrema/node-forge": "github:dugrema/forge#ed25519",
