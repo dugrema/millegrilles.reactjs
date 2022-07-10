@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactPlayer from 'react-player/file'
 
-export default props => {
+function VideoViewer(props) {
     const {
         src, 
         // poster,
@@ -15,5 +15,6 @@ export default props => {
             controls={true} 
             />
     )
-
 }
+
+export default VideoViewer

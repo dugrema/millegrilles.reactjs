@@ -228,7 +228,17 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
     const loaders = labels
     .reduce((acc, item)=>{
         const video = videos[item]
-        acc[item] = loadFichierChiffre(getFichierChiffre, video.fuuid_video, video.mimetype, {...opts})
+        // acc[item] = loadFichierChiffre(getFichierChiffre, video.fuuid_video, video.mimetype, {...opts})
+        acc[item] = {
+            load: setSrc => {
+                const url = [{src: '/collections/streams/' + video.fuuid_video + '?f.webm', type: video.mimetype}]
+                if(setSrc) setSrc(url)
+                return url
+            }, 
+            unload: ()=>{
+                //console.debug("!!! loader unload")
+            }
+        } //{fuuid: video.fuuid_video}
         return acc
     }, {})
 
@@ -240,11 +250,45 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
             return loader.load(setSrc, null, opts)
         },
         unload: async (selecteur) => {
-            if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite de video
-            const loader = loaders[selecteur]
-            return loader.unload()
+            // console.debug("!!! unload")
+            // if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite de video
+            // const loader = loaders[selecteur]
+            // return loader.unload()
         }
     }
 
     return loader
 }
+
+// export function videoResourceLoader(getFichierChiffre, videos, opts) {
+//     opts = opts || {}
+//     const supporteWebm = opts.supporteWebm?true:false
+
+//     const labels = Object.keys(videos)
+//     const labelHauteResolution = trouverLabelVideo(labels, {supporteWebm})
+//     console.debug("Labels : %O", labels)
+
+//     // Generer loaders pour tous les labels (sauf thumbnail)
+//     const loaders = labels
+//     .reduce((acc, item)=>{
+//         const video = videos[item]
+//         acc[item] = loadFichierChiffre(getFichierChiffre, video.fuuid_video, video.mimetype, {...opts})
+//         return acc
+//     }, {})
+
+//     const loader = {
+//         load: async (selecteur, setSrc, opts) => {
+//             if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite de video
+//             console.debug("Loader video %s", selecteur)
+//             const loader = loaders[selecteur]
+//             return loader.load(setSrc, null, opts)
+//         },
+//         unload: async (selecteur) => {
+//             if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite de video
+//             const loader = loaders[selecteur]
+//             return loader.unload()
+//         }
+//     }
+
+//     return loader
+// }

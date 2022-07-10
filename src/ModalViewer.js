@@ -417,7 +417,9 @@ function PreviewVideo(props) {
         if(loadFichier) {
             // Thumbnail / poster video
             videoLoader.load(selecteurVideo)
-                .then(setSrcLocal)
+                .then(srcLocal => {
+                    setSrcLocal(srcLocal)
+                })
                 .catch(err=>{
                     console.error("Erreur chargement video : %O", err)
                     setErr(err)
@@ -426,10 +428,14 @@ function PreviewVideo(props) {
                     setComplet(true)
                 })
             return () => {
-                imageLoader.unload().catch(err=>console.debug("Erreur unload video : %O", err))
                 setSrcImage('')
                 setSrcLocal('')
                 setComplet(false)
+                try {
+                    imageLoader.unload().catch(err=>console.debug("Erreur unload video : %O", err))
+                } catch(err) {
+                    console.error("Erreur imageLoader.unload() : %O", err)
+                }
             }
         }
 
