@@ -231,7 +231,7 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
         // acc[item] = loadFichierChiffre(getFichierChiffre, video.fuuid_video, video.mimetype, {...opts})
         acc[item] = {
             load: setSrc => {
-                const url = [{src: '/collections/streams/' + video.fuuid_video + '?f.webm', type: video.mimetype}]
+                const url = [{src: '/collections/streams/' + video.fuuid_video + '/video.webm', type: video.mimetype}]
                 if(setSrc) setSrc(url)
                 return url
             }, 
