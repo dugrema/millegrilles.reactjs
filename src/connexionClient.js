@@ -118,7 +118,9 @@ async function connecterSocketio(url, opts) {
   opts = opts || {}
   const DEBUG = opts.DEBUG
 
-  const transports = opts.transports || ['websocket', 'polling']
+  // Garder polling en premier (upgrade websocket automatique)
+  // Android a un probleme avec websocket
+  const transports = opts.transports || ['polling', 'websocket']
 
   if( ! _socket ) {
 
