@@ -69,7 +69,7 @@ export function trouverLabelVideo(videoLabels, opts) {
     return videoLabels[0]
 }
 
-function trierLabelsVideos(a, b) {
+export function trierLabelsVideos(a, b) {
     if(a === b) return 0
 
     const [mimetypeA, resolutionA, bitrateA] = a.split(';')

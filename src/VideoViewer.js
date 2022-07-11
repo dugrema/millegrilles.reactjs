@@ -5,13 +5,18 @@ function VideoViewer(props) {
     const {
         src, 
         // poster,
+        className,
     } = props
+
+    const width = props.width || '100%',
+          height = props.height || '100%'
 
     return (
         <ReactPlayer 
+            className={className}
             url={src} 
-            width={'100%'} 
-            height={'100%'} 
+            width={width} 
+            height={height} 
             controls={true} 
             />
     )

@@ -29,6 +29,9 @@ export { ListeFichiers, MenuContextuel }
 import ModalViewer from './ModalViewer'
 export { ModalViewer }
 
+import VideoViewer from './VideoViewer'
+export { VideoViewer }
+
 import FilePicker from './FilePicker'
 export { FilePicker }
 
