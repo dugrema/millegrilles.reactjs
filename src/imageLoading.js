@@ -1,3 +1,4 @@
+import path from 'path'
 import {trouverLabelImage, trouverLabelVideo} from './labelsRessources'
 
 const CONST_TIMEOUT_THUMBNAIL_BLOB = 15000
@@ -218,7 +219,8 @@ export function imageResourceLoader(getFichierChiffre, images, opts) {
 
 export function videoResourceLoader(getFichierChiffre, videos, opts) {
     opts = opts || {}
-    const supporteWebm = opts.supporteWebm?true:false
+    const supporteWebm = opts.supporteWebm?true:false,
+          baseUrlVideo = opts.baseUrl || '/collections/streams'
 
     const labels = Object.keys(videos)
     const labelHauteResolution = trouverLabelVideo(labels, {supporteWebm})
@@ -231,7 +233,8 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
         // acc[item] = loadFichierChiffre(getFichierChiffre, video.fuuid_video, video.mimetype, {...opts})
         acc[item] = {
             load: setSrc => {
-                const url = [{src: '/collections/streams/' + video.fuuid_video + '/video.webm', type: video.mimetype}]
+                const srcVideo = path.join(baseUrlVideo, video.fuuid_video, 'video.webm')
+                const url = [{src: srcVideo, type: video.mimetype}]
                 if(setSrc) setSrc(url)
                 return url
             }, 
