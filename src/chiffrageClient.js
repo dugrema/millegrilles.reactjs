@@ -104,11 +104,16 @@ export async function _validerCertificatChiffrage(certificatPem, opts) {
   const extensions = extraireExtensionsMillegrille(certificatForge)
   if(DEBUG) console.debug("Extensions MilleGrille du certificat : %O", extensions)
 
-  if( ! extensions.roles.includes('maitrecles') ) {
-    throw new Error("Le certificat de chiffrage n'est pas pour le maitre des cles")
-  }
-  if( ! extensions.niveauxSecurite.includes('4.secure') ) {
-    throw new Error("Le certificat de chiffrage n'est pas de niveau 4.secure")
+  const certCN = certificatForge.subject.getField('CN').value
+  if(certCN.toLowerCase() === 'millegrille') { 
+    // Ok
+  } else {
+    if( ! extensions.roles.includes('maitredescles') ) {
+      throw new Error("Le certificat de chiffrage n'est pas pour le maitre des cles")
+    }
+    if( ! extensions.niveauxSecurite.includes('4.secure') ) {
+      throw new Error("Le certificat de chiffrage n'est pas de niveau 4.secure")
+    }
   }
 
   const fingerprint = await hacherCertificat(certificatForge)
