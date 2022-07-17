@@ -220,11 +220,12 @@ export function imageResourceLoader(getFichierChiffre, images, opts) {
 export function videoResourceLoader(getFichierChiffre, videos, opts) {
     opts = opts || {}
     const supporteWebm = opts.supporteWebm?true:false,
-          baseUrlVideo = opts.baseUrl || '/collections/streams'
+          baseUrlVideo = opts.baseUrl || '/collections/streams',
+          creerToken = opts.creerToken
 
     const labels = Object.keys(videos)
     const labelHauteResolution = trouverLabelVideo(labels, {supporteWebm})
-    // console.debug("Labels : %O", labels)
+    console.debug("videoResourceLoader Labels : %O", labels)
 
     // Generer loaders pour tous les labels (sauf thumbnail)
     const loaders = labels
@@ -232,8 +233,15 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
         const video = videos[item]
         // acc[item] = loadFichierChiffre(getFichierChiffre, video.fuuid_video, video.mimetype, {...opts})
         acc[item] = {
-            load: setSrc => {
-                const srcVideo = path.join(baseUrlVideo, video.fuuid_video, 'video.webm')
+            load: async setSrc => {
+                const fuuidVideo = video.fuuid_video
+                console.debug("Load video : %O", fuuidVideo)
+                let srcVideo = path.join(baseUrlVideo, fuuidVideo, 'video.webm')
+                if(creerToken) {
+                    const token = await creerToken(fuuidVideo)
+                    console.debug("Token cree  pour %s : %O", fuuidVideo, token)
+                    srcVideo = srcVideo + '?token=' + token
+                }
                 const url = [{src: srcVideo, type: video.mimetype}]
                 if(setSrc) setSrc(url)
                 return url
