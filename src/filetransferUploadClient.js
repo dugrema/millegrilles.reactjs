@@ -100,7 +100,7 @@ export async function up_ajouterFichiersUpload(acceptedFiles, opts) {
         if(cuuid) transaction['cuuid'] = cuuid
         
         const infoUpload = {
-            file,
+            file: file.object,
             size: file.size,
             correlation: uuidv4(),
             transaction,
