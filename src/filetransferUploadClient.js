@@ -93,7 +93,7 @@ export async function up_ajouterFichiersUpload(acceptedFiles, opts) {
     
         const transaction = {
           nom: file.name,
-          mimetype: file.type,
+          mimetype: file.type || 'application/octet-stream',
           taille: file.size,
           dateFichier,
         }
