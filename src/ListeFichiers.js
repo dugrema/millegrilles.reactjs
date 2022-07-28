@@ -427,7 +427,7 @@ function ListeFichiersThumbnails(props) {
 function FichierThumbnail(props) {
 
     const {data, className, onSelectioner, onOuvrir, onContextMenu, touchEnabled, small} = props,
-          {fileId, folderId, duree} = data,
+          {fileId, folderId, duration} = data,
           thumbnail = data.thumbnail || {},
           {thumbnailIcon, thumbnailSrc, thumbnailCaption} = thumbnail
     
@@ -469,10 +469,10 @@ function FichierThumbnail(props) {
             small={small}
             >
 
-            {duree?
+            {duration?
                 <ThumbnailHeader>
                     <span className='fa fa-play'/>{' '}
-                    <FormatterDuree value={duree} />
+                    <FormatterDuree value={duration} />
                 </ThumbnailHeader>            
                 :''
             }
