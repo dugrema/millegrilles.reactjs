@@ -18,21 +18,12 @@ function VideoViewer(props) {
     if(videos) {
         sources = videos.map(item=>{
             const {src, mimetype, codecVideo} = item
-            let mimetypeCodec = mimetype
-            if(codecVideo === 'h264') {
-                // Omettre le codecs, devrait etre supporte partout
-                mimetypeCodec = mimetype
-            } else if(codecVideo) {
-                mimetypeCodec = mimetype + `;codecs="${codecVideo}"`
-            } 
+            let mimetypeCodec = mapperCodec(mimetype, codecVideo)
             return <source key={src} src={src} type={mimetypeCodec} />
         })
     }
     if(src) {
-        let mimetypeCodec = mimetype
-        if(codecVideo) {
-            mimetypeCodec = mimetype + `;codecs="${codecVideo}"`
-        }
+        let mimetypeCodec = mapperCodec(mimetype, codecVideo)
         sources.push(<source key="base" src={src} type={mimetypeCodec} />)
     }
 
@@ -73,3 +64,17 @@ function VideoViewer(props) {
 }
 
 export default VideoViewer
+
+function mapperCodec(mimetype, codecVideo) {
+    let mimetypeCodec = mimetype
+    if(codecVideo === 'hevc') {
+        // Nom codec pour iOS
+        mimetypeCodec = mimetype + `; codecs="hvc1"`
+    } else if(codecVideo === 'h264') {
+        // Omettre le codecs, devrait etre supporte partout
+        mimetypeCodec = mimetype
+    } else if(codecVideo) {
+        mimetypeCodec = mimetype + `; codecs="${codecVideo}"`
+    } 
+    return mimetypeCodec
+}
