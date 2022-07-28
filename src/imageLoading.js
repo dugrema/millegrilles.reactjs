@@ -282,7 +282,7 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
         const values = Object.values(buckets[label])
         if(values.length > 0) {
             values.sort(trierLabelsVideos)
-            selecteurs.push(label)
+            selecteurs.unshift(label)
             const url = values.map(labelVideo=>{
                 const video = videos[labelVideo]
                 const fuuidVideo = video.fuuid_video
@@ -315,6 +315,27 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
         }
     })
     
+    // Loader pour l'original (c'est necessairement un video!)
+    const version_courante = opts.version_courante
+    const fuuid = opts.fuuid || version_courante.fuuid
+    if(version_courante) {
+        const loaderOriginal = {
+            load: async setSrc => {
+                console.debug("Chargement original avec : %O", version_courante)
+                let srcVideo = path.join(baseUrlVideo, fuuid)
+                const url = [{src: srcVideo, mimetype: version_courante.mimetype, codecVideo: version_courante.codec, label: 'original'}]
+                console.debug("Load videos : %O", url)
+                return url
+            }, 
+            unload: ()=>{
+            }
+        }
+
+        // Ajouter a la liste de loaders
+        loaders['original'] = loaderOriginal
+        selecteurs.unshift('original')
+    }
+
     const loader = {
         load: async (selecteur, setSrc, opts) => {
             // if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite de video
