@@ -72,13 +72,33 @@ export function trouverLabelVideo(videoLabels, opts) {
 export function trierLabelsVideos(a, b) {
     if(a === b) return 0
 
-    const [mimetypeA, resolutionA, bitrateA] = a.split(';')
+    const [mimetypeA, codecVideoA, resolutionA, bitrateA] = a.split(';')
     const typeImageA = mimetypeA.split('/').pop()
-    const [mimetypeB, resolutionB, bitrateB] = b.split(';')
+    const [mimetypeB, codecVideoB, resolutionB, bitrateB] = b.split(';')
     const typeImageB = mimetypeB.split('/').pop()
 
+    // Resolution est le trait le plus significatif
     if(resolutionA !== resolutionB) {
-        return resolutionB - resolutionA
+        const resolutionANumber = Number.parseInt(resolutionA)
+        const resolutionBNumber = Number.parseInt(resolutionB)
+        return resolutionBNumber - resolutionANumber
+    }
+    
+    // Codec video est le 2e trait
+    if(codecVideoA !== codecVideoB) {
+        if(!codecVideoA) return -1
+        if(!codecVideoB) return 1
+
+        // VP9 va en premier (le plus discriminant)
+        if(codecVideoA === 'vp9') return -1
+        if(codecVideoB === 'vp9') return 1
+
+        // HEVC va en deuxieme
+        if(codecVideoA === 'hevc') return -1
+        if(codecVideoB === 'hevc') return 1
+
+        // Les autres vont dans l'ordre naturel
+        return codecVideoA.localeCompare(codecVideoB)
     }
 
     if(typeImageA !== typeImageB) {
@@ -89,7 +109,11 @@ export function trierLabelsVideos(a, b) {
         return typeImageA.localeCompare(typeImageB)  // Comparer texte des type d'image
     }
 
-    if(bitrateA !== bitrateB) return bitrateB - bitrateA
+    if(bitrateA !== bitrateB) {
+        const bitrateANumber = Number.parseInt(bitrateA)
+        const bitrateBNumber = Number.parseInt(bitrateB)
+        return bitrateBNumber - bitrateANumber
+    }
 
     return a.localeCompare(b)
 }

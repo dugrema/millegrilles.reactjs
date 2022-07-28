@@ -1,5 +1,5 @@
 import path from 'path'
-import {trouverLabelImage, trouverLabelVideo} from './labelsRessources'
+import {trouverLabelImage, trouverLabelVideo, trierLabelsVideos} from './labelsRessources'
 
 const CONST_TIMEOUT_THUMBNAIL_BLOB = 15000
 
@@ -224,25 +224,27 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
           creerToken = opts.creerToken
 
     const labels = Object.keys(videos)
-    const labelHauteResolution = trouverLabelVideo(labels, {supporteWebm})
+    const selecteurs = [...labels]
+    selecteurs.sort(trierLabelsVideos)
+    // const labelHauteResolution = trouverLabelVideo(labels, {supporteWebm})
     console.debug("videoResourceLoader Labels : %O", labels)
 
     // Generer loaders pour tous les labels (sauf thumbnail)
-    const loaders = labels
-    .reduce((acc, item)=>{
+    const loaders = labels.reduce((acc, item)=>{
         const video = videos[item]
         // acc[item] = loadFichierChiffre(getFichierChiffre, video.fuuid_video, video.mimetype, {...opts})
         acc[item] = {
             load: async setSrc => {
                 const fuuidVideo = video.fuuid_video
                 console.debug("Load video : %O", fuuidVideo)
-                let srcVideo = path.join(baseUrlVideo, fuuidVideo, 'video.webm')
+                // let srcVideo = path.join(baseUrlVideo, fuuidVideo, 'video.webm')
+                let srcVideo = path.join(baseUrlVideo, fuuidVideo)
                 if(creerToken) {
                     const token = await creerToken(fuuidVideo)
                     console.debug("Token cree  pour %s : %O", fuuidVideo, token)
                     srcVideo = srcVideo + '?token=' + token
                 }
-                const url = [{src: srcVideo, type: video.mimetype}]
+                const url = [{src: srcVideo, mimetype: video.mimetype, codecVideo: video.codec, label: item}]
                 if(setSrc) setSrc(url)
                 return url
             }, 
@@ -253,10 +255,71 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
         return acc
     }, {})
 
+    // Loaders speciaux multi-codecs haute (1080/720p), medium (480p), faible(360/270p))
+    const buckets = {'haute': {}, 'medium': {}, 'faible': {}}
+    let fallbackH264 = ''  // Capture le video h264 de plus faible resolution comme fallback universel
+    labels.forEach(label=>{
+        const [mimetype, codecVideo, resolution, quality] = label.split(';')
+        const resolutionNumber = Number.parseInt(resolution)
+        let resolutionTag = ''
+        if(resolutionNumber >= 720) resolutionTag = 'haute'
+        else if(resolutionNumber < 720 && resolutionNumber >= 480) resolutionTag = 'medium'
+        else if(resolutionNumber < 480) resolutionTag = 'faible'
+        // Inserer label (selecteur) pour le tag
+        if(resolutionTag) {
+            if(!buckets[resolutionTag][codecVideo]) {
+                buckets[resolutionTag][codecVideo] = label
+            }
+        }
+
+        if(!fallbackH264 && codecVideo === 'h264' && resolutionNumber <= 360) {
+            fallbackH264 = label
+        }
+    })
+
+    console.debug("Buckets type video selecteur : %O, fallback", buckets, fallbackH264)
+    Object.keys(buckets).forEach(label=>{
+        const values = Object.values(buckets[label])
+        if(values.length > 0) {
+            values.sort(trierLabelsVideos)
+            selecteurs.push(label)
+            const url = values.map(labelVideo=>{
+                const video = videos[labelVideo]
+                const fuuidVideo = video.fuuid_video
+                // let srcVideo = path.join(baseUrlVideo, fuuidVideo, 'video.webm')
+                let srcVideo = path.join(baseUrlVideo, fuuidVideo)
+                return {src: srcVideo, mimetype: video.mimetype, codecVideo: video.codec, label: labelVideo}
+            })
+            const loader = {
+                load: async setSrc => {
+                    console.debug("Load videos : %O", url)
+
+                    // if(creerToken) {
+                    //     const token = await creerToken(fuuidVideo)
+                    //     console.debug("Token cree  pour %s : %O", fuuidVideo, token)
+                    //     srcVideo = srcVideo + '?token=' + token
+                    // }
+                    // const url = [
+                    //     {src: srcVideo, mimetype: video.mimetype, codecVideo: video.codecVideo}
+                    // ]
+                    // if(setSrc) setSrc(url)
+                    return url
+                }, 
+                unload: ()=>{
+                    //console.debug("!!! loader unload")
+                }
+            }
+
+            // Ajouter a la liste de loaders
+            loaders[label] = loader
+        }
+    })
+    
     const loader = {
         load: async (selecteur, setSrc, opts) => {
-            if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite de video
-            // console.debug("Loader video %s", selecteur)
+            // if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite de video
+            if(!selecteur || !selecteurs.includes(selecteur)) selecteur = 'faible'  // Prendre la plus faible qualite de video
+            console.debug("Loader video %s", selecteur)
             const loader = loaders[selecteur]
             return loader.load(setSrc, null, opts)
         },
@@ -265,7 +328,8 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
             // if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite de video
             // const loader = loaders[selecteur]
             // return loader.unload()
-        }
+        },
+        getSelecteurs: () => selecteurs
     }
 
     return loader
