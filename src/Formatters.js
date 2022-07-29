@@ -62,5 +62,10 @@ export function FormatterDuree(props) {
     if(!value) return ''
     const momentDuree = moment.duration(value, 'seconds')
     // console.debug("Moment duree : %O", momentDuree)
+
+    if(value < 60.0) {
+        return Math.floor(value) + ' secs'
+    }
+
     return momentDuree.format('h:mm:ss')
 }
