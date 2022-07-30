@@ -309,7 +309,7 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
                             // const urlVideo = new URL(item.src)
                             // urlVideo.searchParams.put('token', tokenVideo)
                             //item.src = urlVideo.href
-                            item.src = item.src + '?token=' + tokenVideo
+                            item.src = item.src + '/' + tokenVideo
                             item.token = tokenVideo
                             return item
                         })
