@@ -1,5 +1,5 @@
-import React, {useEffect, useState} from 'react'
-import ReactPlayer from 'react-player/file'
+import React, {useEffect, useState, useMemo} from 'react'
+// import ReactPlayer from 'react-player/file'
 
 function VideoViewer(props) {
     const {
@@ -13,24 +13,28 @@ function VideoViewer(props) {
           height = props.height || '100%',
           codecVideo = props.codecVideo || '',
           mimetype = props.mimetype || ''
+      
+    let sources = useMemo(()=>{
+        if(!videos) return []
 
-    let sources = []
-    if(videos) {
-        sources = videos.map(item=>{
+        let mimetypeCodec = mimetype
+        if(codecVideo) {
+            mimetypeCodec = mimetype + `;codecs="${codecVideo}"`
+        }
+    
+        const sources = videos.map(item=>{
             const {src, mimetype, codecVideo} = item
             let mimetypeCodec = mapperCodec(mimetype, codecVideo)
             return <source key={src} src={src} type={mimetypeCodec} />
         })
-    }
-    if(src) {
-        let mimetypeCodec = mapperCodec(mimetype, codecVideo)
-        sources.push(<source key="base" src={src} type={mimetypeCodec} />)
-    }
 
-    let mimetypeCodec = mimetype
-    if(codecVideo) {
-        mimetypeCodec = mimetype + `;codecs="${codecVideo}"`
-    }
+        if(src) {
+            let mimetypeCodec = mapperCodec(mimetype, codecVideo)
+            sources.push(<source key="base" src={src} type={mimetypeCodec} />)
+        }
+
+        return sources
+    }, [src, videos, codecVideo, mimetype])
 
     // return (
     //     <ReactPlayer 
@@ -48,7 +52,7 @@ function VideoViewer(props) {
         // Forcer un toggle d'affichage
         console.debug("Changement videos : src : %O, videos : %O", src, videos)
         setActif(false)
-    }, [src, videos, setActif])
+    }, [src, videos, sources, setActif])
 
     useEffect(()=>{
         if(!actif) setActif(true)
