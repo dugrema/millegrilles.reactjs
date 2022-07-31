@@ -17,7 +17,7 @@ export function Thumbnail(props) {
 
     const className = [styleBase, (props.className || '')].join(' ')
     const {src, loader, placeholder} = props
-    const {onClick, onDoubleClick, onContextMenu, onTouchEnd} = props
+    const {onClick, onDoubleClick, onContextMenu, onTouchStart, onTouchMove, onTouchEnd} = props
 
     const [imgSrc, setImgSrc] = useState(src)
 
@@ -36,6 +36,8 @@ export function Thumbnail(props) {
         <Card 
             onClick={onClick} 
             onDoubleClick={onDoubleClick} 
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd} 
             onContextMenu={onContextMenu} 
             className={className}

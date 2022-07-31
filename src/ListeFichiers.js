@@ -21,7 +21,7 @@ export function ListeFichiers(props) {
     const [selectionne, setSelectionne] = useState([])
     const [selectionCourante, setSelectionCourante] = useState('')
     const [touchEnabled, setTouchEnabled] = useState(false)
-    const [scrollingDetecte, setScrollingDetecte] = useState(false)
+    // const [scrollingDetecte, setScrollingDetecte] = useState(false)
 
     // Intercepter onClick pour capturer la selection
     const {onClick, onDoubleClick, onContextMenu, rows, onSelection} = props
@@ -37,11 +37,12 @@ export function ListeFichiers(props) {
     }, [onClick, onSelection, selectionne, selectionCourante, setSelectionne, setSelectionCourante, rows])
     
     const ouvrirHandler = useCallback( async (event, value) => {
-        if(touchEnabled && scrollingDetecte) return  // Inhiber selection, c'etait un scroll sur element actif
         if(onDoubleClick) onDoubleClick(event, value)
-    }, [onDoubleClick, touchEnabled, scrollingDetecte])
+    }, [onDoubleClick, touchEnabled])
     
-    const touchBegin = useCallback( event => setScrollingDetecte(false), [setScrollingDetecte])
+    const touchBegin = useCallback( event => {
+        // TODO
+    }, [])
 
     const contextMenuHandler = useCallback( async (event, value) => {
         event.stopPropagation()
@@ -60,7 +61,7 @@ export function ListeFichiers(props) {
         if(onContextMenu) onContextMenu(event, value)
     }, [onContextMenu, onSelection, selectionne, selectionCourante, setSelectionne, setSelectionCourante, rows])
 
-    const scrollingDetecteCb = useCallback(event => setScrollingDetecte(true), [setScrollingDetecte])
+    // const scrollingDetecteCb = useCallback(event => setScrollingDetecte(true), [setScrollingDetecte])
 
     useEffect(()=>{
         // Mise a jour selection (ecoute callback setSelectionne)
@@ -71,13 +72,17 @@ export function ListeFichiers(props) {
         setTouchEnabled(isTouchEnabled())
     }, [setTouchEnabled])
 
-    useEffect(() => {
-        if(!touchEnabled) return  // Uniquement utilise sur appareil mobile
-        window.addEventListener("scroll", (e) => scrollingDetecteCb(e))
-        return () => window.removeEventListener("scroll", (e) => scrollingDetecteCb(e))
-    }, [touchEnabled, scrollingDetecteCb])
+    // useEffect(() => {
+    //     if(!touchEnabled) return  // Uniquement utilise sur appareil mobile
+    //     window.addEventListener("scroll", (e) => scrollingDetecteCb(e))
+    //     return () => {
+    //         window.removeEventListener("scroll", (e) => scrollingDetecteCb(e))
+    //     }
+    // }, [touchEnabled, scrollingDetecteCb])
 
-    return <ClasseViewer 
+    return (
+        <div>
+        <ClasseViewer 
                 {...props}
                 selectionne={selectionne}
                 setSelectionne={setSelectionne}
@@ -86,6 +91,8 @@ export function ListeFichiers(props) {
                 onContextMenu={contextMenuHandler} 
                 touchEnabled={touchEnabled} 
                 touchBegin={touchBegin} />
+        </div>
+    )
 }
 
 async function majSelection(event, value, rows, selectionPrecedente, selectionne, setSelectionne, callback) {
@@ -247,6 +254,7 @@ function ListeFichiersRow(props) {
     const {onSelectioner, onOuvrir, onContextMenu, selectionne, touchEnabled, touchBegin} = props
 
     const [dataRow, setDataRow] = useState(data)
+    const [touchEvent, setTouchEvent] = useState('')
 
     const {fileId, folderId} = dataRow
 
@@ -268,10 +276,7 @@ function ListeFichiersRow(props) {
     const thumbnailLoader = dataRow.imageLoader
 
     const onClickAction = useCallback(event=>{
-        if(touchEnabled) {
-            if(touchBegin) touchBegin(event)
-            return  // Rien a faire
-        }
+        if(touchEnabled) return  // Rien a faire
         if(onSelectioner && !touchEnabled) onSelectioner(event, {fileId, folderId})
     }, [onSelectioner, touchEnabled, touchBegin, fileId, folderId])
 
@@ -282,9 +287,24 @@ function ListeFichiersRow(props) {
         if(onOuvrir) onOuvrir(event, {fileId, folderId})
     }, [onOuvrir, fileId, folderId, touchEnabled])
 
+    const onTouchMove = useCallback(event=>{
+        setTouchEvent('')
+    }, [setTouchEvent])
+
+    const onTouchStart = useCallback(event=>{
+        event.preventDefault()
+        event.stopPropagation()
+        setTouchEvent(event)
+    }, [setTouchEvent])
+
     const onTouchEnd = useCallback(event=>{
+        if(!touchEvent) return  // Deplacement
+
+        if(onSelectioner) onSelectioner(event, {fileId, folderId})
         if(onOuvrir) onOuvrir(event, {fileId, folderId})
-    }, [onOuvrir, fileId, folderId])
+        setTouchEvent('')
+
+    }, [onOuvrir, fileId, folderId, touchEvent, setTouchEvent])
 
     const onContextMenuAction = useCallback(event=>{
         event.stopPropagation()
@@ -375,6 +395,8 @@ function ListeFichiersRow(props) {
                         {...infoDimension} 
                         className={className}
                         onClick={onClickAction}
+                        onTouchStart={onTouchStart}
+                        onTouchMove={onTouchMove}
                         onTouchEnd={onTouchEnd}
                     >
                         {thumbnail}
@@ -452,12 +474,10 @@ function FichierThumbnail(props) {
     const imageLoader = data.imageLoader
 
     // const thumbnailLoader = small?miniLoader:smallLoader  // small veut dire mini dans le parametre
+    const [touchEvent, setTouchEvent] = useState('')
 
     const onClickAction = useCallback(event=>{
-        if(touchEnabled) {
-            if(touchBegin) touchBegin(event)
-            return  // Rien a faire
-        }
+        if(touchEnabled) return  // Rien a faire
         if(onSelectioner) onSelectioner(event, {fileId, folderId})
     }, [touchEnabled, touchBegin, onSelectioner, fileId, folderId])
 
@@ -468,9 +488,21 @@ function FichierThumbnail(props) {
         if(onOuvrir) onOuvrir(event, {fileId, folderId})
     }, [touchEnabled, onOuvrir, fileId, folderId])
 
+    const onTouchMove = useCallback(event=>{
+        setTouchEvent('')
+    }, [setTouchEvent])
+
+    const onTouchStart = useCallback(event=>{
+        event.preventDefault()
+        event.stopPropagation()
+        setTouchEvent(event)
+    }, [setTouchEvent])
+
     const onTouchEndAction = useCallback(event=>{
+        if(!touchEvent) return  // Deplacement de l'ecran
         if(onOuvrir) onOuvrir(event, {fileId, folderId})
-    }, [onOuvrir, fileId, folderId])
+        setTouchEvent('')
+    }, [onOuvrir, touchEvent, fileId, folderId, setTouchEvent])
 
     const onContextMenuAction = useCallback(event=>{
         event.stopPropagation()
@@ -481,6 +513,8 @@ function FichierThumbnail(props) {
         <Thumbnail
             onClick={onClickAction}
             onDoubleClick={onDoubleClickAction}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
             onTouchEnd={onTouchEndAction}
             onContextMenu={onContextMenuAction}
             src={thumbnailSrc}
