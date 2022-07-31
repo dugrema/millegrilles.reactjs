@@ -156,7 +156,9 @@ export function fileResourceLoader(getFichierChiffre, fichierFuuid, mimetype, op
             }
         },
         unload: async () => {
-            miniLoader.unload().catch(err=>console.debug("Erreur unload mini thumbnail %s", thumbnailFuuid))
+            if(miniLoader) {
+                miniLoader.unload().catch(err=>console.debug("Erreur unload mini thumbnail %s", thumbnailFuuid))
+            }
             fileLoader.unload().catch(err=>console.debug("Erreur unload image %s", fichierFuuid))
         }
     }

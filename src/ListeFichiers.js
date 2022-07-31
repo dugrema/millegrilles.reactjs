@@ -21,6 +21,7 @@ export function ListeFichiers(props) {
     const [selectionne, setSelectionne] = useState([])
     const [selectionCourante, setSelectionCourante] = useState('')
     const [touchEnabled, setTouchEnabled] = useState(false)
+    const [scrollingDetecte, setScrollingDetecte] = useState(false)
 
     // Intercepter onClick pour capturer la selection
     const {onClick, onDoubleClick, onContextMenu, rows, onSelection} = props
@@ -31,14 +32,17 @@ export function ListeFichiers(props) {
             const idSelection = value.fileId || value.folderId
             await setSelectionCourante(idSelection)
             await majSelection(event, value, rows, selectionCourante, selectionne, setSelectionne)
-        }             
+        }
         if(onClick) onClick(event, value)
     }, [onClick, onSelection, selectionne, selectionCourante, setSelectionne, setSelectionCourante, rows])
     
     const ouvrirHandler = useCallback( async (event, value) => {
+        if(touchEnabled && scrollingDetecte) return  // Inhiber selection, c'etait un scroll sur element actif
         if(onDoubleClick) onDoubleClick(event, value)
-    }, [onDoubleClick])
+    }, [onDoubleClick, touchEnabled, scrollingDetecte])
     
+    const touchBegin = useCallback( event => setScrollingDetecte(false), [setScrollingDetecte])
+
     const contextMenuHandler = useCallback( async (event, value) => {
         event.stopPropagation()
         event.preventDefault()
@@ -56,6 +60,8 @@ export function ListeFichiers(props) {
         if(onContextMenu) onContextMenu(event, value)
     }, [onContextMenu, onSelection, selectionne, selectionCourante, setSelectionne, setSelectionCourante, rows])
 
+    const scrollingDetecteCb = useCallback(event => setScrollingDetecte(true), [setScrollingDetecte])
+
     useEffect(()=>{
         // Mise a jour selection (ecoute callback setSelectionne)
         if(onSelection) onSelection(selectionne)
@@ -65,6 +71,12 @@ export function ListeFichiers(props) {
         setTouchEnabled(isTouchEnabled())
     }, [setTouchEnabled])
 
+    useEffect(() => {
+        if(!touchEnabled) return  // Uniquement utilise sur appareil mobile
+        window.addEventListener("scroll", (e) => scrollingDetecteCb(e))
+        return () => window.removeEventListener("scroll", (e) => scrollingDetecteCb(e))
+    }, [touchEnabled, scrollingDetecteCb])
+
     return <ClasseViewer 
                 {...props}
                 selectionne={selectionne}
@@ -72,7 +84,8 @@ export function ListeFichiers(props) {
                 onSelectioner={selectionHandler} 
                 onOuvrir={ouvrirHandler}
                 onContextMenu={contextMenuHandler} 
-                touchEnabled={touchEnabled} />
+                touchEnabled={touchEnabled} 
+                touchBegin={touchBegin} />
 }
 
 async function majSelection(event, value, rows, selectionPrecedente, selectionne, setSelectionne, callback) {
@@ -125,7 +138,7 @@ async function majSelection(event, value, rows, selectionPrecedente, selectionne
 /** Liste de fichiers avec details sur lignes, colonnes configurables */
 function ListeFichiersLignes(props) {
 
-    const {colonnes, rows, onSelectioner, onOuvrir, onContextMenu, touchEnabled, suivantCb} = props
+    const {colonnes, rows, onSelectioner, onOuvrir, onContextMenu, touchEnabled, touchBegin, suivantCb} = props
 
     if(!colonnes || !rows) return ''  // Ecran n'est pas encore configure
 
@@ -149,6 +162,7 @@ function ListeFichiersLignes(props) {
                         onContextMenu={onContextMenu}
                         selectionne={selectionne}
                         touchEnabled={touchEnabled}
+                        touchBegin={touchBegin}
                         />
                 )
             })}
@@ -230,7 +244,7 @@ function ListeFichiersRow(props) {
     const { rowLoader, rowClassname } = colonnes
     const paramsColonnes = colonnes.paramsColonnes || {}
     const {data} = props
-    const {onSelectioner, onOuvrir, onContextMenu, selectionne, touchEnabled} = props
+    const {onSelectioner, onOuvrir, onContextMenu, selectionne, touchEnabled, touchBegin} = props
 
     const [dataRow, setDataRow] = useState(data)
 
@@ -254,16 +268,19 @@ function ListeFichiersRow(props) {
     const thumbnailLoader = dataRow.imageLoader
 
     const onClickAction = useCallback(event=>{
-        if(touchEnabled) return  // Rien a faire
+        if(touchEnabled) {
+            if(touchBegin) touchBegin(event)
+            return  // Rien a faire
+        }
         if(onSelectioner && !touchEnabled) onSelectioner(event, {fileId, folderId})
-    }, [onSelectioner, touchEnabled, fileId, folderId])
+    }, [onSelectioner, touchEnabled, touchBegin, fileId, folderId])
 
     const onDoubleClickAction = useCallback(event=>{
         if(touchEnabled === true) return  // Rien a faire
         event.preventDefault()
         event.stopPropagation()
         if(onOuvrir) onOuvrir(event, {fileId, folderId})
-    }, [onOuvrir, fileId, folderId])
+    }, [onOuvrir, fileId, folderId, touchEnabled])
 
     const onTouchEnd = useCallback(event=>{
         if(onOuvrir) onOuvrir(event, {fileId, folderId})
@@ -387,7 +404,7 @@ function ListeFichiersRow(props) {
 // }
 
 function ListeFichiersThumbnails(props) {
-    const {rows, onSelectioner, onOuvrir, onContextMenu, touchEnabled, modeView, suivantCb} = props
+    const {rows, onSelectioner, onOuvrir, onContextMenu, touchEnabled, touchBegin, modeView, suivantCb} = props
     if(!rows) return ''  // Ecran n'est pas encore configure
 
     let modeSmall = ''
@@ -412,6 +429,7 @@ function ListeFichiersThumbnails(props) {
                         onContextMenu={onContextMenu}
                         selectionne={selectionne}
                         touchEnabled={touchEnabled}
+                        touchBegin={touchBegin}
                         className={classNames.join(' ')}
                         small={modeSmall}
                         />
@@ -426,7 +444,7 @@ function ListeFichiersThumbnails(props) {
 
 function FichierThumbnail(props) {
 
-    const {data, className, onSelectioner, onOuvrir, onContextMenu, touchEnabled, small} = props,
+    const {data, className, onSelectioner, onOuvrir, onContextMenu, touchEnabled, small, touchBegin} = props,
           {fileId, folderId, duration} = data,
           thumbnail = data.thumbnail || {},
           {thumbnailIcon, thumbnailSrc, thumbnailCaption} = thumbnail
@@ -436,9 +454,12 @@ function FichierThumbnail(props) {
     // const thumbnailLoader = small?miniLoader:smallLoader  // small veut dire mini dans le parametre
 
     const onClickAction = useCallback(event=>{
-        if(touchEnabled) return  // Rien a faire
+        if(touchEnabled) {
+            if(touchBegin) touchBegin(event)
+            return  // Rien a faire
+        }
         if(onSelectioner) onSelectioner(event, {fileId, folderId})
-    }, [touchEnabled, onSelectioner, fileId, folderId])
+    }, [touchEnabled, touchBegin, onSelectioner, fileId, folderId])
 
     const onDoubleClickAction = useCallback(event=>{
         if(touchEnabled) return  // Rien a faire
