@@ -82,7 +82,7 @@ export async function up_ajouterFichiersUpload(acceptedFiles, opts) {
     // for(let i=0; i<acceptedFiles.length; i++) {
     const infoUploads = acceptedFiles.map(file=>{
         //const file = acceptedFiles[i]
-        console.debug("Ajouter upload : %O", file)
+        //console.debug("Ajouter upload : %O", file)
 
         let dateFichier = null
         try {
@@ -90,9 +90,12 @@ export async function up_ajouterFichiersUpload(acceptedFiles, opts) {
         } catch(err) {
           console.warn("Erreur chargement date fichier : %O", err)
         }
-    
+
+        // const nomFichierBuffer = new Uint8Array(Buffer.from(new TextEncoder().encode(file.name)))
+        // throw new Error("Nom fichier buffer : " + nomFichierBuffer)
+
         const transaction = {
-          nom: file.name,
+          nom: file.name.normalize(),  // iOS utilise la forme decomposee (combining)
           mimetype: file.type || 'application/octet-stream',
           taille: file.size,
           dateFichier,
