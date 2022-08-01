@@ -156,12 +156,12 @@ function ListeFichiersLignes(props) {
 
             <ListeFichiersEntete colonnes={colonnes} onClickEntete={props.onClickEntete} />
             
-            {rows.map(row=>{
+            {rows.map((row, idx)=>{
                 const localId = row.fileId || row.folderId
                 const selectionne = selectionnes.includes(localId)
                 return (
                     <ListeFichiersRow 
-                        key={localId} 
+                        key={''+idx} 
                         colonnes={colonnes} 
                         data={row} 
                         onSelectioner={onSelectioner}
