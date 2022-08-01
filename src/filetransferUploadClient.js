@@ -235,10 +235,14 @@ async function uploadFichier() {
             const correlation = _uploadEnCours.correlation
             console.error("Erreur traitement fichier, DELETE %s : %O", correlation, err)
             const pathConfirmation = path.join(_pathServeur, correlation)
-            await axios({
-                method: 'DELETE', 
-                url: pathConfirmation, 
-            })
+            try{
+                await axios({
+                    method: 'DELETE', 
+                    url: pathConfirmation, 
+                })
+            } catch(err) {
+                console.info("Erreur DELETE fichier : %s", correlation)
+            }
         } else {
             console.warn("Erreur traitement upload fichier mais aucun fichier en cours : %O", err)
         }
