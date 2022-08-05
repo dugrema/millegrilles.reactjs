@@ -20,27 +20,30 @@ export function FormatteurTaille(props) {
   
     if(!value) return ''
 
-    let result, unit;
-    if(value > CONST_TB) {
-        result = (value/CONST_PB).toPrecision(precision);
-        unit = 'Tb';
+    let valueCalculated, unit;
+    if(value > CONST_PB) {
+        valueCalculated = (value/CONST_PB)
+        unit = 'Pb'
     } else if(value > CONST_TB) {
-        result = (value/CONST_TB).toPrecision(precision);
-        unit = 'Tb';
+        valueCalculated = (value/CONST_TB)
+        unit = 'Tb'
     } else if(value > CONST_GB) {
-        result = (value/CONST_GB).toPrecision(precision);
-        unit = 'Gb';
+        valueCalculated = (value/CONST_GB)
+        unit = 'Gb'
     } else if(value > CONST_MB) {
-        result = (value/CONST_MB).toPrecision(precision);
-        unit = 'Mb';
+        valueCalculated = (value/CONST_MB)
+        unit = 'Mb'
     } else if(value > CONST_KB) {
-        result = (value/CONST_KB).toPrecision(precision);
-        unit = 'kb';
+        valueCalculated = (value/CONST_KB)
+        unit = 'kb'
     } else {
-        result = value;
-        unit = 'bytes';
+        result = value
+        unit = 'bytes'
     }
 
+    let result = null
+    if(valueCalculated >= 1000) result = Math.floor(valueCalculated)
+    else result = valueCalculated.toPrecision(precision)
     const label = result + ' ' + unit
 
     return <span>{label}</span>
