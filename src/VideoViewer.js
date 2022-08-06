@@ -8,6 +8,7 @@ function VideoViewer(props) {
         videos,
         className,
         selecteur,
+        timeStamp,
         // Evenements
         onTimeUpdate, onProgress, onPlay, onWaiting,
     } = props
@@ -16,7 +17,11 @@ function VideoViewer(props) {
           height = props.height || '100%',
           codecVideo = props.codecVideo || '',
           mimetype = props.mimetype || ''
-      
+          
+    const [timeStampEffectif, setTimeStampEffectif] = useState(0)
+    const [actif, setActif] = useState(true)
+    const [playbackCommence, setPlaybackCommence] = useState(false)
+
     let sources = useMemo(()=>{
         if(!videos) return []
 
@@ -28,7 +33,15 @@ function VideoViewer(props) {
         const sources = videos.map(item=>{
             const {src, mimetype, codecVideo} = item
             let mimetypeCodec = mapperCodec(mimetype, codecVideo)
-            return <source key={src} src={src} type={mimetypeCodec} />
+            let srcHref = src
+
+            if(timeStampEffectif) {
+                srcHref = srcHref + '#t=' + timeStampEffectif
+                console.debug("Href video avec ts : %s", srcHref)
+                setPlaybackCommence(true)
+            }
+
+            return <source key={src} src={srcHref} type={mimetypeCodec} />
         })
 
         if(src) {
@@ -37,7 +50,7 @@ function VideoViewer(props) {
         }
 
         return sources
-    }, [src, videos, codecVideo, mimetype])
+    }, [src, timeStampEffectif, videos, codecVideo, mimetype, setPlaybackCommence])
 
     // return (
     //     <ReactPlayer 
@@ -49,9 +62,6 @@ function VideoViewer(props) {
     //         />
     // )
 
-    const [actif, setActif] = useState(true)
-    const [playbackCommence, setPlaybackCommence] = useState(false)
-
     const playbackCommenceHandler = useCallback(event=>{
         setPlaybackCommence(true)
         if(onPlay) onPlay(event)  // propagation
@@ -61,6 +71,7 @@ function VideoViewer(props) {
         // Override pour playback, la source a change
         setPlaybackCommence(false)
         setActif(false)
+        setTimeStampEffectif(0)
     }, [selecteur, setActif, setPlaybackCommence])
 
     useEffect(()=>{
@@ -69,7 +80,8 @@ function VideoViewer(props) {
         // Forcer un toggle d'affichage sur changements sources ou videos
         console.debug("Changement videos : src : %O, videos : %O", src, videos)
         setActif(false)
-    }, [src, playbackCommence, videos, sources, setActif])
+        setTimeStampEffectif(timeStamp)
+    }, [src, timeStamp, playbackCommence, videos, sources, setActif])
 
     useEffect(()=>{
         if(!actif) setActif(true)
