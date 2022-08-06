@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useMemo} from 'react'
+import React, {useEffect, useState, useMemo, useCallback} from 'react'
 // import ReactPlayer from 'react-player/file'
 
 function VideoViewer(props) {
@@ -7,6 +7,9 @@ function VideoViewer(props) {
         poster,
         videos,
         className,
+        selecteur,
+        // Evenements
+        onTimeUpdate, onProgress, onPlay, onWaiting,
     } = props
 
     const width = props.width || '100%',
@@ -47,12 +50,26 @@ function VideoViewer(props) {
     // )
 
     const [actif, setActif] = useState(true)
+    const [playbackCommence, setPlaybackCommence] = useState(false)
+
+    const playbackCommenceHandler = useCallback(event=>{
+        setPlaybackCommence(true)
+        if(onPlay) onPlay(event)  // propagation
+    }, [onPlay, setPlaybackCommence])
 
     useEffect(()=>{
-        // Forcer un toggle d'affichage
+        // Override pour playback, la source a change
+        setPlaybackCommence(false)
+        setActif(false)
+    }, [selecteur, setActif, setPlaybackCommence])
+
+    useEffect(()=>{
+        if(playbackCommence) return  // Ignorer changements au video si le playback est commence
+
+        // Forcer un toggle d'affichage sur changements sources ou videos
         console.debug("Changement videos : src : %O, videos : %O", src, videos)
         setActif(false)
-    }, [src, videos, sources, setActif])
+    }, [src, playbackCommence, videos, sources, setActif])
 
     useEffect(()=>{
         if(!actif) setActif(true)
@@ -61,7 +78,11 @@ function VideoViewer(props) {
     if(!actif) return ''
 
     return (
-        <video width={width} height={height} className={className} poster={poster} controls>
+        <video width={width} height={height} className={className} poster={poster} controls
+            onPlay={playbackCommenceHandler}
+            onTimeUpdate={onTimeUpdate}
+            onProgress={onProgress}
+            onWaiting={onWaiting}>
             {sources}
         </video>
     )
