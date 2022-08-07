@@ -1,5 +1,5 @@
 import React, {useCallback} from 'react'
-import { QrReader } from '@blackbox-vision/react-qr-reader'
+// import { QrReader } from '@blackbox-vision/react-qr-reader'
 import { base64 } from 'multiformats/bases/base64'
 
 function QrCodeScanner(props) {
@@ -18,14 +18,16 @@ function QrCodeScanner(props) {
 
   if(!props.show) return ''
 
-  return (
-    <QrReader
-      constraints={{ facingMode: 'environment' }}
-      scanDelay={300}
-      onResult={resultCb}
-      style={{ width: '75%', 'text-align': 'center' }}
-    />
-  )
+  return 'Fix me'
+
+  // return (
+  //   <QrReader
+  //     constraints={{ facingMode: 'environment' }}
+  //     scanDelay={300}
+  //     onResult={resultCb}
+  //     style={{ width: '75%', 'text-align': 'center' }}
+  //   />
+  // )
 }
 
 export default QrCodeScanner
