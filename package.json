@@ -22,7 +22,6 @@
   },
   "dependencies": {
     "@dugrema/millegrilles.utiljs": "git+ssh://git.maceroc.com/git/millegrilles.utiljs#2022.5",
-    "@dugrema/wasm-xchacha20poly1305": "^0.3.0",
     "axios": "^0.27.2",
     "base64url": "^3.0.1",
     "bootstrap": "^5.2",
