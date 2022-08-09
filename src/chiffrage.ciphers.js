@@ -44,6 +44,7 @@ export async function creerStreamCipherXChacha20Poly1305(key, opts) {
                 // Chiffrer
                 let ciphertextMessage = sodium.crypto_secretstream_xchacha20poly1305_push(
                     state_out, messageBuffer, null, sodium.crypto_secretstream_xchacha20poly1305_TAG_MESSAGE)
+                if(ciphertextMessage === false) throw new CipherError('Erreur encodage')
                 if(!ciphertext) ciphertext = ciphertextMessage
                 else ciphertext = new Uint8Array([...ciphertext, ...ciphertextMessage])
 
@@ -66,7 +67,8 @@ export async function creerStreamCipherXChacha20Poly1305(key, opts) {
         finalize: async () => {
             let ciphertextMessage = sodium.crypto_secretstream_xchacha20poly1305_push(
                 state_out, messageBuffer.slice(0,positionBuffer), null, sodium.crypto_secretstream_xchacha20poly1305_TAG_FINAL)
-
+            if(ciphertextMessage === false) throw new CipherError('Erreur encodage')
+            
             await hacheur.update(ciphertextMessage)
             tailleOutput += ciphertextMessage.length
             hachage = await hacheur.finalize()
@@ -229,6 +231,8 @@ async function creerReadableStream() {
 
     return {controller, stream: readableStream}
 }
+
+export class CipherError extends Error {}
 
 export class DecipherError extends Error {}
 
