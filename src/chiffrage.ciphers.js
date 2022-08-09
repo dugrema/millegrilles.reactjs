@@ -1,28 +1,148 @@
-/* Facade pour crypto de nodejs. */
-// import { setCiphers } from '@dugrema/millegrilles.utiljs/src/chiffrage.ciphers'
-// import { hacher, Hacheur } from './hachage'
-// import { base64 } from 'multiformats/bases/base64'
+import { setCiphers } from '@dugrema/millegrilles.utiljs/src/chiffrage.ciphers'
+import { hacher, Hacheur } from './hachage'
+import { base64 } from 'multiformats/bases/base64'
+import _sodium from 'libsodium-wrappers'
 
-// // S'assurer de charger les methodes de hachage
-// // import ('./hachage')
+// S'assurer de charger les methodes de hachage
+// import ('./hachage')
 
-// // La librarie WASM doit etre chargee de maniere async
-// var _wasmcrypto = null
+const MESSAGE_SIZE = 64 * 1024,
+      OVERHEAD_MESSAGE = 17,
+      DECIPHER_MESSAGE_SIZE = MESSAGE_SIZE + OVERHEAD_MESSAGE
 
-// function importWasmCrypto() {
-//     if(!_wasmcrypto) {
-//         _wasmcrypto = import('@dugrema/wasm-xchacha20poly1305/wasm_xchacha20poly1305.js')
-//             .then(wasmcrypto=>{
-//                 _wasmcrypto = wasmcrypto
-//                 return wasmcrypto
-//             })
-//             .catch(err=>{
-//                 console.error("Erreur chargement WASM Crypto : %O", err)
-//                 return err
-//             })
-//     }
-//     return _wasmcrypto
-// }
+export async function creerStreamCipherXChacha20Poly1305(key, opts) {
+    opts = opts || {}
+    const digestAlgo = opts.digestAlgo || 'blake2b-512'
+    const messageBuffer = new Uint8Array(MESSAGE_SIZE)
+    let positionBuffer = 0,
+        tailleOutput = 0
+
+    // Preparer libsodium, hachage (WASM)
+    const hacheur = new Hacheur({hashingCode: digestAlgo})
+    await hacheur.ready
+    await _sodium.ready
+    const sodium = _sodium
+
+    // Preparer cipher
+    const res = sodium.crypto_secretstream_xchacha20poly1305_init_push(key)
+    const state_out = res.state
+    const header = base64.encode(new Uint8Array(res.header))
+    
+    let hachage = null
+    return {
+        update: async data => {
+            data = Uint8Array.from(data)
+            let ciphertext = null
+
+            // Chiffrer tant qu'on peut remplir le buffer
+            while (positionBuffer + data.length >= MESSAGE_SIZE) {
+                // Slice data
+                let endPos = MESSAGE_SIZE - positionBuffer
+                messageBuffer.set(data.slice(0, endPos), positionBuffer)
+                data = data.slice(endPos)
+
+                // Chiffrer
+                let ciphertextMessage = sodium.crypto_secretstream_xchacha20poly1305_push(
+                    state_out, messageBuffer, null, sodium.crypto_secretstream_xchacha20poly1305_TAG_MESSAGE)
+                if(!ciphertext) ciphertext = ciphertextMessage
+                else ciphertext = new Uint8Array([...ciphertext, ...ciphertextMessage])
+
+                positionBuffer = 0  // Reset position
+            }
+
+            // Inserer data restant dans le buffer
+            if(positionBuffer + data.length <= MESSAGE_SIZE) {
+                messageBuffer.set(data, positionBuffer)
+                positionBuffer += data.length
+            }
+            
+            if(ciphertext) {
+                await hacheur.update(ciphertext)
+                tailleOutput += ciphertext.length
+            }
+
+            return ciphertext
+        },
+        finalize: async () => {
+            let ciphertextMessage = sodium.crypto_secretstream_xchacha20poly1305_push(
+                state_out, messageBuffer.slice(0,positionBuffer), null, sodium.crypto_secretstream_xchacha20poly1305_TAG_FINAL)
+
+            await hacheur.update(ciphertextMessage)
+            tailleOutput += ciphertextMessage.length
+            hachage = await hacheur.finalize()
+
+            return {header, hachage, taille: tailleOutput, ciphertext: ciphertextMessage}
+        },
+        header: () => header,
+        hachage: () => hachage,
+    }
+}
+
+export async function creerStreamDecipherXChacha20Poly1305(headerStr, keyStr) {
+    const messageBuffer = new Uint8Array(DECIPHER_MESSAGE_SIZE)
+    let positionBuffer = 0,
+        tailleOutput = 0
+
+    // Preparer libsodium (WASM)
+    await _sodium.ready
+    const sodium = _sodium
+
+    const key = typeof(keyStr)==='string'?base64.decode(keyStr):keyStr,
+          header = typeof(headerStr)==='string'?base64.decode(headerStr):headerStr
+
+    console.debug("Header : %O, Key : %O", header, key)
+
+    // Preparer decipher
+    const state_in = sodium.crypto_secretstream_xchacha20poly1305_init_pull(header, key)
+
+    return {
+        update: async data => {
+            data = Uint8Array.from(data)
+            let message = null
+
+            // Chiffrer tant qu'on peut remplir le buffer
+            while (positionBuffer + data.length >= DECIPHER_MESSAGE_SIZE) {
+                // Slice data
+                let endPos = DECIPHER_MESSAGE_SIZE - positionBuffer
+                messageBuffer.set(data.slice(0, endPos), positionBuffer)
+                data = data.slice(endPos)
+
+                // Dechiffrer
+                console.debug("Dechiffrer : %O", messageBuffer)
+                const resultatDechiffrage = sodium.crypto_secretstream_xchacha20poly1305_pull(state_in, messageBuffer)
+                console.debug("Resultat dechiffrage : %O", resultatDechiffrage)
+                if(!message) message = resultatDechiffrage.message
+                else message = new Uint8Array([...message, ...resultatDechiffrage.message])
+                console.debug("Message : %O", message)
+
+                positionBuffer = 0  // Reset position
+            }
+
+            // Inserer data restant dans le buffer
+            if(positionBuffer + data.length <= DECIPHER_MESSAGE_SIZE) {
+                messageBuffer.set(data, positionBuffer)
+                positionBuffer += data.length
+            }
+            
+            if(message) {
+                tailleOutput += message.length
+            }
+
+            return message
+        },
+        finalize: async () => {
+            let decipheredMessage
+            if(positionBuffer) {
+                console.debug("Dechiffrer : %O (taille: %d)", messageBuffer, positionBuffer)
+                const {message, tag} = sodium.crypto_secretstream_xchacha20poly1305_pull(state_in, messageBuffer.slice(0,positionBuffer))
+                console.debug("Output final : %O", message)
+                decipheredMessage = message
+                tailleOutput += decipheredMessage.length
+            }
+            return {taille: tailleOutput, message: decipheredMessage}
+        }
+    }
+}
 
 // async function creerCipherChacha20Poly1305(key, nonce, opts) {
 //     opts = opts || {}
@@ -255,29 +375,29 @@
 //     }
 // }
 
-// async function creerReadableStream() {
+async function creerReadableStream() {
 
-//     let readableStream = null
-//     const controller = await new Promise(resolve => {
-//         readableStream = new ReadableStream({
-//             start: controller => {
-//                 resolve(controller)
-//             },
-//         })
-//     })
+    let readableStream = null
+    const controller = await new Promise(resolve => {
+        readableStream = new ReadableStream({
+            start: controller => {
+                resolve(controller)
+            },
+        })
+    })
 
-//     return {controller, stream: readableStream}
-// }
+    return {controller, stream: readableStream}
+}
 
-// const ciphers = {
-//     // Nodejs Crypto
-//     'chacha20-poly1305': {
-//         encrypt: encryptChacha20Poly1305,
+const ciphers = {
+    // Nodejs Crypto
+    'stream-xchacha20poly1305': {
+        encrypt: creerStreamCipherXChacha20Poly1305,
 //         decrypt: decryptChacha20Poly1305,
 //         getCipher: creerCipherChacha20Poly1305,
 //         getDecipher: creerDecipherChacha20Poly1305,
-//         nonceSize: 12,
-//     }
-// }
+//         messageSize: 64*1024,
+    }
+}
 
-// setCiphers(ciphers)
+setCiphers(ciphers)
