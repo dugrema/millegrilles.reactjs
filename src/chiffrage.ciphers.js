@@ -1,14 +1,14 @@
 import { setCiphers } from '@dugrema/millegrilles.utiljs/src/chiffrage.ciphers'
-import { hacher, Hacheur } from './hachage'
+import { Hacheur } from './hachage'
 import { base64 } from 'multiformats/bases/base64'
 import _sodium from 'libsodium-wrappers'
 
 // S'assurer de charger les methodes de hachage
 // import ('./hachage')
 
-const MESSAGE_SIZE = 64 * 1024,
-      OVERHEAD_MESSAGE = 17,
-      DECIPHER_MESSAGE_SIZE = MESSAGE_SIZE + OVERHEAD_MESSAGE
+const OVERHEAD_MESSAGE = 17,
+      DECIPHER_MESSAGE_SIZE = 64 * 1024,
+      MESSAGE_SIZE = DECIPHER_MESSAGE_SIZE - OVERHEAD_MESSAGE
 
 export async function creerStreamCipherXChacha20Poly1305(key, opts) {
     opts = opts || {}
@@ -90,8 +90,6 @@ export async function creerStreamDecipherXChacha20Poly1305(headerStr, keyStr) {
     const key = typeof(keyStr)==='string'?base64.decode(keyStr):keyStr,
           header = typeof(headerStr)==='string'?base64.decode(headerStr):headerStr
 
-    console.debug("Header : %O, Key : %O", header, key)
-
     // Preparer decipher
     const state_in = sodium.crypto_secretstream_xchacha20poly1305_init_pull(header, key)
 
@@ -108,12 +106,11 @@ export async function creerStreamDecipherXChacha20Poly1305(headerStr, keyStr) {
                 data = data.slice(endPos)
 
                 // Dechiffrer
-                console.debug("Dechiffrer : %O", messageBuffer)
                 const resultatDechiffrage = sodium.crypto_secretstream_xchacha20poly1305_pull(state_in, messageBuffer)
-                console.debug("Resultat dechiffrage : %O", resultatDechiffrage)
+                if(resultatDechiffrage === false) throw new DecipherError('Erreur dechiffrage')
+
                 if(!message) message = resultatDechiffrage.message
                 else message = new Uint8Array([...message, ...resultatDechiffrage.message])
-                console.debug("Message : %O", message)
 
                 positionBuffer = 0  // Reset position
             }
@@ -133,9 +130,9 @@ export async function creerStreamDecipherXChacha20Poly1305(headerStr, keyStr) {
         finalize: async () => {
             let decipheredMessage
             if(positionBuffer) {
-                console.debug("Dechiffrer : %O (taille: %d)", messageBuffer, positionBuffer)
-                const {message, tag} = sodium.crypto_secretstream_xchacha20poly1305_pull(state_in, messageBuffer.slice(0,positionBuffer))
-                console.debug("Output final : %O", message)
+                const resultat = sodium.crypto_secretstream_xchacha20poly1305_pull(state_in, messageBuffer.slice(0,positionBuffer))
+                if(resultat === false) throw new DecipherError('Erreur dechiffrage')
+                const {message, tag} = resultat
                 decipheredMessage = message
                 tailleOutput += decipheredMessage.length
             }
@@ -144,236 +141,80 @@ export async function creerStreamDecipherXChacha20Poly1305(headerStr, keyStr) {
     }
 }
 
-// async function creerCipherChacha20Poly1305(key, nonce, opts) {
-//     opts = opts || {}
-//     const digestAlgo = opts.digestAlgo || 'blake2b-512'
+/**
+ * One pass encrypt ChaCha20Poly1305.
+ * @param {*} key 
+ * @param {*} nonce 
+ * @param {*} data 
+ * @param {*} opts 
+ */
+export async function encryptStreamXChacha20Poly1305(key, data, opts) {
+    const cipher = await creerStreamCipherXChacha20Poly1305(key, opts)
 
-//     // Preparer input et output streams
-//     const wasmcrypto = await importWasmCrypto()
-//     const {controller: controllerInput, stream: streamInput} = await creerReadableStream()
-//     const {controller: controllerOutput, stream: streamOutput} = await creerReadableStream()
-//     const readerInput = await streamInput.getReader()
-//     const readerOutput = await streamOutput.getReader()
+    // Creer buffer pour resultat
+    const tailleBuffer = (Math.ceil(data.length / MESSAGE_SIZE) + 1) * DECIPHER_MESSAGE_SIZE
+    const buffer = new Uint8Array(tailleBuffer)
+    let positionLecture = 0, positionEcriture = 0
 
-//     // Creer interface du readerInput pour faire feed en Uint8Array
-//     const readerInterface = {
-//         read: async () => {
-//             const input = await readerInput.read()
-//             if(input.done) return input
-//             const value = [...new Uint8Array(input.value)]
-//             return {done: false, value}
-//         }
-//     }
+    while(positionLecture < data.length) {
+        const tailleLecture = Math.min(data.length - positionLecture, MESSAGE_SIZE)
+        const dataSlice = data.slice(positionLecture, positionLecture+tailleLecture)
+        const output = await cipher.update(dataSlice)
+        if(output) {
+            buffer.set(output, positionEcriture)
+            positionEcriture += output.length
+        }
 
-//     const output = {
-//         write: async chunk => {
-//             // console.debug("Recu chunk chiffre %O", chunk)
-//             controllerOutput.enqueue(chunk)
-//             return true
-//         },
-//         close: async () => {
-//             controllerOutput.close()
-//             // console.debug("Output closed")
-//             return true
-//         }
-//     }
-    
-//     // console.debug("Controller: %O\nstream: %O\nreader: %O", controllerInput, streamInput, readerInput)
+        positionLecture += tailleLecture
+    }
+    let {ciphertext, header, hachage} = await cipher.finalize()
 
-//     // Preparer cipher (WASM)
-//     const asyncCipher = wasmcrypto.chacha20poly1305_encrypt_stream(nonce, key, readerInterface, output)
+    if(ciphertext) {
+        // Concatener
+        buffer.set(ciphertext, positionEcriture)
+        positionEcriture += ciphertext.length
+    }
 
-//     // Preparer hachage (WASM)
-//     const hacheur = new Hacheur({hashingCode: digestAlgo})
-//     await hacheur.ready
-//     let tag = null, hachage = null, taille = 0
-//     let _done = false
+    return {ciphertext: buffer.slice(0, positionEcriture), header, hachage}
+}
 
-//     return {
-//         update: async data => {
-//             // console.debug("Data enqueue : %O", data)
-//             controllerInput.enqueue(data)
+/**
+ * One pass decrypt stream XChaCha20Poly1305.
+ * @param {*} key 
+ * @param {*} nonce 
+ * @param {*} data 
+ * @param {*} tag 
+ * @param {*} opts 
+ */
+export async function decryptStreamXChacha20Poly1305(header, key, ciphertext, opts) {
+    const decipher = await creerStreamDecipherXChacha20Poly1305(header, key, opts)
 
-//             // Lire une "chunk" en output pour simuler sync
-//             let {done, value: ciphertext} = await readerOutput.read()
-//             // console.debug("Resultat : done %s, ciphertext: %O", done, ciphertext)
-//             if(!done) {
-//                 ciphertext = new Uint8Array(ciphertext)
-//                 // console.debug("ciphertext output lu : %O", ciphertext)
-//                 await hacheur.update(ciphertext)
-//                 taille += ciphertext.length
-//             } else {
-//                 _done = true
-//             }
+    // Creer buffer pour resultat
+    const tailleBuffer = Math.ceil(ciphertext.length / DECIPHER_MESSAGE_SIZE) * MESSAGE_SIZE
+    const buffer = new Uint8Array(tailleBuffer)
+    let positionLecture = 0, positionEcriture = 0
 
-//             return ciphertext
-//         },
-//         finalize: async () => {
-//             // console.debug("Finalize")
-//             controllerInput.close()
+    while(positionLecture < ciphertext.length) {
+        const tailleLecture = Math.min(ciphertext.length - positionLecture, DECIPHER_MESSAGE_SIZE)
+        const cipherSlice = ciphertext.slice(positionLecture, positionLecture+tailleLecture)
+        const output = await decipher.update(cipherSlice)
+        if(output) {
+            buffer.set(output, positionEcriture)
+            positionEcriture += output.length
+        }
 
-//             let ciphertext = null
-//             if(!_done) {
-//                 ciphertext = []
-//                 let output = await readerOutput.read()
-//                 while(!output.done) {
-//                     ciphertext = [...ciphertext, ...output.value]
-//                     output = await readerOutput.read()
-//                 }
-//             }
-//             if(ciphertext.length === 0) ciphertext = null
-//             else {
-//                 ciphertext = new Uint8Array(ciphertext)
-//                 await hacheur.update(ciphertext)
-//             }
+        positionLecture += tailleLecture
+    }
+    let {message} = await decipher.finalize()
 
-//             hachage = await hacheur.finalize()
-//             tag = await asyncCipher
-//             // console.debug("Tag : %O", tag)
-//             tag = base64.encode(new Uint8Array(tag))
+    if(message) {
+        // Concatener
+        buffer.set(message, positionEcriture)
+        positionEcriture += message.length
+    }
 
-//             return {tag, hachage, taille, ciphertext}
-//         },
-//         tag: () => tag,
-//         hachage: () => hachage,
-//     }
-// }
-
-// async function creerDecipherChacha20Poly1305(key, nonce, opts) {
-//     opts = opts || {}
-
-//     let tag = opts.tag
-//     if(!tag) throw new Error("Il faut fournir opts.tag pour cet algorithme")
-//     if(typeof(tag) === 'string') tag = base64.decode(tag)
-
-//     const wasmcrypto = await importWasmCrypto()
-
-//     // Preparer input et output streams
-//     const {controller: controllerInput, stream: streamInput} = await creerReadableStream()
-//     const {controller: controllerOutput, stream: streamOutput} = await creerReadableStream()
-//     const readerInput = await streamInput.getReader()
-//     const readerOutput = await streamOutput.getReader()
-
-//     // Creer interface du readerInput pour faire feed en Uint8Array
-//     const readerInterface = {
-//         read: async () => {
-//             const input = await readerInput.read()
-//             if(input.done) return input
-//             // Convert input to array
-//             const value = [...input.value]
-//             return {done: false, value}
-//         }
-//     }
-
-//     const output = {
-//         write: async chunk => {
-//             // console.debug("Recu chunk chiffre %O", chunk)
-//             controllerOutput.enqueue(chunk)
-//             return true
-//         },
-//         close: async () => {
-//             controllerOutput.close()
-//             // console.debug("Output closed")
-//             return true
-//         }
-//     }
-
-//     // Preparer cipher (WASM)
-//     const asyncDecipher = wasmcrypto.chacha20poly1305_decrypt_stream(nonce, key, tag, readerInterface, output)
-
-//     let _done = false
-
-//     return {
-//         update: async data => {
-//             controllerInput.enqueue(data)
-//             // console.debug("Data enqueue : %O", data)
-
-//             // Lire une "chunk" en output pour simuler sync
-//             let {done, value: message} = await readerOutput.read()
-//             if(!done) {
-//                 message = new Uint8Array(message)
-//                 // console.debug("ciphertext output lu : %O", ciphertext)
-//             } else {
-//                 _done = true
-//             }
-
-//             return message
-//         },
-//         finalize: async () => {
-//             // console.debug("Finalize")
-//             controllerInput.close()
-
-//             let message = null
-//             if(!_done) {
-//                 message = []
-//                 let output = await readerOutput.read()
-//                 while(!output.done) {
-//                     message = [...message, ...output.value]
-//                     output = await readerOutput.read()
-//                 }
-//             }
-//             if(message.length === 0) message = null
-//             else {
-//                 message = new Uint8Array(message)
-//             }
-
-//             await asyncDecipher  // Attendre la verification du tag
-            
-//             return message
-//         },
-//     }
-
-// }
-
-// /**
-//  * One pass encrypt ChaCha20Poly1305.
-//  * @param {*} key 
-//  * @param {*} nonce 
-//  * @param {*} data 
-//  * @param {*} opts 
-//  */
-// async function encryptChacha20Poly1305(key, nonce, data, opts) {
-//     const wasmcrypto = await importWasmCrypto()
-//     const ciphertextTag = await wasmcrypto.chacha20poly1305_encrypt(nonce, key, data)
-//     const ciphertext = Buffer.from(ciphertextTag.slice(0, ciphertextTag.length-16))
-//     const tag = Buffer.from(ciphertextTag.slice(ciphertextTag.length-16))
-
-//     // Hacher contenu chiffre
-//     const hachage = await hacher(ciphertext, opts)
-
-//     return {ciphertext, tag, hachage}
-// }
-
-// /**
-//  * One pass decrypt ChaCha20Poly1305.
-//  * @param {*} key 
-//  * @param {*} nonce 
-//  * @param {*} data 
-//  * @param {*} tag 
-//  * @param {*} opts 
-//  */
-// async function decryptChacha20Poly1305(key, nonce, data, tag, opts) {
-//     const wasmcrypto = await importWasmCrypto()
-//     if(typeof(tag)==='string') tag = base64.decode(tag)
-//     if(typeof(nonce)==='string') nonce = base64.decode(nonce)
-
-//     //if(Buffer.isBuffer(tag)) tag = Buffer.from(tag)
-//     //if(Buffer.isBuffer(data)) data = Buffer.from(data)
-//     if(Buffer.isBuffer(nonce)) nonce = Buffer.from(nonce)
-//     data = Buffer.from(data)
-//     tag = Buffer.from(tag)
-//     // console.debug("Data: %O, tag: %O", data, tag)
-//     const ciphertextTag = new Uint8Array(Buffer.concat([data, tag]))
-//     // console.debug("ciphertextTag : %O", ciphertextTag)
-
-//     try {
-//         const messageDechiffre = await wasmcrypto.chacha20poly1305_decrypt(nonce, key, ciphertextTag)
-//         return messageDechiffre
-//     } catch(err) {
-//         console.error("decryptChacha20Poly1305 Erreur call WASM : %O", err)
-//         throw err
-//     }
-// }
+    return buffer.slice(0, positionEcriture)
+}
 
 async function creerReadableStream() {
 
@@ -389,14 +230,16 @@ async function creerReadableStream() {
     return {controller, stream: readableStream}
 }
 
+export class DecipherError extends Error {}
+
 const ciphers = {
     // Nodejs Crypto
     'stream-xchacha20poly1305': {
-        encrypt: creerStreamCipherXChacha20Poly1305,
-//         decrypt: decryptChacha20Poly1305,
-//         getCipher: creerCipherChacha20Poly1305,
-//         getDecipher: creerDecipherChacha20Poly1305,
-//         messageSize: 64*1024,
+        encrypt: encryptStreamXChacha20Poly1305,
+        decrypt: decryptStreamXChacha20Poly1305,
+        getCipher: creerStreamCipherXChacha20Poly1305,
+        getDecipher: creerStreamDecipherXChacha20Poly1305,
+        messageSize: MESSAGE_SIZE,
     }
 }
 
