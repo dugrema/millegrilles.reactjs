@@ -39,7 +39,7 @@ export async function encryptChacha20Poly1305(data, opts) {
     const tagStr = base64.encode(tag)
     const nonceStr = base64.encode(nonce)
 
-    return {ciphertext, key, nonce: nonceStr, tag: tagStr, hachage, format: 'mgs3'}
+    return {ciphertext, key, nonce: nonceStr, tag: tagStr, rawTag: tag, hachage, format: 'mgs3'}
 }
 
 export async function decryptChacha20Poly1305(key, nonce, data, tag) {
