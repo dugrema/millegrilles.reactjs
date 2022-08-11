@@ -39,7 +39,7 @@ export async function encryptChacha20Poly1305(data, opts) {
     const tagStr = base64.encode(tag)
     const nonceStr = base64.encode(nonce)
 
-    return {ciphertext, key, nonce: nonceStr, tag: tagStr, hachage}
+    return {ciphertext, key, nonce: nonceStr, tag: tagStr, hachage, format: 'mgs3'}
 }
 
 export async function decryptChacha20Poly1305(key, nonce, data, tag) {
@@ -139,10 +139,12 @@ export async function creerStreamCipherXChacha20Poly1305(opts) {
             tailleOutput += ciphertextMessage.length
             hachage = await hacheur.finalize()
 
-            return {key, header, hachage, taille: tailleOutput, ciphertext: ciphertextMessage}
+            return {key, header, hachage, taille: tailleOutput, format: 'mgs4', ciphertext: ciphertextMessage}
         },
         header: () => header,
         hachage: () => hachage,
+        key: () => key,
+        format: () => 'mgs4'
     }
 }
 
@@ -200,7 +202,7 @@ export async function creerStreamDecipherXChacha20Poly1305(key, header) {
             if(positionBuffer) {
                 const resultat = sodium.crypto_secretstream_xchacha20poly1305_pull(state_in, messageBuffer.slice(0,positionBuffer))
                 if(resultat === false) throw new DecipherError('Erreur dechiffrage')
-                const {message, tag} = resultat
+                const {message} = resultat
                 decipheredMessage = message
                 tailleOutput += decipheredMessage.length
             }
@@ -235,7 +237,7 @@ export async function encryptStreamXChacha20Poly1305(data, opts) {
 
         positionLecture += tailleLecture
     }
-    let {ciphertext, header, hachage} = await cipher.finalize()
+    let {ciphertext, header, hachage, key, format} = await cipher.finalize()
 
     if(ciphertext) {
         // Concatener
@@ -243,7 +245,7 @@ export async function encryptStreamXChacha20Poly1305(data, opts) {
         positionEcriture += ciphertext.length
     }
 
-    return {ciphertext: buffer.slice(0, positionEcriture), header, hachage}
+    return {key, ciphertext: buffer.slice(0, positionEcriture), header, hachage, format}
 }
 
 /**
@@ -275,6 +277,8 @@ export async function decryptStreamXChacha20Poly1305(key, header, ciphertext) {
     }
     let {message} = await decipher.finalize()
 
+    console.warn("!!! Message %O, positionEcriture : %O", message, positionEcriture)
+
     if(message) {
         // Concatener
         buffer.set(message, positionEcriture)
@@ -304,6 +308,8 @@ export class CipherError extends Error {}
 
 export class DecipherError extends Error {}
 
+export class NonSupporteError extends Error {}
+
 
 // Signatures
 // - encrypt : (data, opts)
@@ -330,7 +336,7 @@ const chacha20poly1305Algorithm = {
 }
 
 function nonSupporte() {
-    throw new Error("cipher/decipher non supporte")
+    throw new NonSupporteError("cipher/decipher non supporte")
 }
 
 const ciphers = {

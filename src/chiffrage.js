@@ -1,2 +1,2 @@
 import './chiffrage.ciphers'
-export * from '@dugrema/millegrilles.utiljs/src/chiffrage'
+export * as chiffrage from '@dugrema/millegrilles.utiljs/src/chiffrage'

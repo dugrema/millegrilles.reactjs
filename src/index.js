@@ -2,8 +2,6 @@
 export * as hachage from './hachage'
 
 // Executer hook pour chiffreurs (WASM)
-import './chiffrage.ciphers'
-
 export { chiffrage } from './chiffrage'
 
 export * as ed25519 from '@dugrema/millegrilles.utiljs/src/chiffrage.ed25519'
