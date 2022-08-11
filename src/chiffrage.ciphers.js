@@ -1,21 +1,87 @@
 import { setCiphers } from '@dugrema/millegrilles.utiljs/src/chiffrage.ciphers'
-import { Hacheur } from './hachage'
+import { hacher, Hacheur } from './hachage'
 import { base64 } from 'multiformats/bases/base64'
 import _sodium from 'libsodium-wrappers'
+import { getRandom } from '@dugrema/millegrilles.utiljs/src/random'
 
 // S'assurer de charger les methodes de hachage
-// import ('./hachage')
 
 const OVERHEAD_MESSAGE = 17,
       DECIPHER_MESSAGE_SIZE = 64 * 1024,
       MESSAGE_SIZE = DECIPHER_MESSAGE_SIZE - OVERHEAD_MESSAGE
 
-export async function creerStreamCipherXChacha20Poly1305(key, opts) {
+// ----- Chacha20Poly1305 (legacy mgs3, decrypt seul) -----
+
+export async function encryptChacha20Poly1305(data, opts) {
+    opts = opts || {}
+    let {key, nonce} = opts
+    if(key) {
+        if(typeof(key)==='string') key = base64.decode(key)
+    } else {
+        key = getRandom(32)
+    }
+    if(nonce) {
+        if(typeof(nonce)==='string') nonce = base64.decode(nonce)
+    } else {
+        nonce = getRandom(12)
+    }
+
+    await _sodium.ready
+    const sodium = _sodium
+    try {
+        var {ciphertext, mac: tag} = sodium.crypto_aead_chacha20poly1305_ietf_encrypt_detached(data, null, null, nonce, key)
+    } catch(err) {
+        throw new CipherError(''+err)
+    }
+
+    // Hacher contenu chiffre
+    const hachage = await hacher(ciphertext, opts)
+    const tagStr = base64.encode(tag)
+    const nonceStr = base64.encode(nonce)
+
+    return {ciphertext, key, nonce: nonceStr, tag: tagStr, hachage}
+}
+
+export async function decryptChacha20Poly1305(key, nonce, data, tag) {
+    if(typeof(key)==='string') key = base64.decode(key)
+    if(typeof(tag)==='string') tag = base64.decode(tag)
+    if(typeof(nonce)==='string') nonce = base64.decode(nonce)
+
+    console.debug("Params: key: %O, nonce : %O, data: %O, tag: %O", key, nonce, data, tag)
+
+    key = Uint8Array.from(key)
+    nonce = Uint8Array.from(nonce)
+    tag = Uint8Array.from(tag)
+    data = Uint8Array.from(data)
+
+    // Preparer libsodium (WASM)
+    await _sodium.ready
+    const sodium = _sodium
+    
+    try {
+        return sodium.crypto_aead_chacha20poly1305_ietf_decrypt_detached(null, data, tag, null, nonce, key)
+    } catch(err) {
+        throw new DecipherError(''+err)
+    }
+}
+
+// ----- Fin Chacha20Poly1305 (legacy mgs3, decrypt seul) -----
+
+// ----- Stream XChacha20 Poly1305 -----
+
+export async function creerStreamCipherXChacha20Poly1305(opts) {
     opts = opts || {}
     const digestAlgo = opts.digestAlgo || 'blake2b-512'
     const messageBuffer = new Uint8Array(MESSAGE_SIZE)
     let positionBuffer = 0,
         tailleOutput = 0
+
+    let { key } = opts
+    if(key) {
+        if(typeof(key) === 'string') key = base64.decode(key)
+    } else {
+        key = getRandom(32)
+    }
 
     // Preparer libsodium, hachage (WASM)
     const hacheur = new Hacheur({hashingCode: digestAlgo})
@@ -73,24 +139,24 @@ export async function creerStreamCipherXChacha20Poly1305(key, opts) {
             tailleOutput += ciphertextMessage.length
             hachage = await hacheur.finalize()
 
-            return {header, hachage, taille: tailleOutput, ciphertext: ciphertextMessage}
+            return {key, header, hachage, taille: tailleOutput, ciphertext: ciphertextMessage}
         },
         header: () => header,
         hachage: () => hachage,
     }
 }
 
-export async function creerStreamDecipherXChacha20Poly1305(headerStr, keyStr) {
+export async function creerStreamDecipherXChacha20Poly1305(key, header) {
     const messageBuffer = new Uint8Array(DECIPHER_MESSAGE_SIZE)
     let positionBuffer = 0,
         tailleOutput = 0
 
+    if(typeof(key)==='string') key = base64.decode(key)
+    if(typeof(header)==='string') header = base64.decode(header)
+
     // Preparer libsodium (WASM)
     await _sodium.ready
     const sodium = _sodium
-
-    const key = typeof(keyStr)==='string'?base64.decode(keyStr):keyStr,
-          header = typeof(headerStr)==='string'?base64.decode(headerStr):headerStr
 
     // Preparer decipher
     const state_in = sodium.crypto_secretstream_xchacha20poly1305_init_pull(header, key)
@@ -150,8 +216,8 @@ export async function creerStreamDecipherXChacha20Poly1305(headerStr, keyStr) {
  * @param {*} data 
  * @param {*} opts 
  */
-export async function encryptStreamXChacha20Poly1305(key, data, opts) {
-    const cipher = await creerStreamCipherXChacha20Poly1305(key, opts)
+export async function encryptStreamXChacha20Poly1305(data, opts) {
+    const cipher = await creerStreamCipherXChacha20Poly1305(opts)
 
     // Creer buffer pour resultat
     const tailleBuffer = (Math.ceil(data.length / MESSAGE_SIZE) + 1) * DECIPHER_MESSAGE_SIZE
@@ -188,8 +254,8 @@ export async function encryptStreamXChacha20Poly1305(key, data, opts) {
  * @param {*} tag 
  * @param {*} opts 
  */
-export async function decryptStreamXChacha20Poly1305(header, key, ciphertext, opts) {
-    const decipher = await creerStreamDecipherXChacha20Poly1305(header, key, opts)
+export async function decryptStreamXChacha20Poly1305(key, header, ciphertext) {
+    const decipher = await creerStreamDecipherXChacha20Poly1305(key, header)
 
     // Creer buffer pour resultat
     const tailleBuffer = Math.ceil(ciphertext.length / DECIPHER_MESSAGE_SIZE) * MESSAGE_SIZE
@@ -218,6 +284,8 @@ export async function decryptStreamXChacha20Poly1305(header, key, ciphertext, op
     return buffer.slice(0, positionEcriture)
 }
 
+// ----- Fin stream XChacha20 Poly1305 -----
+
 async function creerReadableStream() {
 
     let readableStream = null
@@ -236,15 +304,40 @@ export class CipherError extends Error {}
 
 export class DecipherError extends Error {}
 
+
+// Signatures
+// - encrypt : (data, opts)
+// - decrypt : (key, ciphertext, opts)
+// - getCipher : (opts)
+// - getDecipher : (key, opts)
+// Selon l'algorithme, opts peut etre :
+// - chiffrage { key, nonce } selon le cas
+// - dechiffrage { nonce, tag, header } selon le cas
+
+const streamXchacha20poly1305Algorithm = {
+    encrypt: encryptStreamXChacha20Poly1305,
+    decrypt: (key, data, opts) => decryptStreamXChacha20Poly1305(key, opts.header, data),
+    getCipher: creerStreamCipherXChacha20Poly1305,
+    getDecipher: (key, opts) => creerStreamDecipherXChacha20Poly1305(key, opts.header),
+    messageSize: MESSAGE_SIZE,
+}
+
+const chacha20poly1305Algorithm = {
+    encrypt: encryptChacha20Poly1305,
+    decrypt: (key, data, opts) => decryptChacha20Poly1305(key, opts.nonce||opts.iv, data, opts.tag),
+    getCipher: nonSupporte,
+    getDecipher: nonSupporte,
+}
+
+function nonSupporte() {
+    throw new Error("cipher/decipher non supporte")
+}
+
 const ciphers = {
-    // Nodejs Crypto
-    'stream-xchacha20poly1305': {
-        encrypt: encryptStreamXChacha20Poly1305,
-        decrypt: decryptStreamXChacha20Poly1305,
-        getCipher: creerStreamCipherXChacha20Poly1305,
-        getDecipher: creerStreamDecipherXChacha20Poly1305,
-        messageSize: MESSAGE_SIZE,
-    }
+    'chacha20-poly1305': chacha20poly1305Algorithm,
+    'stream-xchacha20poly1305': streamXchacha20poly1305Algorithm,
+    'mgs3': chacha20poly1305Algorithm,
+    'mgs4': streamXchacha20poly1305Algorithm,
 }
 
 setCiphers(ciphers)
