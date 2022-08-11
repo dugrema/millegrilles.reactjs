@@ -8,8 +8,11 @@ import { pki } from '@dugrema/node-forge'
 import { base64 } from 'multiformats/bases/base64'
 
 import { getAcceptedFileReader, streamAsyncIterable } from './stream.js'
-import { preparerCipher, preparerCommandeMaitrecles }  from './chiffrage'
+import { chiffrage }  from './chiffrage'
 import * as hachage from './hachage'
+
+const { preparerCipher, preparerCommandeMaitrecles } = chiffrage
+
 
 // const { splitPEMCerts } = forgecommon
 
@@ -183,7 +186,7 @@ async function uploadFichier() {
 
     try {
         var position = 0
-        for await (let batchContent of reader) {
+        const uploadHandler = async batchContent => {
             const pathUpload = path.join(_pathServeur, ''+correlation, ''+position)
             position += batchContent.length
             const cancelTokenSource = axios.CancelToken.source()
@@ -206,16 +209,26 @@ async function uploadFichier() {
             // console.debug("Reponse upload %s position %d Pct: %d put block %O", correlation, position, _uploadEnCours.pctFichierEnCours, reponse)
             emettreEtat().catch(err=>(console.warn("Erreur maj etat : %O", err)))
         }
+        for await (let batchContent of reader) {
+            await uploadHandler(batchContent)
+        }
 
         // Preprarer commande maitre des cles
         // const resultatChiffrage = await transformHandler.finish()
         const resultatChiffrage = await cipher.finalize()
-        const {hachage: hachage_bytes, tag} = resultatChiffrage
-        const iv = base64.encode(transformHandler.iv)
+        const { ciphertext, meta } = resultatChiffrage
+
+        if(ciphertext) {
+            // Upload derniere batch
+            await uploadHandler(ciphertext)
+        }
+
+        const hachage_bytes = meta.hachage_bytes
+        // const iv = base64.encode(transformHandler.iv)
         // console.debug("Resultat chiffrage : %O", resultatChiffrage)
         const identificateurs_document = { fuuid: hachage_bytes }
         const commandeMaitreDesCles = await preparerCommandeMaitrecles(
-            [_certificat[0]], transformHandler.secretKey, _domaine, hachage_bytes, iv, tag, identificateurs_document, {DEBUG: false})
+            [_certificat[0]], transformHandler.secretKey, _domaine, hachage_bytes, identificateurs_document, {...meta, DEBUG: false})
 
         // Ajouter cle du cert de millegrille
         commandeMaitreDesCles.cles[_fingerprintCa] = transformHandler.secretChiffre

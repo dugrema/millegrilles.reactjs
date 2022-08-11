@@ -4,7 +4,9 @@ import { base64 } from "multiformats/bases/base64"
 
 // import { dechiffrer } from '@dugrema/millegrilles.utiljs/src/chiffrage'
 
-import { dechiffrer, preparerDecipher } from './chiffrage'
+import { chiffrage } from './chiffrage'
+
+const { dechiffrer, preparerDecipher } = chiffrage
 
 var _urlDownload = '/collections/fichiers',
     _nomIdb = 'collections'

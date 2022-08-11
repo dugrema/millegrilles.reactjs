@@ -87,10 +87,12 @@ export async function* streamAsyncIterable(reader, opts) {
               if(transform) {
                   value = await opts.transform(value)
               }
-              if(!tempBuffer) {
-                  tempBuffer = Buffer.from(value)
-              } else {
-                  tempBuffer = Buffer.concat([tempBuffer, Buffer.from(value)])
+              if(value) {
+                if(!tempBuffer) {
+                    tempBuffer = Buffer.from(value)
+                } else {
+                    tempBuffer = Buffer.concat([tempBuffer, Buffer.from(value)])
+                }
               }
           }
 

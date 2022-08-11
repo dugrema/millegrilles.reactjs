@@ -4,7 +4,7 @@ import { pki as forgePki, ed25519 } from '@dugrema/node-forge'
 import { CertificateStore, extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon'
 import { FormatteurMessageEd25519, SignateurMessageEd25519 } from '@dugrema/millegrilles.utiljs/src/formatteurMessage'
 import * as hachage from './hachage'
-import * as chiffrage from './chiffrage'
+import { chiffrage } from './chiffrage'
 import * as ed25519Utils from '@dugrema/millegrilles.utiljs/src/chiffrage.ed25519'
 
 export {chiffrage}

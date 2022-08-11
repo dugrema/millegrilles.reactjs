@@ -47,7 +47,7 @@ export async function decryptChacha20Poly1305(key, nonce, data, tag) {
     if(typeof(tag)==='string') tag = base64.decode(tag)
     if(typeof(nonce)==='string') nonce = base64.decode(nonce)
 
-    console.debug("Params: key: %O, nonce : %O, data: %O, tag: %O", key, nonce, data, tag)
+    // console.debug("Params: key: %O, nonce : %O, data: %O, tag: %O", key, nonce, data, tag)
 
     key = Uint8Array.from(key)
     nonce = Uint8Array.from(nonce)
