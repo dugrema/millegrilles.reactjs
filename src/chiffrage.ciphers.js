@@ -326,6 +326,7 @@ const streamXchacha20poly1305Algorithm = {
     getCipher: creerStreamCipherXChacha20Poly1305,
     getDecipher: (key, opts) => creerStreamDecipherXChacha20Poly1305(key, opts.header),
     messageSize: MESSAGE_SIZE,
+    stream: true,
 }
 
 const chacha20poly1305Algorithm = {
@@ -333,6 +334,7 @@ const chacha20poly1305Algorithm = {
     decrypt: (key, data, opts) => decryptChacha20Poly1305(key, opts.nonce||opts.iv, data, opts.tag),
     getCipher: nonSupporte,
     getDecipher: nonSupporte,
+    stream: false,
 }
 
 function nonSupporte() {

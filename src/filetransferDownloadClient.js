@@ -12,8 +12,8 @@ var _urlDownload = '/collections/fichiers',
     _nomIdb = 'collections'
 
 const CACHE_TEMP_NAME = 'fichiersDechiffresTmp',
-      TAILLE_LIMITE_BLOCKCIPHER = 5 * 1024 * 1024,  // La limite de dechiffrage vient de tests sur iPhone 7
-      DECHIFFRAGE_TAILLE_BLOCK = 256 * 1024,
+      TAILLE_LIMITE_BLOCKCIPHER = 50 * 1024 * 1024,  // La limite de dechiffrage sans stream pour ciphers sans streaming comme mgs3
+      DECHIFFRAGE_TAILLE_BLOCK = 64 * 1024,
       STORE_DOWNLOADS = 'downloads',
       EXPIRATION_CACHE_MS = 24 * 60 * 60 * 1000
 
@@ -223,7 +223,7 @@ function _creerDownloadStream(reader, contentLength, opts) {
         dataProcessor = opts.dataProcessor,
         DEBUG = opts.DEBUG
 
-  const {fuuid, filename} = downloadEnCours
+  // const {fuuid, filename} = downloadEnCours
 
   const progressCb = opts.progressCb || function(){}  // Default fonction sans effet
 
@@ -244,35 +244,32 @@ function _creerDownloadStream(reader, contentLength, opts) {
         return
       }
 
-      if(downloadEnCours && downloadEnCours.annuler) {
-        throw new Error("Usager a annule le transfert")
-      }
-      progressCb(receivedLength, contentLength, {flag: 'lecture'})  // Complet
-      const {done: _done, value} = await reader.read()
-      progressCb(receivedLength, contentLength, {flag: '', message: value?`Lu ${value.length}`:'Lecture null'})  // Complet
-
-      if(DEBUG) console.debug("_creerDownloadStream pull (done: %s) value = %O", _done, value)
-      if(_done) {
-        done = true
-        if(dataProcessor) {
-          if(DEBUG) console.debug("_creerDownloadProcess termine, on fait dataProcessor.finish()")
-          const value = await dataProcessor.finish()
-          if(value && value.length > 0) {
-            controller.enqueue(value)
-          } else {
-            controller.close()
-            progressCb(contentLength, contentLength, {})  // Complet
-          }
-        } else {
-          controller.close()
-          progressCb(contentLength, contentLength, {})  // Complet
+      while(!done) {
+        if(downloadEnCours && downloadEnCours.annuler) {
+          throw new Error("Usager a annule le transfert")
         }
-        return
-      }
+        progressCb(receivedLength, contentLength, {flag: 'lecture'})  // Complet
+        let {done: _done, value} = await reader.read(DECHIFFRAGE_TAILLE_BLOCK)
+        progressCb(receivedLength, contentLength, {flag: '', message: value?`Lu ${value.length}`:'Lecture null'})  // Complet
 
-      // Verifier taille recue, traiter en petits blocks
-      for(let _position=0; _position < value.length; _position += DECHIFFRAGE_TAILLE_BLOCK) {
-        // Traitement block
+        if(DEBUG) console.debug("_creerDownloadStream pull (done: %s) value = %O", _done, value)
+        if(_done) {
+          done = true
+          if(dataProcessor) {
+            if(DEBUG) console.debug("_creerDownloadProcess termine, on fait dataProcessor.finish()")
+            const value = await dataProcessor.finish()
+            const {message} = value
+            if(message && message.length > 0) {
+              controller.enqueue(message)
+            }
+          } 
+
+          // Complet
+          controller.close()
+          progressCb(contentLength, contentLength, {})
+
+          return
+        }
 
         if(downloadEnCours) {
           // Donner une chance d'intercepter l'evenement
@@ -282,29 +279,34 @@ function _creerDownloadStream(reader, contentLength, opts) {
           }
         }
 
-        const positionFin = Math.min(_position + DECHIFFRAGE_TAILLE_BLOCK, value.length)
-        var sousBlock = value.slice(_position, positionFin)
-
+        // Utiliser des buffers de 64kb, plus rapide pour traitement WASM
+        receivedLength += value.length
         if(dataProcessor) {
+          let positionTraitee = 0, positionOutput = 0
           if(DEBUG) console.debug("Dechiffrer")
-          try {
-            progressCb(receivedLength, contentLength, {
-              flag: 'dechiffrage', message: `Dechiffrage ${sousBlock.length}, position : ${receivedLength}`
-            })
-            sousBlock = await dataProcessor.update(sousBlock)
-            progressCb(receivedLength, contentLength, {flag: ''})
-          } catch(err) {
-            if(DEBUG) console.error("Erreur dechiffrage, %O", err)
-            throw err
+          while(positionTraitee < value.length) {
+            const positionFin = Math.min(positionTraitee + DECHIFFRAGE_TAILLE_BLOCK, value.length)
+            try {
+              const sousBlock = value.slice(positionTraitee, positionFin)
+              const sousBlockOutput = await dataProcessor.update(sousBlock)
+              if(sousBlockOutput) {
+                // bufferOutput.set(sousBlockOutput, positionOutput)
+                controller.enqueue(sousBlockOutput)
+                positionOutput += sousBlockOutput.length
+              }
+              positionTraitee += sousBlock.length
+            } catch(err) {
+              if(DEBUG) console.error("Erreur dechiffrage, %O", err)
+              throw err
+            }
           }
-          if(DEBUG) console.debug("Value chiffree : %O", sousBlock)
+          if(DEBUG) console.debug("Value dechiffree : %O", value)
+        } else {
+          controller.enqueue(value)
         }
 
-        receivedLength += sousBlock.length
         if(DEBUG) console.debug(`Recu ${receivedLength} / ${contentLength}`)
         progressCb(receivedLength, contentLength, {})
-
-        controller.enqueue(sousBlock)
       }
     }
   })
@@ -312,11 +314,11 @@ function _creerDownloadStream(reader, contentLength, opts) {
 }
 
 async function preparerDataProcessor(opts) {
+  console.debug("preparerDataProcessor opts : %O", opts)
   opts = opts || {}
   const DEBUG = opts.DEBUG || false
   let {password, passwordChiffre} = opts
   const tailleLimiteSubtle = opts.tailleLimiteSubtle || TAILLE_LIMITE_BLOCKCIPHER
-  const clePriveePem = opts.clePriveePem
   let blockCipher = null
 
   if(!password && !passwordChiffre) throw new Error("Il faut fournir opts.password ou opts.passwordChiffre")
@@ -333,15 +335,19 @@ async function preparerDataProcessor(opts) {
   const dataProcessor = {
     start: async response => {
       // On active le blockCipher si le fichier depasse le seuil pour utiliser subtle
-      const size = Number(response.headers.get('content-length'))
-      if(size > tailleLimiteSubtle) {
-        if(DEBUG) console.debug("Fichier taille %d, on va utiliser le block cipher javascript pur", size)
+      try {
+        const cipher = await preparerDecipher(password, {...opts})
         estActif = true
-        blockCipher = await preparerDecipher(password, {opts})
-      } else {
+        blockCipher = cipher
+      } catch(err) {
+        // Stream decipher n'est pas supporte
+        const size = Number(response.headers.get('content-length'))
+        if(size > tailleLimiteSubtle) {
+          throw new Error(`Streaming decipher non disponible, taille fichier > limite (${tailleLimiteSubtle}) : Err : ${''+err}`)
+        }
         if(DEBUG) console.debug("Fichier taille %d sous seuil, on utilise subtle pour dechiffrer", size)
-        // Retourner false, indique que le dataProcessor est inactif
       }
+
       return estActif
     },
     update: data => {
@@ -371,7 +377,9 @@ async function downloadCacheFichier(downloadEnCours, opts) {
   var dataProcessor = null
   const {fuuid, url, filename, mimetype, password, passwordChiffre} = downloadEnCours
   if((password || passwordChiffre)) {
-    dataProcessor = await preparerDataProcessor({...downloadEnCours, password, passwordChiffre})
+    const paramsDataProcessor = {...downloadEnCours, password, passwordChiffre}
+    console.debug("Dechifrer avec params : %O", paramsDataProcessor)
+    dataProcessor = await preparerDataProcessor(paramsDataProcessor)
   }
 
   let urlDownload = new URL(_urlDownload)
@@ -441,6 +449,7 @@ async function downloadCacheFichier(downloadEnCours, opts) {
         // password = await _chiffrage.dechiffrerCleSecrete(passwordChiffre)
         console.debug("Dechiffrer buffer : %O, password : %O, params : %O", buffer, dataProcessor.password, downloadEnCours)
         buffer = await dechiffrer(dataProcessor.password, buffer, {...downloadEnCours})
+        console.debug("Buffer dechiffre : %O", buffer)
         console.debug("Dechiffrage avec data processor termine")
         progressCb(size, size, {flag: 'Mise en cache'})
       }
