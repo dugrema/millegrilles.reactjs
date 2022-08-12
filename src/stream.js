@@ -69,7 +69,7 @@ export async function* streamAsyncIterable(reader, opts) {
     let done, positionLecture = 0, positionEcriture = 0
     const bufferOutput = new Uint8Array(batchSize)
     while (true) {
-        console.debug("streamAsyncIterable Call reader.read")
+        // console.debug("streamAsyncIterable Call reader.read")
         let bufferInput = null
         try {
           const resultatLecture = await reader.read(transformBufferSize)
@@ -81,16 +81,16 @@ export async function* streamAsyncIterable(reader, opts) {
           throw err
         }
 
-        console.debug("streamAsyncIterable Lecture (done?%s) len %s value %O", done, bufferInput?bufferInput.length:'NA', bufferInput)
+        // console.debug("streamAsyncIterable Lecture (done?%s) len %s value %O", done, bufferInput?bufferInput.length:'NA', bufferInput)
         if(bufferInput) {
           while(positionLecture < bufferInput.length) {
             let outputBlock = null
             if(transform) {
                 const tailleBlockChiffrage = Math.min(bufferInput.length - positionLecture, transformBufferSize)
-                console.debug("Chiffrage block taille (position: %d): %O", positionLecture, tailleBlockChiffrage)
+                // console.debug("Chiffrage block taille (position: %d): %O", positionLecture, tailleBlockChiffrage)
                 outputBlock = await opts.transform(bufferInput.slice(positionLecture, tailleBlockChiffrage))
                 positionLecture += tailleBlockChiffrage
-                console.debug("Chiffrage block complete (position rendu : %d) : %O", positionLecture, tailleBlockChiffrage)
+                // console.debug("Chiffrage block complete (position rendu : %d) : %O", positionLecture, tailleBlockChiffrage)
             } else {
                 outputBlock = bufferInput
                 positionLecture += bufferInput.length
@@ -105,7 +105,7 @@ export async function* streamAsyncIterable(reader, opts) {
               positionOutput += tailleBlockEcriture
               if(bufferOutput.length === positionEcriture) {
                 // On yield le buffer d'output (plein)
-                console.debug("Yield buffer output : %O", bufferOutput)
+                // console.debug("Yield buffer output : %O", bufferOutput)
                 yield bufferOutput
                 positionEcriture = 0
               }
@@ -114,13 +114,13 @@ export async function* streamAsyncIterable(reader, opts) {
         }
 
         if(done) {
-            console.debug("streamAsyncIterable Done, traitement final de %s bytes", positionEcriture)
+            // console.debug("streamAsyncIterable Done, traitement final de %s bytes", positionEcriture)
             if(positionEcriture > 0) {
-                console.debug("streamAsyncIterable yield final")
+                // console.debug("streamAsyncIterable yield final")
                 yield bufferOutput.slice(0, positionEcriture)
             }
             // Invocation finale
-            console.debug("streamAsyncIterable Termine apres yield")
+            // console.debug("streamAsyncIterable Termine apres yield")
             return
         }
     }
