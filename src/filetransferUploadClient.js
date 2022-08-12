@@ -33,7 +33,8 @@ var _callbackEtatUpload = null,
     _domaine = 'GrosFichiers',
     _pathServeur = '/collections/fichiers'
 
-const BATCH_SIZE = 5 * 1024 * 1024  // 1 MB
+const BATCH_SIZE = 5 * 1024 * 1024,  // 5 MB
+      CONST_BUFFER_CHIFFRAGE = 64 * 1024
 const STATUS_NOUVEAU = 1,
       STATUS_ENCOURS = 2,
       STATUS_SUCCES = 3,

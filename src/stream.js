@@ -28,7 +28,7 @@ export function getAcceptedFileReader(file) {
 /** Simulacre de reader qui utilise plusieurs appels a blob.slice */
 function sliceReader(file, opts) {
   opts = opts || {}
-  const TAILLE_BUFFER = opts.tailleBuffer || (256 * 1024)  // 256 kB par defaut
+  const TAILLE_BUFFER = opts.tailleBuffer || (64 * 1024)  // 256 kB par defaut
   // const tailleFichier = file.size
 
   var position = 0
@@ -62,55 +62,68 @@ function sliceReader(file, opts) {
  */
 export async function* streamAsyncIterable(reader, opts) {
   opts = opts || {}
-  const batchSize = opts.batchSize || 256 * 1024
+  const batchSize = opts.batchSize || 1 * 1024 * 1024,
+        transformBufferSize = 64 * 1024
   const transform = opts.transform
   try {
-      var tempBuffer = null
-      while (true) {
-          console.debug("streamAsyncIterable Call reader.read")
-          let resultat = null
-          try {
-            resultat = await reader.read()
-          } catch(err) {
-            console.error("streamAsyncIterable Erreur reader.read() : %O", err)
-            throw err
-          }
-          const done = resultat.done
-          let value = resultat.value
-          console.debug("streamAsyncIterable Lecture (done?%s) len %s value %O", done, value?value.length:'NA', value)
-          if (done && !tempBuffer) {
-              console.debug("streamAsyncIterable Termine sur block")
-              return
-          }
+    let done, positionLecture = 0, positionEcriture = 0
+    const bufferOutput = new Uint8Array(batchSize)
+    while (true) {
+        console.debug("streamAsyncIterable Call reader.read")
+        let bufferInput = null
+        try {
+          const resultatLecture = await reader.read(transformBufferSize)
+          if(resultatLecture.value) bufferInput = Buffer.from(resultatLecture.value)
+          done = resultatLecture.done
+          positionLecture = 0
+        } catch(err) {
+          console.error("streamAsyncIterable Erreur reader.read() : %O", err)
+          throw err
+        }
 
-          if(value) {
-              if(transform) {
-                  value = await opts.transform(Buffer.from(value))
-              }
-              if(value) {
-                if(!tempBuffer) {
-                    tempBuffer = Buffer.from(value)
-                } else {
-                    tempBuffer = Buffer.concat([tempBuffer, Buffer.from(value)])
-                }
-              }
-          }
+        console.debug("streamAsyncIterable Lecture (done?%s) len %s value %O", done, bufferInput?bufferInput.length:'NA', bufferInput)
+        if(bufferInput) {
+          while(positionLecture < bufferInput.length) {
+            let outputBlock = null
+            if(transform) {
+                const tailleBlockChiffrage = Math.min(bufferInput.length - positionLecture, transformBufferSize)
+                console.debug("Chiffrage block taille (position: %d): %O", positionLecture, tailleBlockChiffrage)
+                outputBlock = await opts.transform(bufferInput.slice(positionLecture, tailleBlockChiffrage))
+                positionLecture += tailleBlockChiffrage
+                console.debug("Chiffrage block complete (position rendu : %d) : %O", positionLecture, tailleBlockChiffrage)
+            } else {
+                outputBlock = bufferInput
+                positionLecture += bufferInput.length
+            }
 
-          if(done) {
-              console.debug("streamAsyncIterable Done, traitement final de %s bytes", tempBuffer.length)
-              if(tempBuffer) {
-                  console.debug("streamAsyncIterable yield final")
-                  yield tempBuffer
+            // Ecrire output
+            let positionOutput = 0
+            while(outputBlock && positionOutput < outputBlock.length) {
+              const tailleBlockEcriture = Math.min(bufferOutput.length - positionEcriture, outputBlock.length)
+              bufferOutput.set(outputBlock.slice(positionOutput, tailleBlockEcriture), positionEcriture)
+              positionEcriture += tailleBlockEcriture
+              positionOutput += tailleBlockEcriture
+              if(bufferOutput.length === positionEcriture) {
+                // On yield le buffer d'output (plein)
+                console.debug("Yield buffer output : %O", bufferOutput)
+                yield bufferOutput
+                positionEcriture = 0
               }
-              // Invocation finale
-              console.debug("streamAsyncIterable Termine apres yield")
-              return
-          } else if(tempBuffer && tempBuffer.length >= batchSize) {
-              console.debug("Yield buffer de %d bytes", tempBuffer.length)
-              yield tempBuffer
-              tempBuffer = null
+            }
           }
-      }
+        }
+
+        if(done) {
+            console.debug("streamAsyncIterable Done, traitement final de %s bytes", positionEcriture)
+            if(positionEcriture > 0) {
+                console.debug("streamAsyncIterable yield final")
+                yield bufferOutput.slice(0, positionEcriture)
+            }
+            // Invocation finale
+            console.debug("streamAsyncIterable Termine apres yield")
+            return
+        }
+    }
   } finally {
     reader.releaseLock()
   }
