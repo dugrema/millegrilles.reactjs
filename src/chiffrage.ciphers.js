@@ -277,8 +277,6 @@ export async function decryptStreamXChacha20Poly1305(key, header, ciphertext) {
     }
     let {message} = await decipher.finalize()
 
-    console.warn("!!! Message %O, positionEcriture : %O", message, positionEcriture)
-
     if(message) {
         // Concatener
         buffer.set(message, positionEcriture)

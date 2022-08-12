@@ -6,6 +6,8 @@ const DB_NAME = 'millegrilles',
       VERSION_COURANTE = 1,
       MAX_AGE_DEFAUT = 6 * 60 * 60  // 6h en secondes
 
+const CHAMPS_CLE = ['iv', 'nonce', 'tag', 'header', 'format']
+
 // Structure base de donnees
 // usagers = {
 //   nomUsager, // Cle
@@ -52,13 +54,20 @@ export async function saveCleDechiffree(hachage_bytes, cleSecrete, cleInfo) {
   const nomDB = 'millegrilles'
   const db = await openDB(nomDB)
 
+  const champsCle = CHAMPS_CLE.reduce((acc, champ)=>{
+    const valeur = cleInfo[champ]
+    if(valeur) acc[champ] = valeur
+    return acc
+  }, {})
+
   // Preparer une cle secrete non-exportable
   const data = {
     hachage_bytes,
     cleSecrete,
-    iv: cleInfo.iv,
-    tag: cleInfo.tag,
-    format: cleInfo.format,
+    ...champsCle,
+    // iv: cleInfo.iv,
+    // tag: cleInfo.tag,
+    // format: cleInfo.format,
     date: new Date(),
   }
 
