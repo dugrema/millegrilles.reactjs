@@ -229,7 +229,7 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
     const selecteurs = [...labels]
     selecteurs.sort(trierLabelsVideos)
     // const labelHauteResolution = trouverLabelVideo(labels, {supporteWebm})
-    console.debug("videoResourceLoader Labels : %O", labels)
+    // console.debug("videoResourceLoader Labels : %O", labels)
 
     // Generer loaders pour tous les labels (sauf thumbnail)
     const loaders = labels.reduce((acc, item)=>{
@@ -242,13 +242,13 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
                       genererToken = opts.genererToken
 
                 const fuuidVideo = video.fuuid_video
-                console.debug("Load video : %O", fuuidVideo)
+                // console.debug("Load video : %O", fuuidVideo)
                 let srcVideo = path.join(baseUrlVideo, fuuidVideo)
 
                 if(genererToken === true && creerToken) {
                     const fuuids = [fuuidVideo]
                     const tokenVideo = await creerToken(fuuids)
-                    console.debug("Token cree pour fuuids %O : %s", fuuids, tokenVideo)
+                    // console.debug("Token cree pour fuuids %O : %s", fuuids, tokenVideo)
                     srcVideo = path.join(baseUrlVideo, fuuidVideo, tokenVideo)
                 }
 
@@ -285,7 +285,7 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
         }
     })
 
-    console.debug("Buckets type video selecteur : %O, fallback", buckets, fallbackH264)
+    // console.debug("Buckets type video selecteur : %O, fallback", buckets, fallbackH264)
     Object.keys(buckets).forEach(label=>{
         const values = Object.values(buckets[label])
         if(values.length > 0) {

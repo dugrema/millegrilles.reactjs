@@ -15,7 +15,9 @@ const CACHE_TEMP_NAME = 'fichiersDechiffresTmp',
       TAILLE_LIMITE_BLOCKCIPHER = 50 * 1024 * 1024,  // La limite de dechiffrage sans stream pour ciphers sans streaming comme mgs3
       DECHIFFRAGE_TAILLE_BLOCK = 64 * 1024,
       STORE_DOWNLOADS = 'downloads',
-      EXPIRATION_CACHE_MS = 24 * 60 * 60 * 1000
+      EXPIRATION_CACHE_MS = 24 * 60 * 60 * 1000,
+      CONST_PROGRESS_UPDATE_THRESHOLD = 10 * 1024 * 1024,
+      CONST_PROGRESS_UPDATE_INTERVAL = 1000
 
 // Globals
 var _chiffrage = null
@@ -244,11 +246,17 @@ function _creerDownloadStream(reader, contentLength, opts) {
         return
       }
 
+      let prochainProgressTs = 0  // Limiter le nombre d'updates pour eviter overflow react
+
       while(!done) {
         if(downloadEnCours && downloadEnCours.annuler) {
           throw new Error("Usager a annule le transfert")
         }
-        progressCb(receivedLength, contentLength, {flag: 'lecture'})  // Complet
+        const nowInit = new Date().getTime()
+        if(nowInit > prochainProgressTs) {
+          prochainProgressTs = nowInit + CONST_PROGRESS_UPDATE_INTERVAL
+          progressCb(receivedLength, contentLength, {flag: 'lecture'})  // Complet
+        }
         let {done: _done, value} = await reader.read(DECHIFFRAGE_TAILLE_BLOCK)
         progressCb(receivedLength, contentLength, {flag: '', message: value?`Lu ${value.length}`:'Lecture null'})  // Complet
 
@@ -280,7 +288,6 @@ function _creerDownloadStream(reader, contentLength, opts) {
         }
 
         // Utiliser des buffers de 64kb, plus rapide pour traitement WASM
-        receivedLength += value.length
         if(dataProcessor) {
           let positionTraitee = 0, positionOutput = 0
           if(DEBUG) console.debug("Dechiffrer")
@@ -299,14 +306,25 @@ function _creerDownloadStream(reader, contentLength, opts) {
               if(DEBUG) console.error("Erreur dechiffrage, %O", err)
               throw err
             }
+
+            const now = new Date().getTime()
+            if(now > prochainProgressTs) {
+              prochainProgressTs = now + CONST_PROGRESS_UPDATE_INTERVAL
+              progressCb(receivedLength+positionTraitee, contentLength, {flag: 'dechiffrage'})
+            }
           }
           if(DEBUG) console.debug("Value dechiffree : %O", value)
         } else {
           controller.enqueue(value)
         }
+        receivedLength += value.length
 
         if(DEBUG) console.debug(`Recu ${receivedLength} / ${contentLength}`)
-        progressCb(receivedLength, contentLength, {})
+        const now = new Date().getTime()
+        if(now > prochainProgressTs) {
+          prochainProgressTs = now + CONST_PROGRESS_UPDATE_INTERVAL
+          progressCb(receivedLength, contentLength, {})
+        }
       }
     }
   })
@@ -445,12 +463,7 @@ async function downloadCacheFichier(downloadEnCours, opts) {
         // On avait un processor, finir le dechiffrage
         if(DEBUG) console.debug("Dechiffrer apres buffering")
         progressCb(size-1, size, {flag: 'Dechiffrage en cours'})
-        // if(!password)
-        // password = await _chiffrage.dechiffrerCleSecrete(passwordChiffre)
-        console.debug("Dechiffrer buffer : %O, password : %O, params : %O", buffer, dataProcessor.password, downloadEnCours)
         buffer = await dechiffrer(dataProcessor.password, buffer, {...downloadEnCours})
-        console.debug("Buffer dechiffre : %O", buffer)
-        console.debug("Dechiffrage avec data processor termine")
         progressCb(size, size, {flag: 'Mise en cache'})
       }
       response = new Response(buffer, {headers: headersModifies, status})
