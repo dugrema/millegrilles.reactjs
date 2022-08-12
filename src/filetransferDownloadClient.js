@@ -311,7 +311,7 @@ function _creerDownloadStream(reader, contentLength, opts) {
 
 }
 
-async function preparerDataProcessor(iv, tag, opts) {
+async function preparerDataProcessor(opts) {
   opts = opts || {}
   const DEBUG = opts.DEBUG || false
   let {password, passwordChiffre} = opts
@@ -337,7 +337,7 @@ async function preparerDataProcessor(iv, tag, opts) {
       if(size > tailleLimiteSubtle) {
         if(DEBUG) console.debug("Fichier taille %d, on va utiliser le block cipher javascript pur", size)
         estActif = true
-        blockCipher = await preparerDecipher(password, iv, {tag})
+        blockCipher = await preparerDecipher(password, {opts})
       } else {
         if(DEBUG) console.debug("Fichier taille %d sous seuil, on utilise subtle pour dechiffrer", size)
         // Retourner false, indique que le dataProcessor est inactif
@@ -369,9 +369,9 @@ async function downloadCacheFichier(downloadEnCours, opts) {
   const DEBUG = opts.DEBUG || false
 
   var dataProcessor = null
-  const {fuuid, url, filename, mimetype, iv, tag, password, passwordChiffre} = downloadEnCours
-  if(iv && tag && (password || passwordChiffre)) {
-    dataProcessor = await preparerDataProcessor(iv, tag, {password, passwordChiffre})
+  const {fuuid, url, filename, mimetype, password, passwordChiffre} = downloadEnCours
+  if((password || passwordChiffre)) {
+    dataProcessor = await preparerDataProcessor({...downloadEnCours, password, passwordChiffre})
   }
 
   let urlDownload = new URL(_urlDownload)
@@ -439,7 +439,8 @@ async function downloadCacheFichier(downloadEnCours, opts) {
         progressCb(size-1, size, {flag: 'Dechiffrage en cours'})
         // if(!password)
         // password = await _chiffrage.dechiffrerCleSecrete(passwordChiffre)
-        buffer = await dechiffrer(buffer, dataProcessor.password, iv, tag)
+        console.debug("Dechiffrer buffer : %O, password : %O, params : %O", buffer, dataProcessor.password, downloadEnCours)
+        buffer = await dechiffrer(dataProcessor.password, buffer, {...downloadEnCours})
         console.debug("Dechiffrage avec data processor termine")
         progressCb(size, size, {flag: 'Mise en cache'})
       }

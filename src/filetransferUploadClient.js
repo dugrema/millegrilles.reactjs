@@ -216,19 +216,27 @@ async function uploadFichier() {
         // Preprarer commande maitre des cles
         // const resultatChiffrage = await transformHandler.finish()
         const resultatChiffrage = await cipher.finalize()
-        const { ciphertext, meta } = resultatChiffrage
+        console.debug("Resultat chiffrage : %O", resultatChiffrage)
+        const { ciphertext } = resultatChiffrage
+
+        const champsOptionnels = ['iv', 'nonce', 'header', 'tag']
+        const paramsChiffrage = champsOptionnels.reduce((acc, champ)=>{
+            const valeur = resultatChiffrage[champ]
+            if(valeur) acc[champ] = valeur
+            return acc
+        }, {})
 
         if(ciphertext) {
             // Upload derniere batch
             await uploadHandler(ciphertext)
         }
 
-        const hachage_bytes = meta.hachage_bytes
+        const hachage_bytes = resultatChiffrage.hachage
         // const iv = base64.encode(transformHandler.iv)
         // console.debug("Resultat chiffrage : %O", resultatChiffrage)
         const identificateurs_document = { fuuid: hachage_bytes }
         const commandeMaitreDesCles = await preparerCommandeMaitrecles(
-            [_certificat[0]], transformHandler.secretKey, _domaine, hachage_bytes, identificateurs_document, {...meta, DEBUG: false})
+            [_certificat[0]], transformHandler.secretKey, _domaine, hachage_bytes, identificateurs_document, {...paramsChiffrage, DEBUG: false})
 
         // Ajouter cle du cert de millegrille
         commandeMaitreDesCles.cles[_fingerprintCa] = transformHandler.secretChiffre

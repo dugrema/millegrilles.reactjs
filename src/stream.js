@@ -67,7 +67,7 @@ export async function* streamAsyncIterable(reader, opts) {
   try {
       var tempBuffer = null
       while (true) {
-          // console.debug("streamAsyncIterable Call reader.read")
+          console.debug("streamAsyncIterable Call reader.read")
           let resultat = null
           try {
             resultat = await reader.read()
@@ -77,15 +77,15 @@ export async function* streamAsyncIterable(reader, opts) {
           }
           const done = resultat.done
           let value = resultat.value
-          // console.debug("streamAsyncIterable Lecture (done?%s) len %s", done, value?value.length:'NA')
+          console.debug("streamAsyncIterable Lecture (done?%s) len %s value %O", done, value?value.length:'NA', value)
           if (done && !tempBuffer) {
-              // console.debug("streamAsyncIterable Termine sur block")
+              console.debug("streamAsyncIterable Termine sur block")
               return
           }
 
           if(value) {
               if(transform) {
-                  value = await opts.transform(value)
+                  value = await opts.transform(Buffer.from(value))
               }
               if(value) {
                 if(!tempBuffer) {
@@ -97,16 +97,16 @@ export async function* streamAsyncIterable(reader, opts) {
           }
 
           if(done) {
-              // console.debug("streamAsyncIterable Done, traitement final de %s bytes", tempBuffer.length)
+              console.debug("streamAsyncIterable Done, traitement final de %s bytes", tempBuffer.length)
               if(tempBuffer) {
-                  // console.debug("streamAsyncIterable yield final")
+                  console.debug("streamAsyncIterable yield final")
                   yield tempBuffer
               }
               // Invocation finale
-              // console.debug("streamAsyncIterable Termine apres yield")
+              console.debug("streamAsyncIterable Termine apres yield")
               return
-          } else if(tempBuffer.length >= batchSize) {
-              // console.debug("Yield buffer de %d bytes", tempBuffer.length)
+          } else if(tempBuffer && tempBuffer.length >= batchSize) {
+              console.debug("Yield buffer de %d bytes", tempBuffer.length)
               yield tempBuffer
               tempBuffer = null
           }
