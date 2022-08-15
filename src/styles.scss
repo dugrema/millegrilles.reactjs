@@ -1,0 +1,59 @@
+@use "sass:map";
+
+$menu-body-color: $fourth-color;
+$menu-body-bg: $third-color;
+
+/*
+.flexwrappervertical {
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+    justify-content: space-between;
+}
+*/
+
+.header {
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+}
+
+.header, .footer {
+    background-color: $menu-body-bg;
+}
+
+DIV.container {
+    overflow: hidden;
+}
+
+.contenu .titre {
+    padding-top: 0.5rem;
+}
+
+.contenu .titre .bouton {
+    text-align: right;
+    margin-top: 0.1rem;
+}
+
+.boutons button {
+    width: 10rem;
+}
+.boutons div {
+    text-align: center;
+    padding-bottom: 0.25rem;
+}
+$small-width: map.get($grid-breakpoints, sm);
+// @media (max-width: $small-width) {
+//     .boutons button { text-align: center; }  
+//}
+@media (min-width: $small-width) {
+    div.bouton-gauche { text-align: right; }
+    div.bouton-droite { text-align: left; }  
+}
+
+.idmg {
+    font-size: smaller;
+}
+
+.menu-section-droite div {
+    display: inline;
+}

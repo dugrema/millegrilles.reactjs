@@ -1,5 +1,7 @@
 BODY {
-  background-color: white;
+  background-color: unset;
+  background-color: #000;
+  color: #aaa;
 }
 
 .boutons-droite {
@@ -366,7 +368,8 @@ BODY {
 }
 
 .header, .footer {
-  background-color: rgba(13,202,240);
+  /* background-color: rgba(13,202,240); */
+  background-color: #aaa;
 }
 
 .footer {

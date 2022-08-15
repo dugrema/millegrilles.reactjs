@@ -53,6 +53,8 @@ export * from './CleMillegrille'
 
 export { AfficherActivationsUsager } from './ActivationCodeUsager'
 
+export { default as LayoutMillegrilles, Menu, DropDownLanguage, ModalInfo } from './LayoutMillegrilles'
+
 // import * as ChiffrageClient from './chiffrageClient.js'
 // export { ChiffrageClient }
 
