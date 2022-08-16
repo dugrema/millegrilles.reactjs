@@ -55,6 +55,8 @@ export { AfficherActivationsUsager } from './ActivationCodeUsager'
 
 export { default as LayoutMillegrilles, Menu, DropDownLanguage, ModalInfo } from './LayoutMillegrilles'
 
+export * from './AffichageNotices'
+
 // import * as ChiffrageClient from './chiffrageClient.js'
 // export { ChiffrageClient }
 
