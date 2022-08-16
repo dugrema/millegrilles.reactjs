@@ -57,3 +57,16 @@ $small-width: map.get($grid-breakpoints, sm);
 .menu-section-droite div {
     display: inline;
 }
+
+/* Boutons actifs */
+button.bouton-actif i {
+    margin-left: 0.5rem;
+}
+button.bouton-actif.succes {
+    background: $green;
+    border-color: $second-color;
+}
+button.bouton-actif.echec {
+    background: $red;
+    border-color: $second-color;
+}

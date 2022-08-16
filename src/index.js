@@ -57,6 +57,8 @@ export { default as LayoutMillegrilles, Menu, DropDownLanguage, ModalInfo } from
 
 export * from './AffichageNotices'
 
+export * from './BoutonsActifs'
+
 // import * as ChiffrageClient from './chiffrageClient.js'
 // export { ChiffrageClient }
 
