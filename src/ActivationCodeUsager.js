@@ -6,9 +6,10 @@ import Form from 'react-bootstrap/Form'
 import Modal from 'react-bootstrap/Modal'
 import Tab from 'react-bootstrap/Tab'
 import Tabs from 'react-bootstrap/Tabs'
-import Alert from 'react-bootstrap/Alert'
 
 import { pki } from '@dugrema/node-forge'
+
+import { BoutonActif } from './BoutonsActifs'
 
 import QrCodeScanner, {handleScanDer} from './QrCodeScanner'
 
@@ -16,20 +17,22 @@ export function AfficherActivationsUsager(props) {
     const {workers, nomUsager, csrCb, supportCodeQr, erreurCb} = props
   
     const [csr, setCsr] = useState('')
-    const [nomUsagerCsr, setNomUsagerCsr] = useState('')
 
     // Charger le nom de l'usager dans le CSR
     useEffect(()=>{
         if(csr) {
             const nomUsagerCsr = getNomUsagerCsr(csr)
-            setNomUsagerCsr(nomUsagerCsr)
+
+            if(nomUsagerCsr!==nomUsager) {
+                erreurCb(`Le code recu (${nomUsagerCsr}) ne correspond pas au compte ${nomUsager}`)
+                return
+            }
+
             if(nomUsager === nomUsagerCsr) {
                 csrCb(csr)
             }
         }
-    }, [nomUsager, csr, setNomUsagerCsr, csrCb, erreurCb])
-  
-    const nomUsagerMatchCsr = csr?nomUsagerCsr===nomUsager:false
+    }, [nomUsager, csr, csrCb, erreurCb])
   
     return (
         <div>
@@ -38,17 +41,8 @@ export function AfficherActivationsUsager(props) {
                 nomUsager={nomUsager}
                 supportCodeQr={supportCodeQr}
                 setCsr={setCsr}
-                setNomUsagerCsr={setNomUsagerCsr}
                 erreurCb={erreurCb} />
-
             <br />
-            <Alert variant="danger" show={(csr&&!nomUsagerMatchCsr)?true:false}>
-                <p>Le code recu ({nomUsagerCsr}) ne correspond pas au compte {nomUsager}</p>
-            </Alert>
-            <Alert variant="success" show={nomUsagerMatchCsr?true:false}>
-                <p>Le code du compte {nomUsagerCsr} correspond, verification OK.</p>
-            </Alert>
- 
         </div>
     )
 }
@@ -94,29 +88,39 @@ function SelecteurSaisie(props) {
 
 function CodeTexte(props) {
 
-    const { workers, nomUsager, csr, setCsr, setNomUsagerCsr, erreurCb } = props
+    const { workers, nomUsager, csr, setCsr, erreurCb } = props
 
     const [code, setCode] = useState('')
+    const [etatBouton, setEtatBouton] = useState('')
 
     const verifierCb = useCallback(()=>{
         // Recuperer le CSR correspondant au compte/code
+        setEtatBouton('attente')
         const codeFormatte = formatterCode(code, erreurCb)
+        if(!codeFormatte) {
+            setEtatBouton('echec')
+            return
+        }
         setCode(codeFormatte)
         verifierCode(workers, codeFormatte, nomUsager)
             .then(csr=>{
                 if(csr) {
+                    setEtatBouton('succes')
                     setCsr(csr)
+                } else {
+                    setEtatBouton('echec')
                 }
             })
             .catch(err=>{
                 console.warn("ActivationCodeUsager.AfficherActivationsUsager - s'assurer d'avoir une methode connexion.getRecoveryCsr(code)")
+                setEtatBouton('echec')
                 erreurCb(err)
             })
-    }, [workers, nomUsager, code, csr, setCode, setCsr, erreurCb])
+    }, [workers, nomUsager, code, csr, setCode, setCsr, setEtatBouton, erreurCb])
   
     const changerCodeCb = useCallback(event => {
         setCsr('')
-        setNomUsagerCsr('')
+        setEtatBouton('')
   
         const code = event.currentTarget.value
         if(code) {
@@ -131,7 +135,7 @@ function CodeTexte(props) {
         } else {
             setCode(code)
         }
-    }, [setCode, setCsr, setNomUsagerCsr])
+    }, [setCode, setCsr, setEtatBouton])
 
     return (
         <div>
@@ -149,7 +153,12 @@ function CodeTexte(props) {
                         onChange={changerCodeCb} />
                 </Col>
                 <Col>
-                    <Button variant="secondary" onClick={verifierCb}>Verifier code</Button>
+                    <BoutonActif 
+                        variant="secondary" 
+                        etat={etatBouton} 
+                        onClick={verifierCb}>
+                            Verifier code
+                    </BoutonActif>
                 </Col>
             </Row>
         </div>
