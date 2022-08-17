@@ -11,7 +11,7 @@ import { pki } from '@dugrema/node-forge'
 
 import { BoutonActif } from './BoutonsActifs'
 
-import QrCodeScanner, {handleScanDer} from './QrCodeScanner'
+import QrCodeScanner, { decodeCsrToPem } from './QrCodeScanner'
 
 export function AfficherActivationsUsager(props) {
     const {workers, nomUsager, csrCb, supportCodeQr, erreurCb} = props
@@ -66,11 +66,9 @@ function SelecteurSaisie(props) {
         return (
             <Tabs defaultActiveKey="qr" id="tab-code">
                 <Tab eventKey="qr" title="Code QR">
-                    <Button variant="secondary" onClick={showScannerOn}>Scan code QR</Button>
-                    <ScannerCode 
-                        setCsr={setCsr}
-                        showScanner={showScanner}
-                        setShowScanner={setShowScanner} />
+                    <ScannerCodeCsr 
+                        onScan={setCsr}
+                        onError={erreurCb} />
 
                 </Tab>
                 <Tab eventKey="activation" title="Code activation">
@@ -165,30 +163,23 @@ function CodeTexte(props) {
     )
 }
 
-function ScannerCode(props) {
-    const { showScanner, setShowScanner, setCsr } = props
+function ScannerCodeCsr(props) {
+    const { onScan, onError } = props
 
-    const fermer = useCallback(()=>setShowScanner(false), [setShowScanner])
-
-    const setDataCb = useCallback(data=>{
-        setCsr(data)
-        setShowScanner(false)
-    }, [setCsr, setShowScanner])
+    const handlerScan = data => {
+        try {
+            const csr = decodeCsrToPem(data)
+            onScan(scr)
+        } catch(err) {
+            onError(err, 'ScannerCodeCsr Erreur lecture CSR')
+        }
+    }
 
     return (
-        <Modal show={showScanner} fullscreen="true" onHide={fermer}>
-
-            <Modal.Header closeButton>
-                <Modal.Title>QR Code</Modal.Title>
-            </Modal.Header>
-
-            <QrCodeScanner 
-                show={showScanner} 
-                handleScan={handleScanDer}
-                setData={setDataCb} 
-                erreurCb={()=>{}} />
-
-        </Modal>
+        <QrCodeScanner 
+            show={showScanner} 
+            onScan={handlerScan}
+            onError={onError} />
     )
 }
 
