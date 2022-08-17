@@ -68,7 +68,8 @@ function SelecteurSaisie(props) {
                 <Tab eventKey="qr" title="Code QR">
                     <ScannerCodeCsr 
                         onScan={setCsr}
-                        onError={erreurCb} />
+                        onError={erreurCb} 
+                        label='Scan' />
 
                 </Tab>
                 <Tab eventKey="activation" title="Code activation">
@@ -164,7 +165,7 @@ function CodeTexte(props) {
 }
 
 function ScannerCodeCsr(props) {
-    const { onScan, onError } = props
+    const { label, onScan, onError } = props
 
     const handlerScan = (data, _dataJson) => {
         try {
@@ -177,6 +178,7 @@ function ScannerCodeCsr(props) {
 
     return (
         <QrCodeScanner 
+            label={label}
             onScan={handlerScan}
             onError={onError} />
     )

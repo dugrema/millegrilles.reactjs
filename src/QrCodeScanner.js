@@ -2,10 +2,11 @@ import React, { Component, useState, useEffect, useCallback } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { base64 } from 'multiformats/bases/base64'
 
-import Button from 'react-bootstrap/Button'
 import Modal from 'react-bootstrap/Modal'
 import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
+
+import { BoutonActif } from './BoutonsActifs'
 
 const CONST_QRCODE_REGION_ID = 'qrcoderegionid'
 
@@ -56,11 +57,16 @@ export const WRAP_CERTIFICATE = [
 function Html5QrcodeModal(props) {
 
   const { qrCodeSuccessCallback, onError } = props
+  const label = props.label || 'Scan'
 
   const [running, setRunning] = useState(false)
   const [entered, setEntered] = useState(false)
+  const [etatBouton, setEtatBouton] = useState('')
 
-  const handlerStart = useCallback(() => setRunning(true), [setRunning])
+  const handlerStart = useCallback(() => {
+    setRunning(true)
+    setEtatBouton('')
+  }, [setRunning, setEtatBouton])
   const handlerEntered = useCallback(() => setEntered(true), [setEntered])
   const handlerStop = useCallback(() => {
       setRunning(false)
@@ -69,17 +75,19 @@ function Html5QrcodeModal(props) {
   const handlerSuccess = useCallback((decodedText, decodedResult) => {
       handlerStop()
       qrCodeSuccessCallback(decodedText, decodedResult)
-  }, [qrCodeSuccessCallback, handlerStop])
+      setEtatBouton('succes')
+  }, [qrCodeSuccessCallback, handlerStop, setEtatBouton])
 
   // Override onError pour fermer le modal. Evite 2 modal superposes.
   const handlerError = useCallback((err, message)=>{
     setRunning(false)
     if(onError) onError(err, message)
+    setEtatBouton('echec')
   }, [setRunning, onError])
 
   return (
       <div>
-          <Button onClick={handlerStart} disabled={!!running}>Start</Button>
+          <BoutonActif onClick={handlerStart} etat={etatBouton} disabled={!!running}>{label}</BoutonActif>
           <Modal show={running} fullscreen={true} onEntered={handlerEntered} onHide={handlerStop}>
               <Modal.Header closeButton>Scanner QR</Modal.Header>
               <Html5QrcodeRunner {...props} 
@@ -179,7 +187,7 @@ class ErrorBoundary extends Component {
 
 // Decode un code QR avec contenu binaire (e.g. DER pour x.509)
 function decodeTextToBuffer(data, lineLength) {
-  lineLength = lineLength || 64
+  lineLength = lineLength || TAILLE_LIGNE
   const buffer = Uint8Array.from(data.split("").map(x => x.charCodeAt()))
   let bufferBase64 = base64.encode(buffer).slice(1)
 
@@ -197,7 +205,7 @@ function decodeTextToBuffer(data, lineLength) {
 export function decodeCsrToPem(data) {
   return [
     WRAP_CSR[0],
-    decodeTextToBuffer(data, 64),
+    decodeTextToBuffer(data, TAILLE_LIGNE),
     WRAP_CSR[1]
   ].join('\n')
 }
