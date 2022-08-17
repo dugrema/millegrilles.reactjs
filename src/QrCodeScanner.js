@@ -1,6 +1,13 @@
-import React from 'react'
+import React, { Component, useState, useEffect, useCallback } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { base64 } from 'multiformats/bases/base64'
+
+import Button from 'react-bootstrap/Button'
+import Modal from 'react-bootstrap/Modal'
+import Row from 'react-bootstrap/Row'
+import Col from 'react-bootstrap/Col'
+
+const CONST_QRCODE_REGION_ID = 'qrcoderegionid'
 
 function QrCodeScanner(props) {
 
@@ -10,13 +17,13 @@ function QrCodeScanner(props) {
         fps = props.fps || 10
 
   return (
-    <ErrorBoundary erreurCb={erreurCb}>
+    <ErrorBoundary>
       <Html5QrcodeModal 
           fps={fps}
           qrbox={qrbox}
           disableFlip={false}
           qrCodeSuccessCallback={onScan} 
-          erreurCb={onError} />
+          onError={onError} />
     </ErrorBoundary>
   )
 
@@ -48,21 +55,27 @@ export const WRAP_CERTIFICATE = [
 
 function Html5QrcodeModal(props) {
 
-  const { qrCodeSuccessCallback } = props
+  const { qrCodeSuccessCallback, onError } = props
 
   const [running, setRunning] = useState(false)
   const [entered, setEntered] = useState(false)
-  const handlerStop = () => {
+
+  const handlerStart = useCallback(() => setRunning(true), [setRunning])
+  const handlerEntered = useCallback(() => setEntered(true), [setEntered])
+  const handlerStop = useCallback(() => {
       setRunning(false)
       setEntered(false)
-  }
-  const handlerStart = () => setRunning(true)
-  const handlerEntered = () => setEntered(true)
-
-  const handlerSuccess = (decodedText, decodedResult) => {
+  }, [setRunning, setEntered])
+  const handlerSuccess = useCallback((decodedText, decodedResult) => {
+      handlerStop()
       qrCodeSuccessCallback(decodedText, decodedResult)
-      setRunning(false)
-  }
+  }, [qrCodeSuccessCallback, handlerStop])
+
+  // Override onError pour fermer le modal. Evite 2 modal superposes.
+  const handlerError = useCallback((err, message)=>{
+    setRunning(false)
+    if(onError) onError(err, message)
+  }, [setRunning, onError])
 
   return (
       <div>
@@ -71,7 +84,8 @@ function Html5QrcodeModal(props) {
               <Modal.Header closeButton>Scanner QR</Modal.Header>
               <Html5QrcodeRunner {...props} 
                   running={entered} 
-                  qrCodeSuccessCallback={handlerSuccess} />
+                  qrCodeSuccessCallback={handlerSuccess}
+                  onError={handlerError} />
           </Modal>
       </div>
   )
@@ -79,12 +93,12 @@ function Html5QrcodeModal(props) {
 
 function Html5QrcodeRunner(props) {
 
-  const {running, qrCodeSuccessCallback, erreurCb} = props
+  const {running, qrCodeSuccessCallback, onError} = props
 
   useEffect(()=>{
       if(!running) return
 
-      const html5QrCodeInstance = new Html5Qrcode(qrcodeRegionId)
+      const html5QrCodeInstance = new Html5Qrcode(CONST_QRCODE_REGION_ID)
       const config = createConfig(props)
       const facingMode = 'environment'
       let promiseStart = null
@@ -93,11 +107,11 @@ function Html5QrcodeRunner(props) {
               {facingMode},
               config,
               qrCodeSuccessCallback,
-              erreurCb
+              // onError
           )
-          .catch(err=>erreurCb(err, 'Html5QrcodeRunner promise catch'))
+          .catch(err=>onError(err, 'Html5QrcodeRunner promise catch'))
       } catch(err) {
-          erreurCb(err, "Html5QrcodeRunner try/catch")
+        onError(err, "Html5QrcodeRunner try/catch")
       }
 
       // Cleanup
@@ -111,13 +125,13 @@ function Html5QrcodeRunner(props) {
               console.error("Html5QrcodeRunner Promise stop erreur : %O", err)
           }
       }
-  }, [running, qrCodeSuccessCallback, erreurCb])
+  }, [running, qrCodeSuccessCallback, onError])
 
   return (
       <Row className='qr-viewer'>
           <Col xs={1} sm={2} md={3} lg={4}></Col>
           <Col xs={10} sm={8} md={6} lg={4}>
-              <div id={qrcodeRegionId} />
+              <div id={CONST_QRCODE_REGION_ID} />
           </Col>
       </Row>
   )
@@ -150,7 +164,8 @@ class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    this.props.erreurCb(error)
+    const onError = this.props.onError
+    if(onError) onError(error)
   }
 
   render() {

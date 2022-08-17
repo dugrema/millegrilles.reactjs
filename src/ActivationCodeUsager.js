@@ -166,18 +166,17 @@ function CodeTexte(props) {
 function ScannerCodeCsr(props) {
     const { onScan, onError } = props
 
-    const handlerScan = data => {
+    const handlerScan = (data, _dataJson) => {
         try {
             const csr = decodeCsrToPem(data)
-            onScan(scr)
+            onScan(csr)
         } catch(err) {
-            onError(err, 'ScannerCodeCsr Erreur lecture CSR')
+            if(onError) onError(err, 'ScannerCodeCsr Erreur lecture CSR')
         }
     }
 
     return (
         <QrCodeScanner 
-            show={showScanner} 
             onScan={handlerScan}
             onError={onError} />
     )
