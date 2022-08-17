@@ -15,7 +15,8 @@ export { formatterMessage, chargerCleMillegrille, signerMessageCleMillegrille, c
 
 let _socket = null,
     _formatteurMessage = null,
-    _connecteUneFois = false
+    _connecteUneFois = false,
+    _connexionCourante = null
 
 let _callbackSetEtatConnexion,
     _callbackSetUsager,
@@ -55,6 +56,16 @@ export async function connecter(urlApp, opts) {
   if(opts.DEBUG) console.debug("Socket.IO connecter avec url %s", urlSocketio.href)
 
   const connexion = connecterSocketio(urlSocketio.href, opts)
+  if(_connexionCourante) {
+    const connexionPrecedente = _connexionCourante
+    _connexionCourante = connexion
+    try {
+      // S'assurer de faire le cleanup de la connexion precedente
+      connexionPrecedente.disconnect().catch(err=>console.warn("Erreur deconnexion connexion remplacee (1) : %O", err))
+    } catch(err) {
+      console.warn("Erreur deconnexion connexion remplacee (2) : %O", err)
+    }
+  }
 
   socketOn('connect', () => {
     if(opts.DEBUG) console.debug("socket.io connecte a %O", urlSocketio)
@@ -122,21 +133,26 @@ async function connecterSocketio(url, opts) {
   // Android a un probleme avec websocket
   const transports = opts.transports || ['polling', 'websocket']
 
-  if( ! _socket ) {
-
-    const urlInfo = new URL(url)
-    const hostname = 'https://' + urlInfo.host
-    const pathSocketio = urlInfo.pathname
-
-    if(DEBUG) console.debug("Connecter socket.io sur %s (opts: %O)", url, opts)
-    _socket = openSocket(hostname, {
-      path: pathSocketio,
-      reconnection: true,
-      reconnectionDelay: 7500,
-      transports,
-    })
-
+  if( _socket ) {
+    const precedent = _socket
+    try {
+      precedent.disconnect().catch(err=>console.warning("connecterSocketio Erreur deconnexion socket predecent (1) : %O", err))
+    } catch(err) {
+      console.warning("connecterSocketio Erreur deconnexion socket predecent (2) : %O", err)
+    }
   }
+
+  const urlInfo = new URL(url)
+  const hostname = 'https://' + urlInfo.host
+  const pathSocketio = urlInfo.pathname
+
+  if(DEBUG) console.debug("Connecter socket.io sur %s (opts: %O)", url, opts)
+  _socket = openSocket(hostname, {
+    path: pathSocketio,
+    reconnection: true,
+    reconnectionDelay: 7500,
+    transports,
+  })
 
   try {
     return await emitBlocking('getInfoIdmg', {}, {noformat: true})
@@ -184,7 +200,7 @@ export function socketOff(eventName, callback) {
 export function deconnecter() {
   /* Deconnecte et retire les information de l'usager */
   if(_socket != null) {
-    _socket.disconnect()
+    _socket.disconnect().catch(err=>console.warning("deconnecter Erreur : %O", err))
     _socket = null
   } else {
     console.warn("_socket n'est pas initialise, on ne peut pas deconnecter")
