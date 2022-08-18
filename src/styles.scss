@@ -25,8 +25,12 @@ DIV.container {
     overflow: hidden;
 }
 
-.contenu .titre {
+.contenu {
     padding-top: 0.5rem;
+}
+
+.contenu .titre {
+    padding-top: 0.25rem;
 }
 
 .contenu .titre .bouton {
