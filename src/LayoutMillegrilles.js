@@ -124,7 +124,7 @@ export function ModalInfo(props) {
                 <Row>
                     <Col xs={3} sm={2}>{t('layout-millegrilles.modal-info-date')}</Col><Col>{date}</Col>
                 </Row>
-                <h3>Systeme</h3>
+                <h3>{t('layout-millegrilles.modal-info-systeme')}</h3>
                 <Row><Col>{t('layout-millegrilles.idmg')}</Col></Row>
                 <Row><Col className="idmg">{idmg}</Col></Row>
                 <AfficherContact contact={contact} />
