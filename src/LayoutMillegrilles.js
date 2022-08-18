@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react'
 
+import { useTranslation } from 'react-i18next'
+
 import Container from 'react-bootstrap/Container'
 import Nav from 'react-bootstrap/Nav'
 import Navbar from 'react-bootstrap/Navbar'
@@ -102,26 +104,28 @@ export function ModalInfo(props) {
 
     const { manifest, idmg, contact } = props
 
+    const { t } = useTranslation()
+
     if(!manifest) return ''
 
     const { version, date } = manifest
 
     return (
         <Modal show={props.show} onHide={props.fermer}>
-            <Modal.Header closeButton>Information MilleGrille</Modal.Header>
+            <Modal.Header closeButton>{t('layout-millegrilles.modal-info-titre')}</Modal.Header>
             <Modal.Body>
-                <h3>Application</h3>
+                <h3>{t('layout-millegrilles.modal-info-application')}</h3>
                 <Row>
-                    <Col xs={3} sm={2}>Nom</Col><Col>Gestionnaire de comptes</Col>
+                    <Col xs={3} sm={2}>{t('layout-millegrilles.modal-info-nom')}</Col><Col>{t('application.nom')}</Col>
                 </Row>
                 <Row>
-                    <Col xs={3} sm={2}>Version</Col><Col>{version}</Col>
+                    <Col xs={3} sm={2}>{t('layout-millegrilles.modal-info-version')}</Col><Col>{version}</Col>
                 </Row>
                 <Row>
-                    <Col xs={3} sm={2}>Date</Col><Col>{date}</Col>
+                    <Col xs={3} sm={2}>{t('layout-millegrilles.modal-info-date')}</Col><Col>{date}</Col>
                 </Row>
                 <h3>Systeme</h3>
-                <Row><Col>Identificateur de MilleGrille (IDMG)</Col></Row>
+                <Row><Col>{t('layout-millegrilles.idmg')}</Col></Row>
                 <Row><Col className="idmg">{idmg}</Col></Row>
                 <AfficherContact contact={contact} />
             </Modal.Body>
@@ -133,6 +137,8 @@ function AfficherContact(props) {
 
     const { contact } = props
 
+    const { t } = useTranslation()
+
     if(!contact) return ''
 
     const info = []
@@ -140,21 +146,21 @@ function AfficherContact(props) {
     if(contact.email) {
         info.push(
             <Row>
-                <Col xs={3} sm={2}>Courriel</Col><Col><Nav.Link href={`mailto:${email}`}>{email}</Nav.Link></Col>
+                <Col xs={3} sm={2}>{t('layout-millegrilles.contact-email')}</Col><Col><Nav.Link href={`mailto:${email}`}>{email}</Nav.Link></Col>
             </Row>
         )
     }
     if(contact.millegrille) {
         info.push(
             <Row>
-                <Col xs={3} sm={2}>MilleGrille</Col><Col>{millegrille}</Col>
+                <Col xs={3} sm={2}>{t('layout-millegrilles.contact-millegrille')}</Col><Col>{millegrille}</Col>
             </Row>
         )
     }
 
     return (
         <div>
-            <h3>Contact</h3>
+            <h3>{t('layout-millegrilles.contact-titre')}</h3>
             {info}
         </div>
     )
