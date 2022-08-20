@@ -6,7 +6,7 @@ import Button from 'react-bootstrap/Button'
 import Carousel from 'react-bootstrap/Carousel'
 import VideoViewer from './VideoViewer'
 
-import styles from './styles.module.css'
+// import styles from './styles.module.css'
 
 function ModalViewer(props) {
 
@@ -126,20 +126,25 @@ function ModalViewer(props) {
             onHide={handleCloseModal} 
             fullscreen={true} 
             animation={false}
-            className={styles['preview']}
+            className='preview'
             >
 
             {afficherHeaderFooter?
                 <Modal.Header>
                     <Modal.Title>{nomFichier}</Modal.Title>
-                    <div className={styles['modal-heading-buttons']}>
-                        <Button variant="secondary" onClick={downloadSrcClick} disabled={!downloadSrc} title="Download" className={styles.accessoire}>
+                    <div className='modal-heading-buttons'>
+                        <Button 
+                                variant="secondary" 
+                                onClick={downloadSrcClick} 
+                                disabled={!downloadSrc} 
+                                title="Download" 
+                                className='accessoire'>
                             <i className="fa fa-download"/>
                         </Button>
                         <Button variant="secondary" onClick={viewSrcClick} disabled={!downloadSrc} title="View">
                             <i className="fa fa-window-maximize"/>
                         </Button>
-                        <Button variant="secondary" onClick={handleCloseModal} title="View" className={styles.remove}>
+                        <Button variant="secondary" onClick={handleCloseModal} title="View" className='remove'>
                             <i className="fa fa-remove"/>
                         </Button>
                     </div>
@@ -149,7 +154,7 @@ function ModalViewer(props) {
 
             <Modal.Body>
                 <FullScreen handle={handle}>
-                    <div className={styles['carousel-viewer']}>
+                    <div className='carousel-viewer'>
                         <Viewer 
                             item={item} 
                             images={images} 
@@ -248,7 +253,7 @@ function ImageCarousel(props) {
 
     return (
         <Carousel 
-            className={styles['carousel-viewer']}
+            className='carousel-viewer'
             onSelect={onSelect}
             defaultActiveIndex={defaultActiveIndex}
             interval={null}

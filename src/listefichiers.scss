@@ -84,7 +84,11 @@
   display: block;
 }
 
-.fichierstable .selectionne {
+.fichierstable .fichierstablerow {
+  border-left: 2px solid $second-color;
+}
+
+.fichierstable .fichierstablerow.selectionne {
   border-left: 2px solid $third-color;
   background-color: $first-color;
 }
