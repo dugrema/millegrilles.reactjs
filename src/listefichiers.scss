@@ -1,0 +1,515 @@
+.boutons-droite {
+  text-align: right;
+}
+.boutons-droite button {
+  padding-left: 0.3rem;
+  padding-right: 0.3rem;
+  padding-top: 0.1rem;
+  padding-bottom: 0.1rem;
+  width: 2rem;
+  margin-left: 0.4rem;
+}
+.modal-nomfichier {
+  font-family: Arial, Helvetica, sans-serif;
+}
+.modal-row {
+  margin-top: 0.5rem;
+  /*padding-top: 0.2rem;*/
+}
+.modal-row-header {
+  padding-top: 1rem;
+  font-weight: 800;
+}
+.modal-row-error .modal-nomfichier {
+  color: red;
+}
+.modal-row-encours {
+  font-weight: 600;
+}
+
+.progressmin {
+  min-width: 4rem;
+}
+
+/* Liste fichiers */
+.fichierstable {
+  background-color: $second-color;
+  font-size: small;
+}
+
+.fichierstable DIV {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fichierstableheader {
+  color: $fourth-color;
+  background-color: $third-color;
+}
+
+.fichierstable .fichierstablerow {
+  background-color: $second-color;
+  border-bottom: 1pt $first-color solid;
+  border-left: 2pt $first-color solid;
+  cursor: pointer;
+}
+
+.fichierstable .favoris {
+  text-align: center;
+}
+
+.fichierstable .fichierstablerow:hover {
+  background-color: $third-color !important;
+}
+
+.fichierstable BUTTON {
+  padding: 0px 2px 1px 2px !important;
+}
+
+.fichierstable .fichierstablerow .lignehover {
+  display: none;
+}
+
+.fichierstable .fichierstablerow .details {
+  font-size: small;
+  color: $fourth-color;
+}
+
+.fichierstable .fichierstablerow .droite {
+  text-align: right;
+}
+
+.fichierstable .fichierstablerow:hover .lignehover {
+  display: block;
+}
+
+.fichierstable .selectionne {
+  border-left: 2px solid $third-color;
+  background-color: $first-color;
+}
+
+/* Thumbnails */
+.thumbnail {
+  border: 2px solid lightgray;
+  background-color: lightgray;
+  cursor: pointer;
+  float: left;
+}
+
+.thumbnail:hover {
+  border: 2pt white solid;
+}
+
+.thumbnail.selectionne {
+  border: 2pt blue solid;
+}
+
+.thumbnail I {
+  position: absolute;
+  text-align: center;
+}
+
+.thumbnailfooter, .thumbnailheader {
+  background-color: lightgrey;
+  color: black;
+  opacity: 0.8;
+  padding-left: 3px;
+  padding-right: 3px;
+  font-size: smaller;
+}
+
+.thumbnailheader {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  position: absolute;
+}
+
+.thumbnailfooter {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  position: absolute;
+}
+
+.thumbnailboutoncontexte {
+  position: absolute;
+  font-size: smaller;
+  display: none;
+  padding: 0.1rem 0.25rem 0.1rem 0.25rem;
+  right: 0.25rem;
+  bottom: 0.25rem;
+}
+
+.thumbnail IMG, .thumbnailmini IMG, .thumbnailsmall IMG {
+  object-fit: cover;
+}
+
+.thumbnailmini {
+  float: left;
+  margin: 1px;
+  margin-right: 0.5rem;
+  width: 22px;
+  height: 22px;
+}
+
+.thumbnailmini {
+  float: left;
+  margin: 1px;
+  margin-right: 0.5rem;
+  width: 22px;
+  height: 22px;
+}
+
+.thumbnailmini IMG {
+  width: 20px;
+  height: 20px;
+}
+
+.thumbnailsmall {
+  float: left;
+  /* margin: 1px;
+  margin-right: 0.5rem;
+  width: 100px;
+  height: 100px; */
+}
+
+.thumbnailsmallph {
+  float: left;
+  /* margin: 1px;
+  margin-right: 0.5rem;
+  width: 100px;
+  height: 100px; */
+}
+
+.thumbnailsmall IMG {
+  width: 80px;
+  height: 80px;
+}
+
+.boutoncontexte {
+  font-size: smaller;
+  padding: 0.25rem 0.1rem 0.25rem 0.1rem;
+  /*right: 0.25rem;
+  bottom: 0.25rem;*/
+}
+
+.menucontextuel {
+  text-decoration: none;
+}
+
+.menucontextuel.menucontextuelpopup {
+  position: absolute;
+  background-color: white;
+  border: 2pt solid grey;
+  width: 200px;
+}
+
+.menucontextuel BUTTON {
+  padding: 0.25rem 1rem 0.25rem 1rem;
+  color: black;
+  font-size: small;
+  text-decoration: none;
+}
+
+.menucontextuel HR {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.menucontextuel > DIV:hover {
+  background-color: grey !important;
+}
+
+/* Viewer modal */
+.preview :global .modal-content {
+  color: grey;
+  background-color: black;
+}
+
+.preview :global .modal-header {
+  color: grey;
+}
+
+.preview :global .modal-header .btn-close {
+  background: white;
+}
+
+.carousel-viewer {
+  text-align: center;
+}
+
+.carousel-viewer :global IMG {
+  object-fit: contain;
+  max-width: 100%;
+  max-height: 80vh;
+}
+
+:global .fullscreen-enabled :local .carousel-viewer IMG {
+  object-fit: contain;
+  max-width: 100%;
+  max-height: 100vh;
+}
+
+.carousel-viewer :global OBJECT {
+  width: 100%;
+  height: 80vh;
+}
+
+:global .fullscreen-enabled :local .carousel-viewer OBJECT {
+  width: 100%;
+  height: 100vh;
+}
+
+.filepicker {
+  background: white;
+  /*
+  width: 100%;
+  height: 100%;
+  */
+}
+
+/*
+.filepicker .liste {
+  border: 1px solid grey;
+}
+*/
+
+@media screen and (min-width: 768px) {
+  .thumbnail {
+    margin: 0.5em;
+    width: 200px;
+    height: 200px;
+  }
+  .thumbnail .thumbnailfooter {
+    bottom: 0.5rem;
+    width: 170px;
+    padding-left: 5px;
+    padding-right: 5px;
+    text-align: center;
+  }
+  .thumbnail:hover .thumbnailboutoncontexte {
+    display: block;
+  }
+  .thumbnail IMG {
+    width: 196px;
+    height: 196px;
+  }
+  .thumbnail I {
+    padding-top: 1rem;
+    padding-left: 1.5rem;
+    font-size: 8rem;
+  }
+
+  .thumbnailsmall {
+    margin: 0.5em;
+    width: 100px;
+    height: 100px;
+  }
+  .thumbnailsmall .thumbnailfooter {
+    bottom: 0.2rem;
+    width: 75px;
+    padding-left: 2px;
+    padding-right: 2px;
+    text-align: center;
+  }
+  .thumbnailsmall:hover .thumbnailboutoncontexte {
+    display: block;
+  }
+  .thumbnailsmall IMG {
+    width: 98px;
+    height: 98px;
+  }
+  .thumbnailsmall I {
+    padding-top: 0.5rem;
+    padding-left: 0.75rem;
+    font-size: 3rem;
+  }
+
+  .header .menu-right {
+    text-align: right;
+  }
+}
+
+/* Layout application */
+// .flexwrapper {
+//   display: flex;
+//   min-height: 100vh;
+//   flex-direction: column;
+//   justify-content: space-between;
+// }
+
+.header {
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+}
+
+.header A, 
+.header A:active, 
+.header A:visited, 
+.header A:focus {
+  color: white;
+}
+
+.header :global .dropdown-menu A, 
+.header :global .dropdown-menu A:active, 
+.header :global .dropdown-menu A:visited,
+.header :global .dropdown-menu A:focus {
+  color: black;
+}
+
+.applicationlayout :global .contenu {
+  margin-top: 1rem;
+}
+
+// .header, .footer {
+//   background-color: #aaa;
+// }
+
+// .footer {
+//   width: 100%;
+//   margin-top: 3em;
+//   padding: 1em;
+//   padding-bottom: 0.5em;
+//   min-height: 4em;
+//   color: White;
+//   font-size: smaller;
+//   clear: left;
+// }
+
+// .footer H2 {
+//   font-size: 1.25rem;
+//   font-family: "Tahoma", sans-serif;
+// }
+
+// .footer div.row {
+//   padding-left: 1em;
+//   padding-right: 1em;
+// }
+
+// .footer A, .footer A:visited {
+//   color: White;
+//   text-decoration: underline;
+// }
+
+// .footer .centre {
+//   text-align: center;
+// }
+
+.connecte {
+  display: none;
+}
+
+.deconnecte {
+  color: red;
+}
+
+/*
+:global .modal-title {
+  overflow: hidden;
+  text-overflow: clip;
+  height: 2rem;
+}
+*/
+.modal-heading-buttons {
+  display: inline;
+  width: 16rem;
+  text-align: right;
+  vertical-align: top;
+}
+
+.modal-heading-buttons BUTTON {
+  margin-left: 0.25rem;
+  font-size: 1rem;
+}
+
+.modal-heading-buttons BUTTON.remove {
+  margin-left: 2rem;
+}
+
+.section-suivante {
+  padding-top: 2em;
+  padding-bottom: 2em;
+  width: 100%;
+  text-align: center;
+}
+
+@media screen and (max-width: 767px) {
+  .fichierstable .fichierstablerow .lignehover {
+    display: block;
+    padding-left: 0.1rem;
+    padding-right: 0.1rem;
+  }
+  .thumbnail {
+    margin: 0.2rem;
+    padding: 0px;
+  }
+  .thumbnail:after {
+    content: "";
+    display: block;
+    padding-bottom: 100%;
+  }
+  .thumbnail > DIV {  /* Override card-img-overlay */
+    margin: 0px;
+    padding: 0px;
+  }
+  .thumbnailfooter {
+    bottom: 0.5rem;
+    width: 96%;
+    margin-left: 2%;
+    margin-right: 2%;
+    padding-left: 2px;
+    padding-right: 2px;
+  }  
+  .thumbnailboutoncontexte {
+    display: block;
+  }  
+  .thumbnail IMG {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+@media screen and (min-width: 400px) and (max-width: 767px) {
+  .thumbnail {
+    width: 23%;
+  }
+  .thumbnail I {
+    display: block;
+    top: 1rem;
+    left: 1rem;
+    font-size: 5rem;
+  }
+  
+  .modal-heading-buttons BUTTON.accessoire {
+    display: none;
+  }
+
+  .modal-heading-buttons BUTTON.remove {
+    margin-left: 0.2rem;
+  }
+ 
+}
+
+@media screen and (max-width: 400px) {
+  .thumbnail {
+    width: 48%;
+  }
+  .thumbnail I {
+    display: block;
+    top: 2rem;
+    left: 2.5rem;
+    font-size: 5rem;
+  }
+
+  .modal-heading-buttons BUTTON.accessoire {
+    display: none;
+  }
+
+  .modal-heading-buttons BUTTON.remove {
+    margin-left: 0.2rem;
+  }
+
+}

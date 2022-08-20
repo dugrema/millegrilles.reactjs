@@ -6,16 +6,23 @@ import {Thumbnail, ThumbnailHeader, ThumbnailFooter, ThumbnailBoutonContexte} fr
 import { isTouchEnabled } from './detecterAppareils'
 import { FormatterDate, FormatterDuree } from './Formatters'
 
-import styles from './styles.module.css'
+// import styles from './styles.module.css'
 
 const MIMETYPE_PDF = 'application/pdf'
 
 export function ListeFichiers(props) {
 
-    let ClasseViewer = ListeFichiersLignes
-    if(props.modeView === 'thumbnails') ClasseViewer = ListeFichiersThumbnails
-    if(props.modeView === 'thumbnails-small') ClasseViewer = ListeFichiersThumbnails
-    if(props.modeView === 'recents') ClasseViewer = ListeFichiersRecents
+    const { modeView } = props
+
+    let ClasseViewer = useMemo(()=>{
+        switch(modeView) {
+            case 'thumbnails': return ListeFichiersThumbnails
+            case 'thumbnails-small': return ListeFichiersThumbnails
+            case 'recents': return ListeFichiersRecents
+            default: 
+                return ListeFichiersLignes
+        }
+    }, [modeView])
 
     // Gerer comportement selection
     const [selectionne, setSelectionne] = useState([])
@@ -152,7 +159,7 @@ function ListeFichiersLignes(props) {
     const selectionnes = props.selectionne || []
 
     return (
-        <div className={styles.fichierstable}>
+        <div className='fichierstable'>
 
             <ListeFichiersEntete colonnes={colonnes} onClickEntete={props.onClickEntete} />
             
@@ -190,7 +197,7 @@ function BoutonSuivantListe(props) {
 
     return (
         <VisibilitySensor onChange={visibleSuivantCb}>
-            <Row className={styles['section-suivante']}>
+            <Row className='section-suivante'>
                 <Col>
                     <Button variant="secondary" onClick={visibleSuivantCb}><i className='fa fa-chevron-down'/></Button>
                 </Col>
@@ -212,7 +219,7 @@ function ListeFichiersEntete(props) {
     }, [onClickEntete])
 
     return (
-        <Row className={styles.fichierstableheader}>
+        <Row className='fichierstableheader'>
             {colonnes.ordreColonnes.map(nomColonne=>{
                 const param = paramsColonnes[nomColonne]
                 const width = param.width || '100px'
@@ -259,8 +266,8 @@ function ListeFichiersRow(props) {
     const {fileId, folderId} = dataRow
 
     const classNames = useMemo(()=>{
-        let classNames = [styles.fichierstablerow]
-        if(selectionne) classNames.push(styles.selectionne)
+        let classNames = ['fichierstablerow']
+        if(selectionne) classNames.push('selectionne')
         if(rowClassname) {
             const rowClasses = rowClassname(dataRow)
             if(rowClasses) {
@@ -338,7 +345,7 @@ function ListeFichiersRow(props) {
                 const param = paramsColonnes[nomColonne]
                 const width = param.width || '100px'
                 const classNameCol = param.className || ''
-                const className = styles[classNameCol] || param.className
+                const className = classNameCol || param.className
                 const Formatteur = param.formatteur
                 const showThumbnail = param.showThumbnail || false
                 const showBoutonContexte = param.showBoutonContexte || false
@@ -354,19 +361,19 @@ function ListeFichiersRow(props) {
                     if(thumbnailSrc || thumbnailLoader) {
                         thumbnail = <Thumbnail src={thumbnailSrc} loader={thumbnailLoader} mini={true} />
                     } else if(thumbnailIcon) {
-                        thumbnail = <div className={styles.thumbnailmini}>{thumbnailIcon}</div>
+                        thumbnail = <div className='thumbnailmini'>{thumbnailIcon}</div>
                     } else {
-                        thumbnail = <div className={styles.thumbnailmini}></div>
+                        thumbnail = <div className='thumbnailmini'></div>
                     }
                 }
                 let boutonContexte = ''
                 if(showBoutonContexte) {
                     boutonContexte = (
                         <Button 
-                            variant={"secondary " + styles.boutoncontexte} 
+                            variant="secondary" 
                             size="sm" 
                             onClick={onBoutonContext} 
-                            className={styles.lignehover}
+                            className='lignehover boutoncontexte'
                         >
                             <i className="fa fa-ellipsis-h"/>
                         </Button>
@@ -441,7 +448,7 @@ function ListeFichiersThumbnails(props) {
                 const localId = row.fileId || row.folderId
                 const selectionne = selectionnes.includes(localId)
                 let classNames = []
-                if(selectionne) classNames.push(styles.selectionne)
+                if(selectionne) classNames.push('selectionne')
                 return (
                     <FichierThumbnail
                         key={localId} 
@@ -582,7 +589,7 @@ function GroupeJour(props) {
     groupesListe.sort(trierGroupes)
 
     return (
-        <div className={styles.fichierstable}>
+        <div className='fichierstable'>
             <Row className="listerecent-jour">
                 <Col><FormatterDate value={jour.getTime()/1000} format="yyyy-MM-DD"/></Col>
             </Row>
@@ -649,7 +656,7 @@ function MenuContextuelRightClick(props) {
     const posXAjuste = posX>400?posX-200:posX
 
     return (
-        <Container style={{top: posY, left: posXAjuste}} className={styles.menucontextuel+' '+styles.menucontextuelpopup}>
+        <Container style={{top: posY, left: posXAjuste}} className='menucontextuel menucontextuelpopup'>
             {props.children}
         </Container>
     )
@@ -658,7 +665,7 @@ function MenuContextuelRightClick(props) {
 export function MenuContextuelModal(props) {
     const {show, fermer} = props
     return (
-        <Modal show={show} dismissible onHide={()=>fermer()} className={styles.menucontextuel}>
+        <Modal show={show} dismissible onHide={()=>fermer()} className='menucontextuel'>
             <Modal.Header closeButton />
             <Modal.Body>
                 {props.children}
