@@ -33,7 +33,7 @@
 
 /* Liste fichiers */
 .fichierstable {
-  background-color: $second-color;
+  //background-color: $second-color;
   font-size: small;
 }
 
@@ -429,6 +429,7 @@
 }
 
 .section-suivante {
+  background-color: $first-color;
   padding-top: 2em;
   padding-bottom: 2em;
   width: 100%;
