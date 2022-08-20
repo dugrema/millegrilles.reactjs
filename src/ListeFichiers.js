@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {Container, Row, Col, Button, Modal} from 'react-bootstrap'
 import VisibilitySensor from 'react-visibility-sensor'
 
@@ -7,6 +7,8 @@ import { isTouchEnabled } from './detecterAppareils'
 import { FormatterDate, FormatterDuree } from './Formatters'
 
 // import styles from './styles.module.css'
+// import 'intersection-observer'  // Pour react-is-visible
+// import { useIsVisible } from 'react-is-visible'
 
 const MIMETYPE_PDF = 'application/pdf'
 
@@ -196,7 +198,7 @@ function BoutonSuivantListe(props) {
     if(!suivantCb) return ''  // Cacher le bouton si suivantCb est vide (fin de la liste)
 
     return (
-        <VisibilitySensor onChange={visibleSuivantCb}>
+        <VisibilitySensor onChange={visibleSuivantCb} offset={{top: 200}}>
             <Row className='section-suivante'>
                 <Col>
                     <Button variant="secondary" onClick={visibleSuivantCb}><i className='fa fa-chevron-down'/></Button>
@@ -205,6 +207,30 @@ function BoutonSuivantListe(props) {
         </VisibilitySensor>
     )
 }
+
+// function BoutonSuivantListe(props) {
+
+//     const {suivantCb} = props
+
+//     const nodeRef = useRef()
+//     const isVisible = useIsVisible(nodeRef)
+
+//     useEffect( () => {
+//         console.debug("!!! IsVisible : %O", isVisible)
+//         if(!isVisible) return
+//         suivantCb()
+//     }, [isVisible, suivantCb])
+
+//     if(!suivantCb) return ''  // Cacher le bouton si suivantCb est vide (fin de la liste)
+
+//     return (
+//         <Row ref={nodeRef} className='section-suivante'>
+//             <Col>
+//                 <Button variant="secondary" onClick={suivantCb}><i className='fa fa-chevron-down'/></Button>
+//             </Col>
+//         </Row>
+//     )
+// }
 
 function ListeFichiersEntete(props) {
     const colonnes = props.colonnes
