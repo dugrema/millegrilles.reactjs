@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {Container, Row, Col, Button, Modal} from 'react-bootstrap'
 import VisibilitySensor from 'react-visibility-sensor'
 
@@ -6,7 +6,6 @@ import {Thumbnail, ThumbnailHeader, ThumbnailFooter, ThumbnailBoutonContexte} fr
 import { isTouchEnabled } from './detecterAppareils'
 import { FormatterDate, FormatterDuree } from './Formatters'
 
-// import styles from './styles.module.css'
 // import 'intersection-observer'  // Pour react-is-visible
 // import { useIsVisible } from 'react-is-visible'
 
@@ -14,7 +13,8 @@ const MIMETYPE_PDF = 'application/pdf'
 
 export function ListeFichiers(props) {
 
-    const { modeView } = props
+    // Intercepter onClick pour capturer la selection
+    const { modeView, onClick, onDoubleClick, onContextMenu, rows, onSelection } = props
 
     let ClasseViewer = useMemo(()=>{
         switch(modeView) {
@@ -30,10 +30,6 @@ export function ListeFichiers(props) {
     const [selectionne, setSelectionne] = useState([])
     const [selectionCourante, setSelectionCourante] = useState('')
     const [touchEnabled, setTouchEnabled] = useState(false)
-    // const [scrollingDetecte, setScrollingDetecte] = useState(false)
-
-    // Intercepter onClick pour capturer la selection
-    const {onClick, onDoubleClick, onContextMenu, rows, onSelection} = props
     
     const selectionHandler = useCallback( async (event, value) => {
         if(onSelection) {
@@ -70,8 +66,6 @@ export function ListeFichiers(props) {
         if(onContextMenu) onContextMenu(event, value)
     }, [onContextMenu, onSelection, selectionne, selectionCourante, setSelectionne, setSelectionCourante, rows])
 
-    // const scrollingDetecteCb = useCallback(event => setScrollingDetecte(true), [setScrollingDetecte])
-
     useEffect(()=>{
         // Mise a jour selection (ecoute callback setSelectionne)
         if(onSelection) onSelection(selectionne)
@@ -80,14 +74,6 @@ export function ListeFichiers(props) {
     useEffect(()=>{
         setTouchEnabled(isTouchEnabled())
     }, [setTouchEnabled])
-
-    // useEffect(() => {
-    //     if(!touchEnabled) return  // Uniquement utilise sur appareil mobile
-    //     window.addEventListener("scroll", (e) => scrollingDetecteCb(e))
-    //     return () => {
-    //         window.removeEventListener("scroll", (e) => scrollingDetecteCb(e))
-    //     }
-    // }, [touchEnabled, scrollingDetecteCb])
 
     return (
         <div>
@@ -154,7 +140,7 @@ async function majSelection(event, value, rows, selectionPrecedente, selectionne
 /** Liste de fichiers avec details sur lignes, colonnes configurables */
 function ListeFichiersLignes(props) {
 
-    const {colonnes, rows, onSelectioner, onOuvrir, onContextMenu, touchEnabled, touchBegin, suivantCb} = props
+    const {colonnes, rows, onSelectioner, onOuvrir, onContextMenu, touchEnabled, touchBegin, isListeComplete, suivantCb} = props
 
     if(!colonnes || !rows) return ''  // Ecran n'est pas encore configure
 
@@ -183,7 +169,9 @@ function ListeFichiersLignes(props) {
                 )
             })}
 
-            <BoutonSuivantListe suivantCb={suivantCb} />
+            {isListeComplete?'':
+                <BoutonSuivantListe suivantCb={suivantCb} />
+            }
 
         </div>
     )
