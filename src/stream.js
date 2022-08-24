@@ -63,8 +63,9 @@ function sliceReader(file, opts) {
 export async function* streamAsyncIterable(reader, opts) {
   opts = opts || {}
   const batchSize = opts.batchSize || 1 * 1024 * 1024,
-        transformBufferSize = 64 * 1024
+        transformBufferSize = opts.transformBufferSize || 64 * 1024
   const transform = opts.transform
+  const transformBufferEffectiveSize = Math.min(transformBufferSize, opts.batchSize)
   try {
     let done, positionLecture = 0, positionEcriture = 0
     const bufferOutput = new Uint8Array(batchSize)
@@ -72,7 +73,7 @@ export async function* streamAsyncIterable(reader, opts) {
         // console.debug("streamAsyncIterable Call reader.read")
         let bufferInput = null
         try {
-          const resultatLecture = await reader.read(transformBufferSize)
+          const resultatLecture = await reader.read(transformBufferEffectiveSize)
           if(resultatLecture.value) bufferInput = Buffer.from(resultatLecture.value)
           done = resultatLecture.done
           positionLecture = 0
@@ -86,7 +87,7 @@ export async function* streamAsyncIterable(reader, opts) {
           while(positionLecture < bufferInput.length) {
             let outputBlock = null
             if(transform) {
-                const tailleBlockChiffrage = Math.min(bufferInput.length - positionLecture, transformBufferSize)
+                const tailleBlockChiffrage = Math.min(bufferInput.length - positionLecture, transformBufferEffectiveSize)
                 // console.debug("Chiffrage block taille (position: %d): %O", positionLecture, tailleBlockChiffrage)
                 outputBlock = await opts.transform(bufferInput.slice(positionLecture, tailleBlockChiffrage))
                 positionLecture += tailleBlockChiffrage
