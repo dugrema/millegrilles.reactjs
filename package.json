@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@dugrema/millegrilles.utiljs": "github:dugrema/millegrilles.utiljs#2022.5",
+    "@reduxjs/toolkit": "^1.8.5",
     "axios": "^0.27.2",
     "base64url": "^3.0.1",
     "bootstrap": "^5.2",
@@ -39,6 +40,7 @@
     "react-bootstrap": "^2.5",
     "react-dropzone": "^14.2.2",
     "react-i18next": "^11.18.4",
+    "react-redux": "^8.0.2",
     "react-visibility-sensor": "^5.1.1",
     "socket.io-client": "^4.5.1",
     "webpack": "5.74.0"
