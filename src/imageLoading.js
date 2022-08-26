@@ -198,11 +198,14 @@ export function imageResourceLoader(getFichierChiffre, images, opts) {
         const thumbnailFuuid = thumbnail.hachage
         if(thumbnail.data) {
             loaders['thumb'] = blobLoader(thumbnail.data, thumbnail.mimetype || 'image/jpg')
-        } else if(thumbnail.hachage && thumbnail.data_chiffre) {
-            const thumbnailFuuid = thumbnail.hachage
-            const dataChiffre = thumbnail.data_chiffre
-            loaders['thumb'] = loadFichierChiffre(getFichierChiffre, thumbnailFuuid, thumbnail.mimetype, {dataChiffre, cles})
+        } else {
+            loaders['thumb'] = getFaviconLoader()
         }
+        // else if(thumbnail.hachage && thumbnail.data_chiffre) {
+        //     const thumbnailFuuid = thumbnail.hachage
+        //     const dataChiffre = thumbnail.data_chiffre
+        //     loaders['thumb'] = loadFichierChiffre(getFichierChiffre, thumbnailFuuid, thumbnail.mimetype, {dataChiffre, cles})
+        // }
     }
 
     const loader = {
@@ -223,6 +226,15 @@ export function imageResourceLoader(getFichierChiffre, images, opts) {
     }
 
     return loader
+}
+
+function getFaviconLoader() {
+    return {
+        load() {
+            return '/favicon.ico'
+        },
+        unload() {}
+    }
 }
 
 export function videoResourceLoader(getFichierChiffre, videos, opts) {
