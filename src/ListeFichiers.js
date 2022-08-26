@@ -354,6 +354,8 @@ function ListeFichiersRow(props) {
             className={classNames.join(' ')}
             onDoubleClick={onDoubleClickAction} 
             onContextMenu={onContextMenuAction}
+            data-fileid={fileId}
+            data-folderid={folderId}
             >
             {colonnes.ordreColonnes.map(nomColonne=>{
                 const param = paramsColonnes[nomColonne]
