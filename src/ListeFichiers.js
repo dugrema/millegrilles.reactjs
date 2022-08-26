@@ -152,7 +152,7 @@ function ListeFichiersLignes(props) {
             <ListeFichiersEntete colonnes={colonnes} onClickEntete={props.onClickEntete} />
             
             {rows.map((row, idx)=>{
-                const localId = row.fileId || row.folderId
+                const localId = row.tuuid || row.fileId || row.folderId
                 const selectionne = selectionnes.includes(localId)
                 return (
                     <ListeFichiersRow 
@@ -449,7 +449,7 @@ function ListeFichiersRow(props) {
 // }
 
 function ListeFichiersThumbnails(props) {
-    const {rows, onSelectioner, onOuvrir, onContextMenu, touchEnabled, touchBegin, modeView, suivantCb} = props
+    const {rows, colonnes, onSelectioner, onOuvrir, onContextMenu, touchEnabled, touchBegin, modeView, suivantCb} = props
     if(!rows) return ''  // Ecran n'est pas encore configure
 
     let modeSmall = ''
@@ -461,7 +461,7 @@ function ListeFichiersThumbnails(props) {
     return (
         <div>
             {rows.map(row=>{
-                const localId = row.fileId || row.folderId
+                const localId = row.tuuid || row.fileId || row.folderId
                 const selectionne = selectionnes.includes(localId)
                 let classNames = []
                 if(selectionne) classNames.push('selectionne')
@@ -469,6 +469,7 @@ function ListeFichiersThumbnails(props) {
                     <FichierThumbnail
                         key={localId} 
                         data={row} 
+                        colonnes={colonnes}
                         onSelectioner={onSelectioner}
                         onOuvrir={onOuvrir}
                         onContextMenu={onContextMenu}
@@ -489,12 +490,19 @@ function ListeFichiersThumbnails(props) {
 
 function FichierThumbnail(props) {
 
-    const {data, className, onSelectioner, onOuvrir, onContextMenu, touchEnabled, small, touchBegin} = props,
-          {fileId, folderId, duration} = data,
-          thumbnail = data.thumbnail || {},
+    const {data, colonnes, className, onSelectioner, onOuvrir, onContextMenu, touchEnabled, small, touchBegin} = props
+
+    const { rowLoader } = colonnes
+    const [ dataRow, setDataRow ] = useState('')
+
+    const {fileId, folderId, duration} = dataRow
+    const thumbnail = dataRow.thumbnail || {},
           {thumbnailIcon, thumbnailSrc, thumbnailCaption} = thumbnail
-    
-    const imageLoader = data.imageLoader
+
+    const imageLoader = useMemo(()=>{
+        if(!dataRow) return
+        return dataRow.imageLoader
+    }, [dataRow])
 
     // const thumbnailLoader = small?miniLoader:smallLoader  // small veut dire mini dans le parametre
     const [touchEvent, setTouchEvent] = useState('')
@@ -532,6 +540,17 @@ function FichierThumbnail(props) {
         if(onContextMenu) onContextMenu(event, {fileId, folderId})
     }, [onContextMenu, fileId, folderId])
 
+    // Convertir data avec rowLoader au besoin
+    useEffect(()=>{
+        if(data && rowLoader) {
+            Promise.resolve(rowLoader(data))
+                .then(setDataRow)
+                .catch(err=>console.error("Erreur chargement data row %O : %O", data, err))
+        } else {
+            setDataRow(data)
+        }
+    }, [data, rowLoader, setDataRow])
+    
     return (
         <Thumbnail
             onClick={onClickAction}

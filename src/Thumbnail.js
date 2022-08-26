@@ -26,7 +26,9 @@ export function Thumbnail(props) {
         if(!loader) return  // Rien a faire
 
         // Executer le loader
-        loader.load(labelImage, setImgSrc).then(setImgSrc).catch(err => console.error("Thumbnail Erreur chargement image : %O", err))
+        loader.load(labelImage, setImgSrc)
+            .then(setImgSrc)
+            .catch(err => console.error("Thumbnail Erreur chargement image : %O", err))
 
         // Retourne unloader pour nettoyer le composant
         if(loader.unload) return () => loader.unload(labelImage)
