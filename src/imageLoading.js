@@ -1,3 +1,4 @@
+import { base64 } from 'multiformats/bases/base64'
 import path from 'path'
 import {trouverLabelImage, trouverLabelVideo, trierLabelsVideos} from './labelsRessources'
 
@@ -193,10 +194,15 @@ export function imageResourceLoader(getFichierChiffre, images, opts) {
     }
 
     // Ajouter loader de thumbnail
-    if(thumbnail && thumbnail.hachage && thumbnail.data_chiffre) {
+    if(thumbnail) { 
         const thumbnailFuuid = thumbnail.hachage
-        const dataChiffre = thumbnail.data_chiffre
-        loaders['thumb'] = loadFichierChiffre(getFichierChiffre, thumbnailFuuid, thumbnail.mimetype, {dataChiffre, cles})
+        if(thumbnail.data) {
+            loaders['thumb'] = blobLoader(thumbnail.data, thumbnail.mimetype || 'image/jpg')
+        } else if(thumbnail.hachage && thumbnail.data_chiffre) {
+            const thumbnailFuuid = thumbnail.hachage
+            const dataChiffre = thumbnail.data_chiffre
+            loaders['thumb'] = loadFichierChiffre(getFichierChiffre, thumbnailFuuid, thumbnail.mimetype, {dataChiffre, cles})
+        }
     }
 
     const loader = {
@@ -212,7 +218,7 @@ export function imageResourceLoader(getFichierChiffre, images, opts) {
             if(selecteur === 'thumbnail') selecteur = 'thumb'
             if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite d'image
             const loader = loaders[selecteur]
-            return loader.unload()
+            if(loader) return loader.unload()
         }
     }
 
@@ -417,3 +423,22 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
 
 //     return loader
 // }
+
+function blobLoader(data, mimetype) {
+    data = base64.decode(data)
+    data = new Blob([data], {type: mimetype})
+    let urlBlob = null
+    return {
+        load(setSrc) {
+            if(!urlBlob) urlBlob = URL.createObjectURL(data)
+            if(setSrc) setSrc(urlBlob)
+            return urlBlob
+        },
+        unload() {
+            if(urlBlob) {
+                URL.revokeObjectURL(urlBlob)
+                urlBlob = null
+            }
+        }
+    }
+}
