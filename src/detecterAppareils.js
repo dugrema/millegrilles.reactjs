@@ -1,3 +1,15 @@
+export async function detecterSupport() {
+  const webp = await supporteFormatWebp()
+  const webm = supporteFormatWebm()
+  const fileStream = await supporteFileStream()
+  const touch = isTouchEnabled()
+
+  const support = {webp, webm, fileStream, touch}
+  
+  console.info("Support du navigateur : %O", support)
+  return support
+}
+
 // Detection d'appareils media (camera, son, etc)
 export async function detecterAppareilsDisponibles() {
   return navigator.mediaDevices.enumerateDevices().then(gotDevices)

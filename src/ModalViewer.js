@@ -5,8 +5,21 @@ import Alert from 'react-bootstrap/Alert'
 import Button from 'react-bootstrap/Button'
 import Carousel from 'react-bootstrap/Carousel'
 import VideoViewer from './VideoViewer'
+import { detecterSupport } from './detecterAppareils'
 
 // import styles from './styles.module.css'
+
+export function useDetecterSupport() {
+    const [support, setSupport] = useState('')
+    
+    useEffect(()=>{
+        detecterSupport()
+            .then(support=>setSupport(support))
+            .catch(err=>console.error("Erreur detection support media ", err))
+    }, [setSupport])
+    
+    return support
+}
 
 function ModalViewer(props) {
 

@@ -24,8 +24,8 @@ import { ListeFichiers, MenuContextuel }
     from './ListeFichiers'
 export { ListeFichiers, MenuContextuel }
 
-import ModalViewer from './ModalViewer'
-export { ModalViewer }
+import ModalViewer, { useDetecterSupport } from './ModalViewer'
+export { ModalViewer, useDetecterSupport }
 
 import VideoViewer from './VideoViewer'
 export { VideoViewer }
