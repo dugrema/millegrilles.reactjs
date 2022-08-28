@@ -509,10 +509,7 @@ export function up_retryErreur(opts) {
     traiterUploads()  // Demarrer traitement si pas deja en cours
 }
 
-export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, opts) {
-    opts = opts || {}
-    const setProgres = opts.setProgres
-
+export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouterPart, updateFichier, setProgres) {
     const now = new Date().getTime()
 
     console.debug("Accepted files ", acceptedFiles)
@@ -565,6 +562,7 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, opts) {
 
         console.debug("Update initial docIdb ", docIdb)
         //await uploadFichiersDao.updateFichierUpload(docIdb)
+        if(updateFichier) await updateFichier(docIdb, {demarrer: false})
         
         const frequenceUpdate = 500
         let dernierUpdate = 0
@@ -575,6 +573,7 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, opts) {
 
                 // Conserver dans idb
                 //await uploadFichiersDao.ajouterFichierUploadFile(correlation, compteurPosition, chunk)
+                if(ajouterPart) await ajouterPart(correlation, compteurPosition, chunk)
                 compteurPosition += chunk.length
 
                 taillePreparee += chunk.length
@@ -621,8 +620,10 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, opts) {
             //await uploadFichiersDao.updateFichierUpload(docIdb)
 
             // Dispatch pour demarrer upload
+            if(updateFichier) await updateFichier(docIdb, {demarrer: true})
             //dispatch(ajouterUpload(docIdb))
         } catch(err) {
+            if(updateFichier) await updateFichier(docIdb, {err: ''+err})
             //uploadFichiersDao.supprimerFichier(correlation)
             //    .catch(err=>console.error('traiterAcceptedFiles Erreur nettoyage %s suite a une erreur : %O', correlation, err))
             throw err
