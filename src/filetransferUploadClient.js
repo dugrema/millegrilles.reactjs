@@ -13,7 +13,6 @@ import * as hachage from './hachage'
 
 const { preparerCipher, preparerCommandeMaitrecles } = chiffrage
 
-
 // const { splitPEMCerts } = forgecommon
 
 // Globals
@@ -33,13 +32,16 @@ var _callbackEtatUpload = null,
     _domaine = 'GrosFichiers',
     _pathServeur = '/collections/fichiers'
 
-const BATCH_SIZE = 5 * 1024 * 1024,  // 5 MB
+const UPLOAD_BATCH_SIZE = 5 * 1024 * 1024,  // 5 MB
       CONST_BUFFER_CHIFFRAGE = 64 * 1024
 const STATUS_NOUVEAU = 1,
       STATUS_ENCOURS = 2,
       STATUS_SUCCES = 3,
       STATUS_ERREUR = 4,
       STATUS_NONCONFIRME = 5
+
+const ETAT_PREPARATION = 1,
+      ETAT_PRET = 2
 
 export function up_setPathServeur(pathServeur) {
     _pathServeur = pathServeur
@@ -134,6 +136,38 @@ export async function up_ajouterFichiersUpload(acceptedFiles, opts) {
     return infoUploads
 }
 
+function mapAcceptedFile(file) {
+//const file = acceptedFiles[i]
+    //console.debug("Ajouter upload : %O", file)
+
+    let dateFichier = null
+    try {
+        dateFichier = Math.floor(file.lastModified / 1000)
+    } catch(err) {
+        console.warn("Erreur chargement date fichier : %O", err)
+    }
+
+    // const nomFichierBuffer = new Uint8Array(Buffer.from(new TextEncoder().encode(file.name)))
+    // throw new Error("Nom fichier buffer : " + nomFichierBuffer)
+
+    const transaction = {
+        nom: file.name.normalize(),  // iOS utilise la forme decomposee (combining)
+        mimetype: file.type || 'application/octet-stream',
+        taille: file.size,
+        dateFichier,
+    }
+    // if(cuuid) transaction['cuuid'] = cuuid
+    
+    const infoUpload = {
+        file: file.object,
+        size: file.size,
+        correlation: uuidv4(),
+        transaction,
+    }
+
+    return infoUpload
+}
+
 async function traiterUploads() {
     if(_uploadEnCours) return  // Rien a faire
     if(!_chiffrage) throw new Error("_chiffrage non initialise")
@@ -183,7 +217,7 @@ async function uploadFichier() {
     const cipher = transformHandler.cipher
     const transform = data => cipher.update(data)
     
-    const reader = streamAsyncIterable(getAcceptedFileReader(_uploadEnCours.file), {batchSize: BATCH_SIZE, transform})
+    const reader = streamAsyncIterable(getAcceptedFileReader(_uploadEnCours.file), {batchSize: UPLOAD_BATCH_SIZE, transform})
 
     try {
         var position = 0
@@ -474,3 +508,155 @@ export function up_retryErreur(opts) {
     emettreEtat()
     traiterUploads()  // Demarrer traitement si pas deja en cours
 }
+
+export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, opts) {
+    opts = opts || {}
+    const setProgres = opts.setProgres
+
+    const now = new Date().getTime()
+
+    console.debug("Accepted files ", acceptedFiles)
+    let tailleTotale = 0
+    for (const file of acceptedFiles) {
+        tailleTotale += file.size
+    }
+    console.debug("Preparation de %d bytes", tailleTotale)
+
+    const transformInst = await preparerTransform(),
+          transform = transformInst.cipher
+    console.debug("Transform : ", transformInst)
+    // const { cipher: transform } = await creerCipher(workers, certificatCa)
+
+    let taillePreparee = 0
+    for await (const file of acceptedFiles) {
+
+        // Preparer fichier
+        const fileMappe = mapAcceptedFile(file)
+        fileMappe.transaction.cuuid = cuuid
+        console.debug("File mappe : ", fileMappe)
+
+        const correlation = '' + uuidv4()
+        const stream = file.stream()
+        console.debug("File %s stream : %O", fileMappe.name, stream)
+
+        const reader = getAcceptedFileReader(file)
+        const iterReader = streamAsyncIterable(reader, {batchSize: UPLOAD_BATCH_SIZE, transform})
+        let compteurChunks = 0,
+            compteurPosition = 0
+
+        const docIdb = {
+            // PK
+            correlation, userId, 
+
+            // Metadata recue
+            nom: fileMappe.name || correlation,
+            taille: fileMappe.size,
+            mimetype: fileMappe.type || 'application/octet-stream',
+
+            // Etat initial
+            etat: ETAT_PREPARATION, 
+            positionsCompletees: [],
+            tailleCompletee: 0,
+            dateCreation: now,
+            retryCount: -1,  // Incremente sur chaque debut d'upload
+            transactionGrosfichiers: fileMappe.transaction,
+            transactionMaitredescles: null,
+        }
+
+        console.debug("Update initial docIdb ", docIdb)
+        //await uploadFichiersDao.updateFichierUpload(docIdb)
+        
+        const frequenceUpdate = 500
+        let dernierUpdate = 0
+
+        try {
+            for await (const chunk of iterReader) {
+                console.debug("Traitement chunk %d transforme taille %d", compteurChunks, chunk.length)
+
+                // Conserver dans idb
+                //await uploadFichiersDao.ajouterFichierUploadFile(correlation, compteurPosition, chunk)
+                compteurPosition += chunk.length
+
+                taillePreparee += chunk.length
+                const now = new Date().getTime()
+                if(setProgres) {
+                    if(dernierUpdate + frequenceUpdate < now) {
+                        dernierUpdate = now
+                        setProgres(Math.floor(100*taillePreparee/tailleTotale))
+                    }
+                }
+
+                compteurChunks ++
+            }
+
+            const etatFinalChiffrage = transform.etatFinal()
+            console.debug("Etat final chiffrage : ", etatFinalChiffrage)
+
+            const champsOptionnels = ['iv', 'nonce', 'header', 'tag']
+            const paramsChiffrage = champsOptionnels.reduce((acc, champ)=>{
+                const valeur = etatFinalChiffrage[champ]
+                if(valeur) acc[champ] = valeur
+                return acc
+            }, {})
+    
+            const hachage_bytes = etatFinalChiffrage.hachage
+            // const iv = base64.encode(transformHandler.iv)
+            // console.debug("Resultat chiffrage : %O", resultatChiffrage)
+            const identificateurs_document = { fuuid: hachage_bytes }
+            docIdb.transactionMaitredescles = await preparerCommandeMaitrecles(
+                [_certificat[0]], 
+                transformInst.secretKey, 
+                _domaine, 
+                hachage_bytes, 
+                identificateurs_document, 
+                {...paramsChiffrage, DEBUG: false}
+            )
+            docIdb.transactionMaitredescles.cles[_fingerprintCa] = transformInst.secretChiffre
+    
+            docIdb.etat = ETAT_PRET
+            docIdb.taille = compteurPosition
+            
+            // Update idb
+            console.debug("Update final docIdb ", docIdb)
+            //await uploadFichiersDao.updateFichierUpload(docIdb)
+
+            // Dispatch pour demarrer upload
+            //dispatch(ajouterUpload(docIdb))
+        } catch(err) {
+            //uploadFichiersDao.supprimerFichier(correlation)
+            //    .catch(err=>console.error('traiterAcceptedFiles Erreur nettoyage %s suite a une erreur : %O', correlation, err))
+            throw err
+        }
+
+        // Fermer affichage preparation des fichiers
+        if(setProgres) setProgres(false)
+    }
+}
+
+// async function creerCipher(workers, certificatCa) {
+//     const { chiffrage, clesDao } = workers
+
+//     const certCa = pki.certificateFromPem(certificatCa)
+//     console.debug("CertCa : ", certCa)
+//     const publicKeyCa = certCa.publicKey.publicKeyBytes
+//     const fingerprintCa = await chiffrage.hacherCertificat(certificatCa)
+//     console.debug("Fingerprint keyCA %O, certificat CA : %s", publicKeyCa, fingerprintCa)
+
+//     const certificatsInfo = await clesDao.getCertificatsMaitredescles()
+//     const certificats = certificatsInfo.certificat
+//     console.debug("CA: %O, Certificats : %O", certificatCa, certificats)
+
+//     const cipherHandler = await chiffrage.chiffrage.preparerCipher({clePubliqueEd25519: publicKeyCa})
+//     console.debug("creerCipher handler : %O", cipherHandler)
+
+//     throw new Error("fix me")
+
+//     const cipher = cipherHandler.cipher
+
+//     // return {
+//     //     cipher(chunk) {
+//     //         return cipher.update(chunk)
+//     //     },
+//     //     handler: cipherHandler,
+//     // }
+// }

@@ -94,7 +94,7 @@ export async function creerStreamCipherXChacha20Poly1305(opts) {
     const state_out = res.state
     const header = base64.encode(new Uint8Array(res.header))
     
-    let hachage = null
+    let hachage = null, etatFinal = null
     return {
         update: async data => {
             data = Uint8Array.from(data)
@@ -139,12 +139,14 @@ export async function creerStreamCipherXChacha20Poly1305(opts) {
             tailleOutput += ciphertextMessage.length
             hachage = await hacheur.finalize()
 
-            return {key, header, hachage, taille: tailleOutput, format: 'mgs4', ciphertext: ciphertextMessage}
+            etatFinal = {key, header, hachage, taille: tailleOutput, format: 'mgs4'}
+            return {...etatFinal, ciphertext: ciphertextMessage}
         },
         header: () => header,
         hachage: () => hachage,
         key: () => key,
-        format: () => 'mgs4'
+        format: () => 'mgs4',
+        etatFinal: () => etatFinal,
     }
 }
 

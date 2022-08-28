@@ -65,10 +65,14 @@ export async function* streamAsyncIterable(reader, opts) {
   const batchSize = opts.batchSize || 1 * 1024 * 1024,
         transformBufferSize = opts.transformBufferSize || 64 * 1024
   const transform = opts.transform
-  const transformBufferEffectiveSize = Math.min(transformBufferSize, opts.batchSize)
+  const transformBufferEffectiveSize = Math.min(transformBufferSize, batchSize)
   try {
-    let done, positionLecture = 0, positionEcriture = 0
+    let done, positionLecture = 0, positionBufferOutput = 0
     const bufferOutput = new Uint8Array(batchSize)
+    const transformUpdate = transform?(transform.update || transform):null
+    const transformFinalize = transform?transform.finalize:null
+    // console.debug("Transform update : ", transformUpdate)
+    // console.debug("Transform finalize : ", transformFinalize)
     while (true) {
         // console.debug("streamAsyncIterable Call reader.read")
         let bufferInput = null
@@ -85,40 +89,67 @@ export async function* streamAsyncIterable(reader, opts) {
         // console.debug("streamAsyncIterable Lecture (done?%s) len %s value %O", done, bufferInput?bufferInput.length:'NA', bufferInput)
         if(bufferInput) {
           while(positionLecture < bufferInput.length) {
-            let outputBlock = null
-            if(transform) {
+            let outputBlock = null  // Chunk d'output
+            if(transformUpdate) {
                 const tailleBlockChiffrage = Math.min(bufferInput.length - positionLecture, transformBufferEffectiveSize)
-                // console.debug("Chiffrage block taille (position: %d): %O", positionLecture, tailleBlockChiffrage)
-                outputBlock = await opts.transform(bufferInput.slice(positionLecture, tailleBlockChiffrage))
+                // console.debug("Chiffrage block taille (position: %d) %d, buffer input %d", positionLecture, tailleBlockChiffrage, bufferInput.length)
+                outputBlock = await transformUpdate(bufferInput.slice(positionLecture, tailleBlockChiffrage))
                 positionLecture += tailleBlockChiffrage
-                // console.debug("Chiffrage block complete (position rendu : %d) : %O", positionLecture, tailleBlockChiffrage)
+                // console.debug("Chiffrage block complete (position rendu : %d) output block len", positionLecture, outputBlock?outputBlock.length:0)
             } else {
                 outputBlock = bufferInput
                 positionLecture += bufferInput.length
             }
 
             // Ecrire output
-            let positionOutput = 0
-            while(outputBlock && positionOutput < outputBlock.length) {
-              const tailleBlockEcriture = Math.min(bufferOutput.length - positionEcriture, outputBlock.length)
-              bufferOutput.set(outputBlock.slice(positionOutput, tailleBlockEcriture), positionEcriture)
-              positionEcriture += tailleBlockEcriture
-              positionOutput += tailleBlockEcriture
-              if(bufferOutput.length === positionEcriture) {
+            let positionOutputBlock = 0  // Position dans le chunk traite
+            while(outputBlock && positionOutputBlock < outputBlock.length) {
+              const tailleBlockEcriture = Math.min(bufferOutput.length - positionBufferOutput, outputBlock.length)
+              bufferOutput.set(outputBlock.slice(positionOutputBlock, tailleBlockEcriture), positionBufferOutput)
+              positionBufferOutput += tailleBlockEcriture
+              positionOutputBlock += tailleBlockEcriture
+              // console.debug("Ecriture output, bufferOutput len %d, position ecriture %d", bufferOutput.length, positionBufferOutput)
+              if(bufferOutput.length === positionBufferOutput) {
                 // On yield le buffer d'output (plein)
                 // console.debug("Yield buffer output : %O", bufferOutput)
                 yield bufferOutput
-                positionEcriture = 0
+                positionBufferOutput = 0
               }
             }
           }
         }
 
         if(done) {
-            // console.debug("streamAsyncIterable Done, traitement final de %s bytes", positionEcriture)
-            if(positionEcriture > 0) {
+            if(transformFinalize) {
+              // Dernier block
+              // console.debug("Dernier block lu, finalizing transform")
+              const outputBlockFinalize = await transformFinalize()
+              // console.debug("OutputBlock finalize ", outputBlockFinalize)
+              if(outputBlockFinalize) {
+                const outputBlock = outputBlockFinalize.ciphertext || outputBlockFinalize
+    
+                // console.debug("Ajout ciphertext ", outputBlock)
+                let positionOutputBlock = 0  // Position dans le chunk traite
+                while(outputBlock && positionOutputBlock < outputBlock.length) {
+                  const tailleBlockEcriture = Math.min(bufferOutput.length - positionBufferOutput, outputBlock.length)
+                  bufferOutput.set(outputBlock.slice(positionOutputBlock, tailleBlockEcriture), positionBufferOutput)
+                  positionBufferOutput += tailleBlockEcriture
+                  positionOutputBlock += tailleBlockEcriture
+                  // console.debug("Ecriture output, bufferOutput len %d, position ecriture %d", bufferOutput.length, positionBufferOutput)
+                  if(bufferOutput.length === positionBufferOutput) {
+                    // On yield le buffer d'output (plein)
+                    // console.debug("Yield buffer output : %O", bufferOutput)
+                    yield bufferOutput
+                    positionBufferOutput = 0
+                  }
+                }
+              }
+            }
+
+            // console.debug("streamAsyncIterable Done, traitement final de %s bytes", positionBufferOutput)
+            if(positionBufferOutput > 0) {
                 // console.debug("streamAsyncIterable yield final")
-                yield bufferOutput.slice(0, positionEcriture)
+                yield bufferOutput.slice(0, positionBufferOutput)
             }
             // Invocation finale
             // console.debug("streamAsyncIterable Termine apres yield")

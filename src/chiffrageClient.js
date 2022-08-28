@@ -9,7 +9,7 @@ import * as ed25519Utils from '@dugrema/millegrilles.utiljs/src/chiffrage.ed2551
 
 export {chiffrage}
 
-const { hacherCertificat } = hachage
+const { hacherCertificat: _hacherCertificat } = hachage
 
 const TAILLE_BUFFER = 1 * 1024 * 1024
 
@@ -32,7 +32,7 @@ export async function initialiserCertificateStore(caCert, opts) {
   certificatMillegrille = {
     pem: caCert,
     cert: certificateStore.cert,
-    fingerprint: await hacherCertificat(certificateStore.cert)
+    fingerprint: await _hacherCertificat(certificateStore.cert)
   }
 }
 
@@ -116,7 +116,7 @@ export async function _validerCertificatChiffrage(certificatPem, opts) {
     }
   }
 
-  const fingerprint = await hacherCertificat(certificatForge)
+  const fingerprint = await _hacherCertificat(certificatForge)
 
   const resultat = {fingerprint}
   if(DEBUG) console.debug("Resultat _validerCertificatChiffrage : %O", resultat)
@@ -198,7 +198,7 @@ export async function rechiffrerAvecCleMillegrille(
 
   const certificat = forgePki.certificateFromPem(pemRechiffrage),
         publicKey = certificat.publicKey.publicKeyBytes,
-        fingerprintMaitredescles = await hacherCertificat(certificat)
+        fingerprintMaitredescles = await _hacherCertificat(certificat)
 
   if(DEBUG) console.debug("Rechiffrer cles avec cert %O", certificat)
 
@@ -295,7 +295,7 @@ export async function chiffrerSecret(secrets, pemRechiffrage, opts) {
 
   // Importer la cle publique en format Subtle a partir du pem de certificat
   const certificat = forgePki.certificateFromPem(pemRechiffrage)
-  const partition = await hacherCertificat(certificat)
+  const partition = await _hacherCertificat(certificat)
   let clePublique = certificat.publicKey
   if(clePublique.publicKeyBytes) clePublique = clePublique.publicKeyBytes
   // var clePublique = forgePki.publicKeyToPem(certificat.publicKey)
@@ -329,4 +329,10 @@ export async function chiffrerSecret(secrets, pemRechiffrage, opts) {
 
 export function dechiffrerCleSecrete(cleSecreteChiffree) {
   return ed25519Utils.dechiffrerCle(cleSecreteChiffree, _clePrivee)
+}
+
+export function hacherCertificat(pem) {
+  if(Array.isArray(pem)) pem = pem[0]
+  const certificat = forgePki.certificateFromPem(pem)
+  return _hacherCertificat(certificat)
 }
