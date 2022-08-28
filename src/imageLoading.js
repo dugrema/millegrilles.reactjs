@@ -151,7 +151,7 @@ export function fileResourceLoader(getFichierChiffre, fichierFuuid, mimetype, op
                 if(erreurCb) erreurCb({err, message: "Erreur chargement de l'image"})
 
                 // Tenter de trouver un blob valide
-                const blobPret = await Promise.race([miniPromise, imagePromise])
+                const blobPret = await miniPromise
                 if(setSrc) setSrc(blobPret)
                 return blobPret
             }
