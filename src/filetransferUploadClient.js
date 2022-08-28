@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { splitPEMCerts } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
 import { pki } from '@dugrema/node-forge'
 import { base64 } from 'multiformats/bases/base64'
+import { proxy } from 'comlink'
 
 import { getAcceptedFileReader, streamAsyncIterable } from './stream.js'
 import { chiffrage }  from './chiffrage'
@@ -519,13 +520,14 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
     }
     console.debug("Preparation de %d bytes", tailleTotale)
 
-    const transformInst = await preparerTransform(),
-          transform = transformInst.cipher
-    console.debug("Transform : ", transformInst)
-    // const { cipher: transform } = await creerCipher(workers, certificatCa)
-
     let taillePreparee = 0
     for await (const file of acceptedFiles) {
+
+        // Preparer chiffrage
+        const transformInst = await preparerTransform(),
+        transform = transformInst.cipher
+        console.debug("Transform : ", transformInst)
+        // const { cipher: transform } = await creerCipher(workers, certificatCa)
 
         // Preparer fichier
         const fileMappe = mapAcceptedFile(file)
@@ -572,7 +574,6 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
                 console.debug("Traitement chunk %d transforme taille %d", compteurChunks, chunk.length)
 
                 // Conserver dans idb
-                //await uploadFichiersDao.ajouterFichierUploadFile(correlation, compteurPosition, chunk)
                 if(ajouterPart) await ajouterPart(correlation, compteurPosition, chunk)
                 compteurPosition += chunk.length
 
@@ -589,7 +590,7 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
             }
 
             const etatFinalChiffrage = transform.etatFinal()
-            console.debug("Etat final chiffrage : ", etatFinalChiffrage)
+            // console.debug("Etat final chiffrage : ", etatFinalChiffrage)
 
             const champsOptionnels = ['iv', 'nonce', 'header', 'tag']
             const paramsChiffrage = champsOptionnels.reduce((acc, champ)=>{
@@ -599,7 +600,10 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
             }, {})
     
             const hachage_bytes = etatFinalChiffrage.hachage
-            // const iv = base64.encode(transformHandler.iv)
+
+            // Ajouter fuuid a la transaction GrosFichiers
+            docIdb.transactionGrosfichiers.fuuid = hachage_bytes
+
             // console.debug("Resultat chiffrage : %O", resultatChiffrage)
             const identificateurs_document = { fuuid: hachage_bytes }
             docIdb.transactionMaitredescles = await preparerCommandeMaitrecles(
@@ -615,22 +619,82 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
             docIdb.etat = ETAT_PRET
             docIdb.taille = compteurPosition
             
-            // Update idb
-            console.debug("Update final docIdb ", docIdb)
-            //await uploadFichiersDao.updateFichierUpload(docIdb)
-
             // Dispatch pour demarrer upload
+            console.debug("Update final docIdb ", docIdb)
             if(updateFichier) await updateFichier(docIdb, {demarrer: true})
-            //dispatch(ajouterUpload(docIdb))
         } catch(err) {
             if(updateFichier) await updateFichier(docIdb, {err: ''+err})
-            //uploadFichiersDao.supprimerFichier(correlation)
-            //    .catch(err=>console.error('traiterAcceptedFiles Erreur nettoyage %s suite a une erreur : %O', correlation, err))
             throw err
         }
 
         // Fermer affichage preparation des fichiers
         if(setProgres) setProgres(false)
+    }
+}
+
+var _cancelUploadToken = null
+
+export function cancelUpload() {
+    if(_cancelUploadToken) return _cancelUploadToken.cancel()
+}
+
+export function partUploader(correlation, position, partContent, opts) {
+    opts = opts || {}
+    const onUploadProgress = opts.onUploadProgress
+
+    const pathUpload = path.join(_pathServeur, ''+correlation, ''+position)
+    const cancelTokenSource = axios.CancelToken.source()
+    _cancelUploadToken = cancelTokenSource
+
+    console.debug("Cancel token source : ", cancelTokenSource)
+
+    const reponse = axios({
+        url: pathUpload,
+        method: 'PUT',
+        headers: { 'content-type': 'application/data' },
+        data: partContent,
+        onUploadProgress,
+        cancelToken: cancelTokenSource.token,
+      })
+        .then(resultat=>{
+            console.debug("Resultat upload : ", resultat)
+            return {status: resultat.status, statusText: resultat.statusText}
+      })
+        .finally( () => _cancelUploadToken = null )
+
+    // _uploadEnCours.position = position
+    // _uploadEnCours.batchLoaded = 0  // Position ajustee, on reset loaded immediatement (evite promenage % progres)
+    // _uploadEnCours.pctFichierEnCours = Math.floor(position/_uploadEnCours.size * 100)
+    // console.debug("Reponse upload %s position %d Pct: %d put block %O", correlation, position, _uploadEnCours.pctFichierEnCours, reponse)
+    // emettreEtat().catch(err=>(console.warn("Erreur maj etat : %O", err)))
+
+    return reponse
+}
+
+export async function confirmerUpload(correlation, cles, transaction) {
+    console.debug("confirmerUpload %s cles : %O, transaction : %O", correlation, cles, transaction)
+
+    const confirmationResultat = { cles, transaction }
+    const pathConfirmation = path.join(_pathServeur, correlation)
+    const reponse = await axios({
+        method: 'POST', 
+        url: pathConfirmation, 
+        data: confirmationResultat,
+    })
+
+    console.debug("!!! Fichier verification (POST) reponse : %O", reponse)
+
+    if(reponse.data.ok === false) {
+        const data = reponse.data
+        console.error("Erreur verification fichier : %O", data)
+        const err = new Error("Erreur upload fichier : %s", data.err)
+        err.reponse = data
+        throw err
+    }
+
+    return {
+        status: reponse.status, 
+        reponse: reponse.data
     }
 }
 
