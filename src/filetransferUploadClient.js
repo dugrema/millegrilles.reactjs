@@ -631,7 +631,7 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
         }
 
         // Fermer affichage preparation des fichiers
-        if(setProgres) setProgres(false)
+        // if(setProgres) setProgres(false)
     }
 }
 
@@ -641,7 +641,7 @@ export function cancelUpload() {
     if(_cancelUploadToken) return _cancelUploadToken.cancel()
 }
 
-export function partUploader(correlation, position, partContent, opts) {
+export async function partUploader(correlation, position, partContent, opts) {
     opts = opts || {}
     const onUploadProgress = opts.onUploadProgress
 
@@ -649,9 +649,9 @@ export function partUploader(correlation, position, partContent, opts) {
     const cancelTokenSource = axios.CancelToken.source()
     _cancelUploadToken = cancelTokenSource
 
-    console.debug("Cancel token source : ", cancelTokenSource)
+    // console.debug("Cancel token source : ", cancelTokenSource)
 
-    const reponse = axios({
+    const reponse = await axios({
         url: pathUpload,
         method: 'PUT',
         headers: { 'content-type': 'application/data' },
@@ -661,7 +661,7 @@ export function partUploader(correlation, position, partContent, opts) {
       })
         .then(resultat=>{
             // console.debug("Resultat upload : ", resultat)
-            return {status: resultat.status, statusText: resultat.statusText}
+            return {status: resultat.status, data: resultat.data}
       })
         .finally( () => _cancelUploadToken = null )
 
