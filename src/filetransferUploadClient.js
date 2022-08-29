@@ -607,7 +607,7 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
             // Ajouter fuuid a la transaction GrosFichiers
             docIdb.transactionGrosfichiers.fuuid = hachage_bytes
 
-            // console.debug("Resultat chiffrage : %O", resultatChiffrage)
+            // console.debug("Resultat chiffrage : %O", etatFinalChiffrage)
             const identificateurs_document = { fuuid: hachage_bytes }
             docIdb.transactionMaitredescles = await preparerCommandeMaitrecles(
                 [_certificat[0]], 

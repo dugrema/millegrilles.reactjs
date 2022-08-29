@@ -522,8 +522,12 @@ function EtatUpload(props) {
         supprimerUploads({correlation: value})
     }, [supprimerUploads])
 
-    const supprimerTousUploadsAction = useCallback( () => {
-        supprimerUploads({tous: true})
+    const supprimerTousUploadsSuccesAction = useCallback( () => {
+        supprimerUploads({succes: true})
+    }, [supprimerUploads])
+
+    const supprimerTousUploadsEchecAction = useCallback( () => {
+        supprimerUploads({echec: true})
     }, [supprimerUploads])
 
     const handlerContinuerUpload = useCallback( event => {
@@ -594,18 +598,19 @@ function EtatUpload(props) {
                 uploadsErreur={uploadsErreur} 
                 supprimerUploadAction={supprimerUploadAction}
                 handlerContinuerUpload={handlerContinuerUpload} 
-                handlerContinuerTousUploads={handlerContinuerTousUploads} />
+                handlerContinuerTousUploads={handlerContinuerTousUploads}
+                supprimerTous={supprimerTousUploadsEchecAction} />
 
             <UploadsSucces 
                 uploadsSucces={uploadsSucces} 
                 supprimerUploadAction={supprimerUploadAction} 
-                supprimerTousUploadsAction={supprimerTousUploadsAction} />
+                supprimerTous={supprimerTousUploadsSuccesAction} />
         </div>
     )
 }
 
 function UploadsSucces(props) {
-    const { supprimerUploadAction, supprimerTousUploadsAction } = props
+    const { supprimerUploadAction, supprimerTous } = props
     const uploadsSucces = props.uploadsSucces || []
 
     const [show, setShow] = useState(false)
@@ -631,7 +636,7 @@ function UploadsSucces(props) {
 
                     <Button 
                         variant="secondary" 
-                        onClick={supprimerTousUploadsAction}
+                        onClick={supprimerTous}
                         disabled={nbUpload===0}>
                             <i className="fa fa-lg fa-times-circle"/>
                     </Button>                
@@ -650,7 +655,7 @@ function UploadsSucces(props) {
 }
 
 function UploadsErreur(props) {
-    const { supprimerUploadAction, supprimerTousUploadsAction, handlerContinuerTousUploads } = props
+    const { supprimerUploadAction, handlerContinuerUpload, handlerContinuerTousUploads, supprimerTous } = props
     const uploadsErreur = props.uploadsErreur || []
 
     const nbUpload = uploadsErreur.length
@@ -671,7 +676,7 @@ function UploadsErreur(props) {
                 <Col className={styles['boutons-droite']}>
                     <Button 
                         variant="secondary" 
-                        onClick={supprimerTousUploadsAction}
+                        onClick={supprimerTous}
                         disabled={nbUpload===0}>
                             <i className="fa fa-lg fa-times-circle"/>
                     </Button>                
@@ -679,7 +684,11 @@ function UploadsErreur(props) {
             </Row>
             {nbUpload>0?
                 uploadsErreur.map(item=>{
-                        return <UploadErreur key={item.correlation} value={item} supprimer={supprimerUploadAction} />
+                        return <UploadErreur 
+                                    key={item.correlation} 
+                                    value={item} 
+                                    continuer={handlerContinuerUpload} 
+                                    supprimer={supprimerUploadAction} />
                     })
             :''}
         </div>
@@ -748,7 +757,7 @@ function UploadComplete(props) {
 }
 
 function UploadErreur(props) {
-    const { value, supprimer } = props
+    const { value, continuer, supprimer } = props
     const err = value.err || {}
     const nom = value.nom || value.correlation
 
@@ -766,14 +775,24 @@ function UploadErreur(props) {
                     <Button 
                         variant="secondary" 
                         size="sm" 
-                        onClick={toggleShow}>
+                        onClick={toggleShow}
+                      >
                         <i className="fa fa-lg fa-info-circle"/>
                     </Button>
                     <Button 
                         variant="secondary" 
                         size="sm" 
-                        value={value.fuuid} 
-                        onClick={supprimer}>
+                        value={value.correlation} 
+                        onClick={continuer}
+                      >
+                        <i className="fa fa-lg fa-upload"/>
+                    </Button>
+                    <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        value={value.correlation} 
+                        onClick={supprimer}
+                      >
                         <i className="fa fa-lg fa-times-circle"/>
                     </Button>
                 </Col>
