@@ -558,7 +558,7 @@ function EtatUpload(props) {
     const uploadActif = (uploadEnCours)?true:false
 
     let progresSpan = '-'
-    if(typeof(progresUpload) === 'number') progresSpan = progresUpload + ' %'
+    if(!isNaN(progresUpload)) progresSpan = progresUpload + ' %'
 
     return (
         <div>
