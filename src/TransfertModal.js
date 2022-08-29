@@ -513,7 +513,7 @@ function DownloadErreur(props) {
 
 function EtatUpload(props) {
 
-    console.debug('EtatUpload proppies : ', props)
+    // console.debug('EtatUpload proppies : ', props)
 
     const { uploads, progresUpload, continuerUploads, supprimerUploads } = props
 
@@ -765,7 +765,7 @@ function UploadErreur(props) {
 
     const toggleShow = useCallback(()=>setShowErreur(!showErreur), [showErreur, setShowErreur])
 
-    console.debug("UploadErreur Value fichier : %O", value)
+    // console.debug("UploadErreur Value fichier : %O", value)
 
     return (
         <div>
