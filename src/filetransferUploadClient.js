@@ -151,8 +151,10 @@ function mapAcceptedFile(file) {
     // const nomFichierBuffer = new Uint8Array(Buffer.from(new TextEncoder().encode(file.name)))
     // throw new Error("Nom fichier buffer : " + nomFichierBuffer)
 
+    const nom = file.name.normalize()
+
     const transaction = {
-        nom: file.name.normalize(),  // iOS utilise la forme decomposee (combining)
+        nom,  // iOS utilise la forme decomposee (combining)
         mimetype: file.type || 'application/octet-stream',
         taille: file.size,
         dateFichier,
@@ -160,6 +162,7 @@ function mapAcceptedFile(file) {
     // if(cuuid) transaction['cuuid'] = cuuid
     
     const infoUpload = {
+        nom,
         file: file.object,
         size: file.size,
         correlation: uuidv4(),
@@ -513,12 +516,12 @@ export function up_retryErreur(opts) {
 export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouterPart, updateFichier, setProgres) {
     const now = new Date().getTime()
 
-    console.debug("Accepted files ", acceptedFiles)
+    // console.debug("Accepted files ", acceptedFiles)
     let tailleTotale = 0
     for (const file of acceptedFiles) {
         tailleTotale += file.size
     }
-    console.debug("Preparation de %d bytes", tailleTotale)
+    // console.debug("Preparation de %d bytes", tailleTotale)
 
     let taillePreparee = 0
     for await (const file of acceptedFiles) {
@@ -526,17 +529,17 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
         // Preparer chiffrage
         const transformInst = await preparerTransform(),
         transform = transformInst.cipher
-        console.debug("Transform : ", transformInst)
+        // console.debug("Transform : ", transformInst)
         // const { cipher: transform } = await creerCipher(workers, certificatCa)
 
         // Preparer fichier
         const fileMappe = mapAcceptedFile(file)
         fileMappe.transaction.cuuid = cuuid
-        console.debug("File mappe : ", fileMappe)
+        // console.debug("File mappe : ", fileMappe)
 
         const correlation = '' + uuidv4()
-        const stream = file.stream()
-        console.debug("File %s stream : %O", fileMappe.name, stream)
+        // const stream = file.stream()
+        // console.debug("File %s stream : %O", fileMappe.name, stream)
 
         const reader = getAcceptedFileReader(file)
         const iterReader = streamAsyncIterable(reader, {batchSize: UPLOAD_BATCH_SIZE, transform})
@@ -548,7 +551,7 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
             correlation, userId, 
 
             // Metadata recue
-            nom: fileMappe.name || correlation,
+            nom: fileMappe.nom || correlation,
             taille: fileMappe.size,
             mimetype: fileMappe.type || 'application/octet-stream',
 
@@ -657,16 +660,10 @@ export function partUploader(correlation, position, partContent, opts) {
         cancelToken: cancelTokenSource.token,
       })
         .then(resultat=>{
-            console.debug("Resultat upload : ", resultat)
+            // console.debug("Resultat upload : ", resultat)
             return {status: resultat.status, statusText: resultat.statusText}
       })
         .finally( () => _cancelUploadToken = null )
-
-    // _uploadEnCours.position = position
-    // _uploadEnCours.batchLoaded = 0  // Position ajustee, on reset loaded immediatement (evite promenage % progres)
-    // _uploadEnCours.pctFichierEnCours = Math.floor(position/_uploadEnCours.size * 100)
-    // console.debug("Reponse upload %s position %d Pct: %d put block %O", correlation, position, _uploadEnCours.pctFichierEnCours, reponse)
-    // emettreEtat().catch(err=>(console.warn("Erreur maj etat : %O", err)))
 
     return reponse
 }
@@ -697,31 +694,3 @@ export async function confirmerUpload(correlation, cles, transaction) {
         reponse: reponse.data
     }
 }
-
-// async function creerCipher(workers, certificatCa) {
-//     const { chiffrage, clesDao } = workers
-
-//     const certCa = pki.certificateFromPem(certificatCa)
-//     console.debug("CertCa : ", certCa)
-//     const publicKeyCa = certCa.publicKey.publicKeyBytes
-//     const fingerprintCa = await chiffrage.hacherCertificat(certificatCa)
-//     console.debug("Fingerprint keyCA %O, certificat CA : %s", publicKeyCa, fingerprintCa)
-
-//     const certificatsInfo = await clesDao.getCertificatsMaitredescles()
-//     const certificats = certificatsInfo.certificat
-//     console.debug("CA: %O, Certificats : %O", certificatCa, certificats)
-
-//     const cipherHandler = await chiffrage.chiffrage.preparerCipher({clePubliqueEd25519: publicKeyCa})
-//     console.debug("creerCipher handler : %O", cipherHandler)
-
-//     throw new Error("fix me")
-
-//     const cipher = cipherHandler.cipher
-
-//     // return {
-//     //     cipher(chunk) {
-//     //         return cipher.update(chunk)
-//     //     },
-//     //     handler: cipherHandler,
-//     // }
-// }

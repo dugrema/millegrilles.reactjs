@@ -24,6 +24,7 @@ function TransfertModal(props) {
     const { 
         workers, erreurCb, isEtatUploadExterne, etatUploadExterne,
         uploads, progresUpload, downloads, progresDownload,
+        continuerUploads, supprimerUploads,
     } = props
     const { transfertFichiers } = workers
 
@@ -116,7 +117,9 @@ function TransfertModal(props) {
                             uploads={uploads}
                             progresUpload={progresUpload}
                             errUpload={errUpload}
-                            setErrUpload={setErrUpload} />
+                            setErrUpload={setErrUpload} 
+                            continuerUploads={continuerUploads}
+                            supprimerUploads={supprimerUploads} />
                     </Col>
                 </Row>
             </Modal.Body>
@@ -139,11 +142,18 @@ function TabDownload(props) {
 }
 
 function TabUpload(props) {
-    const {workers, uploads, progresUpload, errUpload, setErrUpload} = props
+    const {workers, uploads, progresUpload, errUpload, setErrUpload, continuerUploads, supprimerUploads} = props
     return (
         <div>
             <AlertTimeout variant="danger" value={errUpload} setValue={setErrUpload} delay={20000} titre="Erreur durant upload" />
-            <EtatUpload workers={workers} uploads={uploads} progresUpload={progresUpload} erreurCb={setErrUpload} />
+            <EtatUpload 
+                workers={workers} 
+                uploads={uploads} 
+                progresUpload={progresUpload} 
+                erreurCb={setErrUpload} 
+                continuerUploads={continuerUploads}
+                supprimerUploads={supprimerUploads}
+                />
         </div>
     )
 }
@@ -505,25 +515,25 @@ function EtatUpload(props) {
 
     console.debug('EtatUpload proppies : ', props)
 
-    const { uploads, progresUpload, continuerUpload, supprimer } = props
+    const { uploads, progresUpload, continuerUploads, supprimerUploads } = props
 
     const supprimerUploadAction = useCallback( event => {
         const value = event.currentTarget.value
-        supprimer({correlation: value})
-    }, [supprimer])
+        supprimerUploads({correlation: value})
+    }, [supprimerUploads])
 
     const supprimerTousUploadsAction = useCallback( () => {
-        supprimer({tous: true})
-    }, [supprimer])
+        supprimerUploads({tous: true})
+    }, [supprimerUploads])
 
     const handlerContinuerUpload = useCallback( event => {
         const value = event.currentTarget.value
-        supprimer({correlation: value})
-    }, [continuerUpload])
+        continuerUploads({correlation: value})
+    }, [continuerUploads])
 
     const handlerContinuerTousUploads = useCallback( () => {
-        continuerUpload({tous: true})
-    }, [continuerUpload])
+        continuerUploads({tous: true})
+    }, [continuerUploads])
 
     // const ETAT_PREPARATION = 1,
     // ETAT_PRET = 2,
