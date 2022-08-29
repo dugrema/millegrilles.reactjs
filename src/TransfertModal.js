@@ -11,29 +11,40 @@ import { AlertTimeout } from './Alerts'
 
 import styles from './styles.module.css'
 
+const ETAT_PREPARATION = 1,
+      ETAT_PRET = 2,
+      ETAT_UPLOADING = 3,
+      ETAT_COMPLETE = 4,
+      ETAT_ECHEC = 5,
+      ETAT_CONFIRME = 6,
+      ETAT_UPLOAD_INCOMPLET = 7
+
 function TransfertModal(props) {
 
-    const { workers, setEtatTransfert, erreurCb, isEtatUploadExterne, etatUploadExterne } = props
+    const { 
+        workers, erreurCb, isEtatUploadExterne, etatUploadExterne,
+        uploads, progresUpload, downloads, progresDownload,
+    } = props
     const { transfertFichiers } = workers
 
     const [etatDownload, setEtatDownload] = useState({})
-    const [etatUpload, setEtatUpload] = useState({})
+    // const [etatUpload, setEtatUpload] = useState({})
     const [errDownload, setErrDownload] = useState('')
     const [errUpload, setErrUpload] = useState('')
 
-    // Transferer etat transfert global
-    useEffect(()=>{
-        // console.debug("Transfert update\nDownload : %O\nUpload: %O", etatDownload, etatUpload)
-        setEtatTransfert({download: etatDownload, upload: etatUpload})
-    }, [setEtatTransfert, etatDownload, etatUpload])
+    // // Transferer etat transfert global
+    // useEffect(()=>{
+    //     // console.debug("Transfert update\nDownload : %O\nUpload: %O", etatDownload, etatUpload)
+    //     setEtatTransfert({download: etatDownload, upload: etatUpload})
+    // }, [setEtatTransfert, etatDownload, etatUpload])
 
     // Importer les evenements d'upload (geres a l'externe du module)
-    useEffect(()=>{
-        if(isEtatUploadExterne && etatUploadExterne) {
-            // etatUploadExterne = {nbFichiersPending, pctFichierEnCours, ...flags}
-            handleUploadUpdate(transfertFichiers, etatUploadExterne, setEtatUpload)            
-        }
-    }, [isEtatUploadExterne, etatUploadExterne, transfertFichiers, setEtatUpload])
+    // useEffect(()=>{
+    //     if(isEtatUploadExterne && etatUploadExterne) {
+    //         // etatUploadExterne = {nbFichiersPending, pctFichierEnCours, ...flags}
+    //         handleUploadUpdate(transfertFichiers, etatUploadExterne, setEtatUpload)            
+    //     }
+    // }, [isEtatUploadExterne, etatUploadExterne, transfertFichiers, setEtatUpload])
 
     // Entretien idb/cache de fichiers
     useEffect(()=>{
@@ -57,15 +68,15 @@ function TransfertModal(props) {
             // Faire premiere maj
             handleDownloadUpdate(transfertFichiers, {}, setEtatDownload).catch(erreurCb)
 
-            if(!isEtatUploadExterne) {
-                const proxySetEtatUpload = proxy((nbFichiersPending, pctFichierEnCours, flags)=>{
-                    flags = flags || {}
-                    handleUploadUpdate(transfertFichiers, {nbFichiersPending, pctFichierEnCours, ...flags}, setEtatUpload)
-                })
-                transfertFichiers.up_setCallbackUpload(proxySetEtatUpload).catch(erreurCb)
-            } else {
-                console.info("Hook avec etatUploadExterne")
-            }
+            // if(!isEtatUploadExterne) {
+            //     const proxySetEtatUpload = proxy((nbFichiersPending, pctFichierEnCours, flags)=>{
+            //         flags = flags || {}
+            //         handleUploadUpdate(transfertFichiers, {nbFichiersPending, pctFichierEnCours, ...flags}, setEtatUpload)
+            //     })
+            //     transfertFichiers.up_setCallbackUpload(proxySetEtatUpload).catch(erreurCb)
+            // } else {
+            //     console.info("Hook avec etatUploadExterne")
+            // }
 
             return () => {
                 if(intervalId) {
@@ -102,8 +113,9 @@ function TransfertModal(props) {
                     <Col xs={12} lg={6}>
                         <TabUpload 
                             workers={workers} 
-                            etatUpload={etatUpload}
-                            errUpload={errUpload} 
+                            uploads={uploads}
+                            progresUpload={progresUpload}
+                            errUpload={errUpload}
                             setErrUpload={setErrUpload} />
                     </Col>
                 </Row>
@@ -127,11 +139,11 @@ function TabDownload(props) {
 }
 
 function TabUpload(props) {
-    const {workers, etatUpload, errUpload, setErrUpload} = props
+    const {workers, uploads, progresUpload, errUpload, setErrUpload} = props
     return (
         <div>
             <AlertTimeout variant="danger" value={errUpload} setValue={setErrUpload} delay={20000} titre="Erreur durant upload" />
-            <EtatUpload workers={workers} etat={etatUpload} erreurCb={setErrUpload} />
+            <EtatUpload workers={workers} uploads={uploads} progresUpload={progresUpload} erreurCb={setErrUpload} />
         </div>
     )
 }
@@ -155,12 +167,12 @@ async function handleDownloadUpdate(transfertFichiers, params, setEtatDownload) 
     }
 }
 
-async function handleUploadUpdate(transfertFichiers, params, setEtatUpload) {
-    // const { nbFichiersPending, pctFichierEnCours } = params
-    const etat = await transfertFichiers.up_getEtatCourant()
-    const etatComplet = {...params, ...etat}
-    setEtatUpload(etatComplet)
-}
+// async function handleUploadUpdate(transfertFichiers, params, setEtatUpload) {
+//     // const { nbFichiersPending, pctFichierEnCours } = params
+//     const etat = await transfertFichiers.up_getEtatCourant()
+//     const etatComplet = {...params, ...etat}
+//     setEtatUpload(etatComplet)
+// }
 
 async function downloadCache(fuuid, opts) {
     opts = opts || {}
@@ -491,46 +503,62 @@ function DownloadErreur(props) {
 
 function EtatUpload(props) {
 
-    const { workers, etat } = props
-    const { transfertFichiers } = workers
+    console.debug('EtatUpload proppies : ', props)
 
-    const annulerUploadAction = useCallback( event => {
-        const correlation = event.currentTarget.value
-        transfertFichiers.up_annulerUpload(correlation)
-            .catch(err=>{console.error("Erreur annuler download %O", err)})
-    }, [transfertFichiers])
+    const { uploads, progresUpload, continuerUpload, supprimer } = props
 
     const supprimerUploadAction = useCallback( event => {
-        const correlation = event.currentTarget.value
-        transfertFichiers.up_clearCompletes({correlation})
-            .catch(err=>{console.error("Erreur supprimer download %O", err)})
-    }, [transfertFichiers])
+        const value = event.currentTarget.value
+        supprimer({correlation: value})
+    }, [supprimer])
 
-    const supprimerTousUploadsAction = useCallback( event => {
-        transfertFichiers.up_clearCompletes()
-            .catch(err=>{console.error("Erreur supprimer tous %O", err)})
-    }, [transfertFichiers])
+    const supprimerTousUploadsAction = useCallback( () => {
+        supprimer({tous: true})
+    }, [supprimer])
 
-    const uploadsPending = etat.uploadsPending || []
-    const uploadsCompletes = etat.uploadsCompletes || []
-    const uploadEnCours = etat.uploadEnCours || {}
-    const pctFichierEnCours = uploadEnCours.pctFichierEnCours || ''
-    const uploadsSucces = uploadsCompletes.filter(item=>item.status===5)
-    const uploadsErreur = uploadsCompletes.filter(item=>item.status===4)
+    const handlerContinuerUpload = useCallback( event => {
+        const value = event.currentTarget.value
+        supprimer({correlation: value})
+    }, [continuerUpload])
+
+    const handlerContinuerTousUploads = useCallback( () => {
+        continuerUpload({tous: true})
+    }, [continuerUpload])
+
+    // const ETAT_PREPARATION = 1,
+    // ETAT_PRET = 2,
+    // ETAT_UPLOADING = 3,
+    // ETAT_COMPLETE = 4,
+    // ETAT_ECHEC = 5,
+    // ETAT_CONFIRME = 6,
+    // ETAT_UPLOAD_INCOMPLET = 7
+
+    const uploadsPending = uploads.filter(item=>item.etat===ETAT_PRET)
+    const uploadsSucces = uploads.filter(item=>[ETAT_COMPLETE, ETAT_CONFIRME].includes(item.etat))
+    const uploadsErreur = uploads.filter(item=>[ETAT_ECHEC, ETAT_UPLOAD_INCOMPLET].includes(item.etat))
+    const uploadEnCours = uploads.filter(item=>item.etat===ETAT_UPLOADING).pop()
+
+    // const uploadsPending = etat.uploadsPending || []
+    // const uploadsCompletes = etat.uploadsCompletes || []
+    // const uploadEnCours = etat.uploadEnCours || {}
+    // const pctFichierEnCours = uploadEnCours.pctFichierEnCours || ''
+    // const uploadsSucces = uploadsCompletes.filter(item=>item.status===5)
+    // const uploadsErreur = uploadsCompletes.filter(item=>item.status===4)
     
-    const compteEnCours = uploadsPending.length + (etat.uploadEnCours?1:0)
+    const uploadActif = (uploadEnCours)?true:false
 
-    const uploadActif = (compteEnCours)?true:false
+    let progresSpan = '-'
+    if(typeof(progresUpload) === 'number') progresSpan = progresUpload + ' %'
 
     return (
         <div>
             <Row className={styles['modal-row-header']}>
                 <Col xs={6}>
-                    Uploads en cours {compteEnCours?<Badge>{compteEnCours}</Badge>:''}
+                    Uploads en cours {uploadActif?<Badge>1</Badge>:''}
                 </Col>
                 <Col>
                     {uploadActif?
-                        <ProgressBar now={pctFichierEnCours} label={pctFichierEnCours+'%'} className={styles.progressmin} />
+                        <ProgressBar now={progresUpload} label={progresSpan} className={styles.progressmin} />
                         :''
                     }
                 </Col>
@@ -543,18 +571,20 @@ function EtatUpload(props) {
                 </Row>
             }
 
-            {etat.uploadEnCours?
-                <UploadEnCours etat={etat} value={etat.uploadEnCours} annuler={annulerUploadAction} />
+            {uploadEnCours?
+                <UploadEnCours value={uploadEnCours} annuler={supprimerUploadAction} />
                 :''
             }
 
             {uploadsPending.map(item=>{
-                return <UploadPending key={item.correlation} value={item} annuler={annulerUploadAction} />
+                return <UploadPending key={item.correlation} value={item} annuler={supprimerUploadAction} />
             })}
-
+            
             <UploadsErreur
                 uploadsErreur={uploadsErreur} 
-                supprimerUploadAction={supprimerUploadAction} />
+                supprimerUploadAction={supprimerUploadAction}
+                handlerContinuerUpload={handlerContinuerUpload} 
+                handlerContinuerTousUploads={handlerContinuerTousUploads} />
 
             <UploadsSucces 
                 uploadsSucces={uploadsSucces} 
@@ -610,7 +640,7 @@ function UploadsSucces(props) {
 }
 
 function UploadsErreur(props) {
-    const { supprimerUploadAction, supprimerTousUploadsAction } = props
+    const { supprimerUploadAction, supprimerTousUploadsAction, handlerContinuerTousUploads } = props
     const uploadsErreur = props.uploadsErreur || []
 
     const nbUpload = uploadsErreur.length
@@ -619,6 +649,11 @@ function UploadsErreur(props) {
 
     return (
         <div>
+            <Row>
+                <Col>
+                    <Button disabled={!uploadsErreur} onClick={handlerContinuerTousUploads}>Redemarrer</Button>
+                </Col>
+            </Row>
             <Row className={styles['modal-row-header']}>
                 <Col xs={6}>
                     Uploads en erreur {nbUpload?<Badge bg="danger">{nbUpload}</Badge>:''}
@@ -644,10 +679,11 @@ function UploadsErreur(props) {
 function UploadPending(props) {
 
     const { value, annuler } = props
+    const nom = value.nom || value.correlation
 
     return (
         <Row>
-            <Col>{value.transaction.nom}</Col>
+            <Col>{nom}</Col>
             <Col className={styles['boutons-droite']}>
                 <Button 
                     variant="secondary" 
@@ -661,12 +697,12 @@ function UploadPending(props) {
 }
 
 function UploadEnCours(props) {
-    const { etat, value, annuler } = props
-    const pct = etat.pctFichierEnCours
+    const { value, annuler } = props
+    const nom = value.nom || value.correlation
 
     return (
         <Row className={styles['modal-row-encours']}>
-            <Col xs={6} lg={5}>{value.transaction.nom}</Col>
+            <Col xs={6} lg={5}>{nom}</Col>
             <Col className={styles['boutons-droite']}>
                 <Button 
                     variant="secondary" 
@@ -682,9 +718,11 @@ function UploadEnCours(props) {
 function UploadComplete(props) {
     const { value, supprimer } = props
 
+    const nom = value.nom || value.correlation
+
     return (
         <Row>
-            <Col xs={8}>{value.transaction.nom}</Col>
+            <Col xs={8}>{nom}</Col>
             <Col className={styles['boutons-droite']}>
                 <Button 
                     variant="secondary" 
@@ -702,15 +740,18 @@ function UploadComplete(props) {
 function UploadErreur(props) {
     const { value, supprimer } = props
     const err = value.err || {}
+    const nom = value.nom || value.correlation
 
     const [showErreur, setShowErreur] = useState(false)
 
     const toggleShow = useCallback(()=>setShowErreur(!showErreur), [showErreur, setShowErreur])
 
+    console.debug("UploadErreur Value fichier : %O", value)
+
     return (
         <div>
             <Row className={styles['modal-row-erreur']}>
-                <Col xs={8} className={styles['modal-nomfichier']}>{value.transaction.nom} <i className="fa fa-cross"/></Col>
+                <Col xs={8} className={styles['modal-nomfichier']}>{nom} <i className="fa fa-cross"/></Col>
                 <Col className={styles['boutons-droite']}>
                     <Button 
                         variant="secondary" 
