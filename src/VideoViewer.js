@@ -37,7 +37,7 @@ function VideoViewer(props) {
 
             if(timeStampEffectif) {
                 srcHref = srcHref + '#t=' + timeStampEffectif
-                console.debug("Href video avec ts : %s", srcHref)
+                // console.debug("Href video avec ts : %s", srcHref)
                 setPlaybackCommence(true)
             }
 
@@ -78,7 +78,7 @@ function VideoViewer(props) {
         if(playbackCommence) return  // Ignorer changements au video si le playback est commence
 
         // Forcer un toggle d'affichage sur changements sources ou videos
-        console.debug("Changement videos : src : %O, videos : %O", src, videos)
+        // console.debug("Changement videos : src : %O, videos : %O", src, videos)
         setActif(false)
         setTimeStampEffectif(timeStamp)
     }, [src, timeStamp, playbackCommence, videos, sources, setActif])

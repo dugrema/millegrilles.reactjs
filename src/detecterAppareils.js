@@ -6,7 +6,7 @@ export async function detecterSupport() {
 
   const support = {webp, webm, fileStream, touch}
   
-  console.info("Support du navigateur : %O", support)
+  // console.info("Support du navigateur : %O", support)
   return support
 }
 

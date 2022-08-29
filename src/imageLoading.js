@@ -321,12 +321,12 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
                     opts = opts || {}
                     const genererToken = opts.genererToken
     
-                    console.debug("Load videos : %O (genererToken?%O)", url, genererToken)
+                    // console.debug("Load videos : %O (genererToken?%O)", url, genererToken)
 
                     if(genererToken === true && creerToken) {
                         const fuuids = url.map(item=>item.fuuid)
                         const tokenVideo = await creerToken(fuuids)
-                        console.debug("Token cree pour fuuids %O : %s", fuuids, tokenVideo)
+                        // console.debug("Token cree pour fuuids %O : %s", fuuids, tokenVideo)
 
                         const nouveauUrls = url.map(item=>{
                             item.src = path.join(baseUrlVideo, item.fuuid, tokenVideo)
@@ -357,19 +357,19 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
                 opts = opts || {}
                 const genererToken = opts.genererToken
 
-                console.debug("Chargement original avec : %O", version_courante)
+                // console.debug("Chargement original avec : %O", version_courante)
                 let srcVideo = path.join(baseUrlVideo, fuuid)
 
                 if(genererToken === true && creerToken) {
                     const fuuids = [fuuid]
                     const tokenVideo = await creerToken(fuuids)
-                    console.debug("Token cree pour fuuids %O : %s", fuuids, tokenVideo)
+                    // console.debug("Token cree pour fuuids %O : %s", fuuids, tokenVideo)
                     srcVideo = path.join(baseUrlVideo, fuuid, tokenVideo)
                 }
 
                 const url = [{src: srcVideo, mimetype: version_courante.mimetype, codecVideo: version_courante.codec, label: 'original'}]
 
-                console.debug("Load videos : %O", url)
+                // console.debug("Load videos : %O", url)
                 return url
             }, 
             unload: ()=>{
@@ -386,7 +386,7 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
             // Prendre la plus faible qualite de video si aucune fournie
             if(!selecteur || !selecteurs.includes(selecteur)) selecteur = 'faible'
 
-            console.debug("Loader video %s", selecteur)
+            // console.debug("Loader video %s", selecteur)
             const loader = loaders[selecteur]
 
             return loader.load(opts)

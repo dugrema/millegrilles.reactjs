@@ -255,7 +255,7 @@ async function uploadFichier() {
         // Preprarer commande maitre des cles
         // const resultatChiffrage = await transformHandler.finish()
         const resultatChiffrage = await cipher.finalize()
-        console.debug("Resultat chiffrage : %O", resultatChiffrage)
+        // console.debug("Resultat chiffrage : %O", resultatChiffrage)
         const { ciphertext } = resultatChiffrage
 
         const champsOptionnels = ['iv', 'nonce', 'header', 'tag']
@@ -565,7 +565,7 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
             transactionMaitredescles: null,
         }
 
-        console.debug("Update initial docIdb ", docIdb)
+        // console.debug("Update initial docIdb ", docIdb)
         //await uploadFichiersDao.updateFichierUpload(docIdb)
         if(updateFichier) await updateFichier(docIdb, {demarrer: false})
         
@@ -574,7 +574,7 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
 
         try {
             for await (const chunk of iterReader) {
-                console.debug("Traitement chunk %d transforme taille %d", compteurChunks, chunk.length)
+                // console.debug("Traitement chunk %d transforme taille %d", compteurChunks, chunk.length)
 
                 // Conserver dans idb
                 if(ajouterPart) await ajouterPart(correlation, compteurPosition, chunk)
@@ -623,7 +623,7 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
             docIdb.taille = compteurPosition
             
             // Dispatch pour demarrer upload
-            console.debug("Update final docIdb ", docIdb)
+            // console.debug("Update final docIdb ", docIdb)
             if(updateFichier) await updateFichier(docIdb, {demarrer: true})
         } catch(err) {
             if(updateFichier) await updateFichier(docIdb, {err: ''+err})
@@ -669,7 +669,7 @@ export async function partUploader(correlation, position, partContent, opts) {
 }
 
 export async function confirmerUpload(correlation, cles, transaction) {
-    console.debug("confirmerUpload %s cles : %O, transaction : %O", correlation, cles, transaction)
+    // console.debug("confirmerUpload %s cles : %O, transaction : %O", correlation, cles, transaction)
 
     const confirmationResultat = { cles, transaction }
     const pathConfirmation = path.join(_pathServeur, correlation)
@@ -679,7 +679,7 @@ export async function confirmerUpload(correlation, cles, transaction) {
         data: confirmationResultat,
     })
 
-    console.debug("!!! Fichier verification (POST) reponse : %O", reponse)
+    // console.debug("!!! Fichier verification (POST) reponse : %O", reponse)
 
     if(reponse.data.ok === false) {
         const data = reponse.data
