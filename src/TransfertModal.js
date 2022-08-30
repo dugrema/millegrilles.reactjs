@@ -19,16 +19,24 @@ const ETAT_PREPARATION = 1,
       ETAT_CONFIRME = 6,
       ETAT_UPLOAD_INCOMPLET = 7
 
+const CONST_ETATS_DOWNLOAD = {
+    ETAT_PRET: 1,
+    ETAT_EN_COURS: 2,
+    ETAT_SUCCES: 3,
+    ETAT_ECHEC: 4
+}
+
 function TransfertModal(props) {
 
     const { 
         workers, erreurCb, isEtatUploadExterne, etatUploadExterne,
         uploads, progresUpload, downloads, progresDownload,
         continuerUploads, supprimerUploads,
+        continuerDownloads, supprimerDownloads,
     } = props
     const { transfertFichiers } = workers
 
-    const [etatDownload, setEtatDownload] = useState({})
+    // const [etatDownload, setEtatDownload] = useState({})
     // const [etatUpload, setEtatUpload] = useState({})
     const [errDownload, setErrDownload] = useState('')
     const [errUpload, setErrUpload] = useState('')
@@ -48,47 +56,47 @@ function TransfertModal(props) {
     // }, [isEtatUploadExterne, etatUploadExterne, transfertFichiers, setEtatUpload])
 
     // Entretien idb/cache de fichiers
-    useEffect(()=>{
-        if(!transfertFichiers) return 
-        try {
-            // erreurCb(`Transfert fichiers etat : ${transfertFichiers.down_entretienCache !== null}`)
-            let intervalId = null
-            transfertFichiers.down_entretienCache()
-                .then(()=>{
-                    intervalId = setInterval(()=>{transfertFichiers.down_entretienCache().catch(erreurCb)}, 300000)
-                })
-                .catch(erreurCb)
+    // useEffect(()=>{
+    //     if(!transfertFichiers) return 
+    //     try {
+    //         // erreurCb(`Transfert fichiers etat : ${transfertFichiers.down_entretienCache !== null}`)
+    //         let intervalId = null
+    //         transfertFichiers.down_entretienCache()
+    //             .then(()=>{
+    //                 intervalId = setInterval(()=>{transfertFichiers.down_entretienCache().catch(erreurCb)}, 300000)
+    //             })
+    //             .catch(erreurCb)
 
-            const proxySetEtatDownload = proxy((pending, pct, flags)=>{
-                flags = flags || {}
-                // console.debug("Set nouvel etat download. pending:%d, pct:%d, flags: %O", pending, pct, flags)
-                handleDownloadUpdate(transfertFichiers, {pending, pct, ...flags}, setEtatDownload)
-            })
-            transfertFichiers.down_setCallbackDownload(proxySetEtatDownload).catch(erreurCb)
+    //         const proxySetEtatDownload = proxy((pending, pct, flags)=>{
+    //             flags = flags || {}
+    //             // console.debug("Set nouvel etat download. pending:%d, pct:%d, flags: %O", pending, pct, flags)
+    //             handleDownloadUpdate(transfertFichiers, {pending, pct, ...flags}, setEtatDownload)
+    //         })
+    //         transfertFichiers.down_setCallbackDownload(proxySetEtatDownload).catch(erreurCb)
 
-            // Faire premiere maj
-            handleDownloadUpdate(transfertFichiers, {}, setEtatDownload).catch(erreurCb)
+    //         // Faire premiere maj
+    //         handleDownloadUpdate(transfertFichiers, {}, setEtatDownload).catch(erreurCb)
 
-            // if(!isEtatUploadExterne) {
-            //     const proxySetEtatUpload = proxy((nbFichiersPending, pctFichierEnCours, flags)=>{
-            //         flags = flags || {}
-            //         handleUploadUpdate(transfertFichiers, {nbFichiersPending, pctFichierEnCours, ...flags}, setEtatUpload)
-            //     })
-            //     transfertFichiers.up_setCallbackUpload(proxySetEtatUpload).catch(erreurCb)
-            // } else {
-            //     console.info("Hook avec etatUploadExterne")
-            // }
+    //         // if(!isEtatUploadExterne) {
+    //         //     const proxySetEtatUpload = proxy((nbFichiersPending, pctFichierEnCours, flags)=>{
+    //         //         flags = flags || {}
+    //         //         handleUploadUpdate(transfertFichiers, {nbFichiersPending, pctFichierEnCours, ...flags}, setEtatUpload)
+    //         //     })
+    //         //     transfertFichiers.up_setCallbackUpload(proxySetEtatUpload).catch(erreurCb)
+    //         // } else {
+    //         //     console.info("Hook avec etatUploadExterne")
+    //         // }
 
-            return () => {
-                if(intervalId) {
-                    clearInterval(intervalId)
-                    transfertFichiers.down_entretienCache().catch(erreurCb)
-                }
-            }
-        } catch(err) {
-            erreurCb(err, 'Erreur chargement transfert modal')
-        }
-    }, [transfertFichiers, isEtatUploadExterne, erreurCb])
+    //         return () => {
+    //             if(intervalId) {
+    //                 clearInterval(intervalId)
+    //                 transfertFichiers.down_entretienCache().catch(erreurCb)
+    //             }
+    //         }
+    //     } catch(err) {
+    //         erreurCb(err, 'Erreur chargement transfert modal')
+    //     }
+    // }, [transfertFichiers, isEtatUploadExterne, erreurCb])
 
     return (
         <Modal 
@@ -107,9 +115,12 @@ function TransfertModal(props) {
                     <Col xs={12} lg={6}>
                         <TabDownload 
                             workers={workers}
-                            etatDownload={etatDownload}
+                            downloads={downloads}
+                            progres={progresDownload}
                             errDownload={errDownload} 
-                            setErrDownload={setErrDownload} />
+                            setErrDownload={setErrDownload} 
+                            continuerDownloads={continuerDownloads}
+                            supprimerDownloads={supprimerDownloads} />
                     </Col>
                     <Col xs={12} lg={6}>
                         <TabUpload 
@@ -132,11 +143,18 @@ function TransfertModal(props) {
 export default TransfertModal
 
 function TabDownload(props) {
-    const {workers, etatDownload, errDownload, setErrDownload} = props
+    const {workers, downloads, progresDownload, errDownload, setErrDownload, continuerDownloads, supprimerDownloads} = props
     return (
         <div>
             <AlertTimeout variant="danger" value={errDownload} setValue={setErrDownload} delay={20000} titre="Erreur durant download" />
-            <EtatDownload workers={workers} etat={etatDownload} erreurCb={setErrDownload} />    
+            <EtatDownload 
+                workers={workers} 
+                downloads={downloads} 
+                progres={progresDownload} 
+                erreurCb={setErrDownload} 
+                continuerDownloads={continuerDownloads}
+                supprimerDownloads={supprimerDownloads}
+             />
         </div>
     )
 }
@@ -222,48 +240,46 @@ function promptSaveFichier(blob, opts) {
 
 function EtatDownload(props) {
 
-    // console.debug("EtatDownload PROPPYS %O", props)
+    console.debug("EtatDownload PROPPYS %O", props)
 
-    const { workers, etat } = props
-    const { transfertFichiers } = workers
-    const { downloads } = etat || []
-    const downloadEnCours = etat.downloadEnCours || ''
+    const { workers, continuerDownloads, supprimerDownloads, progres } = props
+    // const { transfertFichiers } = workers
+    const downloads = props.downloads || []
 
     const downloadClick = useCallback(event=>{
         const fuuid = event.currentTarget.value
         const { filename } = event.currentTarget.dataset
-        downloadCache(fuuid, {filename})
+        // downloadCache(fuuid, {filename})
     }, [])
-
-    const annulerDownloadAction = useCallback( event => {
-        const fuuid = event.currentTarget.value
-        transfertFichiers.down_annulerDownload(fuuid)
-            .catch(err=>{console.error("Erreur annuler download %O", err)})
-    }, [transfertFichiers])
 
     const supprimerDownloadAction = useCallback( event => {
         const fuuid = event.currentTarget.value
-        transfertFichiers.down_supprimerDownloads({hachage_bytes: fuuid})
-            .catch(err=>{console.error("Erreur supprimer download %O", err)})
-    }, [transfertFichiers])
+        console.debug("Supprimer download ", fuuid)
+        supprimerDownloads({fuuid})
+        // transfertFichiers.down_supprimerDownloads({hachage_bytes: fuuid})
+        //     .catch(err=>{console.error("Erreur supprimer download %O", err)})
+    }, [supprimerDownloads])
 
-    const supprimerTousDownloadsAction = useCallback( event => {
-        transfertFichiers.down_supprimerDownloads({completes: true})
-            .catch(err=>{console.error("Erreur supprimer tous %O", err)})
-    }, [transfertFichiers])
+    const supprimerDownloadsSuccesAction = useCallback( event => {
+        console.debug("Supprimer tous downloads")
+        supprimerDownloads({succes: true})
+    }, [supprimerDownloads])
+
+    const supprimerDownloadsErreurAction = useCallback( event => {
+        console.debug("Supprimer tous downloads")
+        supprimerDownloads({echec: true})
+    }, [supprimerDownloads])
 
     const retryDownloadAction = useCallback( event => {
         const fuuid = event.currentTarget.value
-        transfertFichiers.down_retryDownload(fuuid)
-            .catch(err=>{console.error("Erreur retry download %O", err)})
-    }, [transfertFichiers])
+        // transfertFichiers.down_retryDownload(fuuid)
+        //     .catch(err=>{console.error("Erreur retry download %O", err)})
+    }, [continuerDownloads])
 
-    const downloadsPending = downloads.filter(item=>item.status===1)
-    // const downloadEnCours = downloads.filter(item=>item.status===2).pop() || ''
-    const downloadsCompletes = downloads.filter(item=>item.status===3)
-    const downloadsErreur = downloads.filter(item=>item.status===4)
-    let pctFichierEnCours = 0
-    if(etat.loaded && etat.size) pctFichierEnCours = Math.floor(etat.loaded / etat.size * 100)
+    const downloadsPending = downloads.filter(item=>item.etat===CONST_ETATS_DOWNLOAD.ETAT_PRET)
+    const downloadEnCours = downloads.filter(item=>item.etat===CONST_ETATS_DOWNLOAD.ETAT_EN_COURS).pop() || ''
+    const downloadsCompletes = downloads.filter(item=>item.etat===CONST_ETATS_DOWNLOAD.ETAT_SUCCES)
+    const downloadsErreur = downloads.filter(item=>item.etat===CONST_ETATS_DOWNLOAD.ETAT_ECHEC)
     
     const compteEnCours = downloadsPending.length + (downloadEnCours?1:0)
 
@@ -277,7 +293,7 @@ function EtatDownload(props) {
                 </Col>
                 <Col>
                     {downloadActif?
-                        <ProgressBar now={pctFichierEnCours} label={pctFichierEnCours+'%'} className={styles.progressmin} />
+                        <ProgressBar now={progres} label={progres+' %'} className={styles.progressmin} />
                         :''
                     }
                 </Col>
@@ -291,23 +307,23 @@ function EtatDownload(props) {
             }
 
             {downloadEnCours?
-                <DownloadEnCours key={downloadEnCours.fuuid} etat={etat} value={downloadEnCours} annulerDownloadAction={annulerDownloadAction} />
+                <DownloadEnCours key={downloadEnCours.fuuid} etat={etat} value={downloadEnCours} annulerDownloadAction={supprimerDownloadAction} />
                 :''
             }
 
             {downloadsPending.map(item=>{
-                return <DownloadPending key={item.fuuid} etat={etat} value={item} annulerDownloadAction={annulerDownloadAction} />
+                return <DownloadPending key={item.fuuid} etat={etat} value={item} annulerDownloadAction={supprimerDownloadAction} />
             })}
 
             <DownloadsErreur
                 downloadsErreur={downloadsErreur} 
-                supprimerDownloadAction={supprimerDownloadAction} 
+                supprimerDownloadAction={supprimerDownloadsErreurAction} 
                 retryDownloadAction={retryDownloadAction} />
 
             <DownloadsSucces 
                 downloadsCompletes={downloadsCompletes} 
-                supprimerDownloadAction={supprimerDownloadAction} 
-                supprimerTousDownloadsAction={supprimerTousDownloadsAction} 
+                supprimerDownloadAction={supprimerDownloadsSuccesAction} 
+                supprimerTousDownloadsAction={supprimerDownloadsSuccesAction} 
                 downloadClick={downloadClick} />
         </div>
     )
@@ -402,10 +418,11 @@ function DownloadsErreur(props) {
 function DownloadPending(props) {
 
     const { value, annulerDownloadAction } = props
-
+    const label = value.nom || value.fuuid
+    
     return (
         <Row>
-            <Col>{value.filename}</Col>
+            <Col>{label}</Col>
             <Col className={styles['boutons-droite']}>
                 <Button 
                     variant="secondary" 
@@ -420,10 +437,12 @@ function DownloadPending(props) {
 
 function DownloadEnCours(props) {
     const { etat, value, annulerDownloadAction } = props
+    
+    const label = value.nom || value.fuuid
 
     return (
         <Row className={styles['modal-row-encours']}>
-            <Col xs={6} lg={5}>{value.filename}</Col>
+            <Col xs={6} lg={5}>{label}</Col>
             <Col className={styles['boutons-droite']}>
                 <Button 
                     variant="secondary" 
@@ -439,15 +458,17 @@ function DownloadEnCours(props) {
 function DownloadComplete(props) {
     const { value, downloadClick, supprimerDownloadAction } = props
 
+    const label = value.nom || value.fuuid
+
     return (
         <Row>
-            <Col xs={6} lg={7}>{value.filename}</Col>
+            <Col xs={6} lg={7}>{label}</Col>
             <Col className={styles['boutons-droite']}>
                 <Button 
                     variant="secondary" 
                     size="sm" 
                     value={value.fuuid}
-                    data-filename={value.filename}
+                    data-filename={label}
                     onClick={downloadClick}
                     className={styles.lignehover}>
                     <i className="fa fa-lg fa-cloud-download"/>
