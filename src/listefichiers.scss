@@ -267,18 +267,12 @@
 }
 
 .filepicker {
-  background: white;
-  /*
-  width: 100%;
-  height: 100%;
-  */
+  background-color: $second-color;
 }
 
-/*
 .filepicker .liste {
-  border: 1px solid grey;
+  background-color: $second-color;
 }
-*/
 
 @media screen and (min-width: 768px) {
   .thumbnail {

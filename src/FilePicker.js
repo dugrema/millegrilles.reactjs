@@ -6,89 +6,120 @@ import Row from 'react-bootstrap/Row'
 import Breadcrumb from 'react-bootstrap/Breadcrumb'
 import Button from 'react-bootstrap/Button'
 
-import styles from './styles.module.css'
-
 export default props => {
 
-    const { loadCollection, setPath: setPathOut, nomRoot } = props
+    const { 
+        // loadCollection, setPath: setPathOut, 
+        nomRoot,
+        liste, breadcrumb, toBreadrumbIdx, toCollection,
+    } = props
 
     const nomRootLocal = nomRoot || 'Favoris'
 
-    const [ cuuidCourant, setCuuidCourant ] = useState('')
-    const [ path, setPath ] = useState([])
-    const [ liste, setListe ] = useState([])
+    // const [ cuuidCourant, setCuuidCourant ] = useState('')
+    // const [ path, setPath ] = useState([])
+    // const [ liste, setListe ] = useState([])
 
-    const activeIdx = path.length - 1
+    // const activeIdx = path.length - 1
 
     const ouvrirCuuid = useCallback( event => {
         event.stopPropagation()
         event.preventDefault()
         
         const cuuid = event.currentTarget.value
-        const collection = liste.filter(item=>item.tuuid === cuuid).pop()
-        if(collection) {
-            const nouveauPath = [...path, collection]
-            // console.debug("Path update : %O", nouveauPath)
-            setPath(nouveauPath)
-        }
-    }, [liste, path, setPath])
+        Promise.resolve(toCollection(cuuid))
+            .catch(err=>console.error("Erreur changement collection ", err))
+        
+        // const collection = liste.filter(item=>item.tuuid === cuuid).pop()
+        // if(collection) {
+        //     const nouveauPath = [...path, collection]
+        //     // console.debug("Path update : %O", nouveauPath)
+        //     setPath(nouveauPath)
+        // }
 
-    const backPath = useCallback( path => { 
-        // console.debug("Back %O", path)
-        setPath(path) 
-    }, [setPath])
+    }, [toCollection])
 
-    useEffect(()=>{
-        const collectionCourante = path[path.length-1]
-        const tuuidCourant = collectionCourante?collectionCourante.tuuid:''
-        setCuuidCourant(tuuidCourant)
-        setPathOut(path.map(item=>item.tuuid))
-    }, [path, setCuuidCourant, setPathOut])
+    // const backPath = useCallback( path => { 
+    //     // console.debug("Back %O", path)
+    //     setPath(path) 
+    // }, [setPath])
 
-    useEffect(()=>{
-        if(!loadCollection || !setListe) return
-        else {
-            loadCollection(cuuidCourant)
-            .then(liste=>{
-                // console.debug("Cuuid %s, liste collections : %O", cuuidCourant, liste)
-                liste.sort(trierNom)
-                setListe(liste)
-            })
-            .catch(err=>{
-                console.error("Erreur load collection %s : %O", cuuidCourant, err)
-            })
-        }
-    }, [loadCollection, cuuidCourant, setListe])
+    // useEffect(()=>{
+    //     const collectionCourante = path[path.length-1]
+    //     const tuuidCourant = collectionCourante?collectionCourante.tuuid:''
+    //     setCuuidCourant(tuuidCourant)
+    //     setPathOut(path.map(item=>item.tuuid))
+    // }, [path, setCuuidCourant, setPathOut])
 
-    let pathCumulatif = []
+    // useEffect(()=>{
+    //     if(!loadCollection || !setListe) return
+    //     else {
+    //         loadCollection(cuuidCourant)
+    //         .then(liste=>{
+    //             // console.debug("Cuuid %s, liste collections : %O", cuuidCourant, liste)
+    //             liste.sort(trierNom)
+    //             setListe(liste)
+    //         })
+    //         .catch(err=>{
+    //             console.error("Erreur load collection %s : %O", cuuidCourant, err)
+    //         })
+    //     }
+    // }, [loadCollection, cuuidCourant, setListe])
+
+    // let pathCumulatif = []
 
     return (
-        <Container className={styles.filepicker}>
-            <Breadcrumb>
-                <Breadcrumb.Item onClick={()=>backPath([])}>{nomRootLocal}</Breadcrumb.Item>
-                {path.map((item, idx)=>{
-                    const active = idx === activeIdx
-                    pathCumulatif.push(item)
-                    const pathCourant = [...pathCumulatif]
-                    return (
-                        <Breadcrumb.Item 
-                            key={idx} 
-                            active={active}
-                            onClick={()=>backPath(pathCourant)}
-                        >
-                            {item.nom}
-                        </Breadcrumb.Item>
-                    )
-                })}
-            </Breadcrumb>
+        <Container className="filepicker">
+            <SectionBreadcrumb 
+                nomRootLocal={nomRootLocal}
+                breadcrumb={breadcrumb}
+                toBreadrumbIdx={toBreadrumbIdx}
+              />
 
             <AfficherListeCollections 
                 liste={liste}
                 ouvrirCuuid={ouvrirCuuid}
-            />
+              />
 
         </Container>
     )
+}
+
+function SectionBreadcrumb(props) {
+
+    const { nomRootLocal, breadcrumb, toBreadrumbIdx } = props
+
+    const handlerSliceBreadcrumb = useCallback(event => {
+        event.preventDefault()
+        event.stopPropagation()
+
+        const idx = event.currentTarget.dataset.idx
+        Promise.resolve(toBreadrumbIdx(idx))
+            .catch(err=>console.error("SectionBreadcrumb Erreur ", err))
+    }, [breadcrumb, toBreadrumbIdx])
+
+    return (
+        <Breadcrumb>
+            
+            <Breadcrumb.Item onClick={handlerSliceBreadcrumb}>{nomRootLocal}</Breadcrumb.Item>
+            
+            {breadcrumb.map((item, idxItem)=>{
+                // Dernier
+                if(idxItem === breadcrumb.length - 1) {
+                    return <span key={idxItem}>&nbsp; / {item.label}</span>
+                }
+                
+                // Parents
+                return (
+                    <Breadcrumb.Item key={idxItem} onClick={handlerSliceBreadcrumb} data-idx={''+idxItem}>
+                        {item.label}
+                    </Breadcrumb.Item>
+                )
+            })}
+
+        </Breadcrumb>
+    )
+
 }
 
 function AfficherListeCollections(props) {
@@ -99,7 +130,7 @@ function AfficherListeCollections(props) {
     const ouvrirCuuid = props.ouvrirCuuid
 
     return (
-        <div className={styles.liste}>
+        <div className="liste">
             {liste.map( item => (
                 <Row key={item.tuuid}>
                     <Col>
