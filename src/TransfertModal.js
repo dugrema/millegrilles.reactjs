@@ -267,7 +267,7 @@ function EtatDownload(props) {
 
     const supprimerDownloadsErreurAction = useCallback( event => {
         console.debug("Supprimer tous downloads")
-        supprimerDownloads({echec: true})
+        supprimerDownloads({echecs: true})
     }, [supprimerDownloads])
 
     const retryDownloadAction = useCallback( event => {
@@ -317,7 +317,8 @@ function EtatDownload(props) {
 
             <DownloadsErreur
                 downloadsErreur={downloadsErreur} 
-                supprimerDownloadAction={supprimerDownloadsErreurAction} 
+                supprimerDownload={supprimerDownloadAction} 
+                supprimerTous={supprimerDownloadsErreurAction} 
                 retryDownloadAction={retryDownloadAction} />
 
             <DownloadsSucces 
@@ -379,13 +380,13 @@ function DownloadsSucces(props) {
 }
 
 function DownloadsErreur(props) {
-    const { supprimerDownloadAction, supprimerTousDownloadsAction, retryDownloadAction } = props
+    const { supprimerDownload, supprimerTous, retryDownloadAction } = props
     const downloadsErreur = props.downloadsErreur || []
 
     const nbUpload = downloadsErreur.length
 
     if(nbUpload === 0) return ''
-
+    
     return (
         <div>
             <Row className={styles['modal-row-header']}>
@@ -395,7 +396,7 @@ function DownloadsErreur(props) {
                 <Col className={styles['boutons-droite']}>
                     <Button 
                         variant="secondary" 
-                        onClick={supprimerTousDownloadsAction}
+                        onClick={supprimerTous}
                         disabled={nbUpload===0}>
                             <i className="fa fa-lg fa-times-circle"/>
                     </Button>                
@@ -406,7 +407,7 @@ function DownloadsErreur(props) {
                         return <DownloadErreur 
                             key={item.fuuid} 
                             value={item} 
-                            supprimerDownloadAction={supprimerDownloadAction} 
+                            supprimerDownloadAction={supprimerDownload} 
                             retryDownloadAction={retryDownloadAction}
                         />
                     })
@@ -491,6 +492,8 @@ function DownloadErreur(props) {
     const { value, supprimerDownloadAction, retryDownloadAction } = props
     const err = value.err || {}
 
+    const label = value.nom || value.fuuid
+
     const [showErreur, setShowErreur] = useState(false)
 
     const toggleShow = useCallback(()=>setShowErreur(!showErreur), [showErreur, setShowErreur])
@@ -498,7 +501,7 @@ function DownloadErreur(props) {
     return (
         <div>
             <Row className={styles['modal-row-erreur']}>
-                <Col xs={6} lg={7} className={styles['modal-nomfichier']}>{value.filename} <i className="fa fa-cross"/></Col>
+                <Col xs={6} lg={7} className={styles['modal-nomfichier']}>{label} <i className="fa fa-cross"/></Col>
                 <Col className={styles['boutons-droite']}>
                     <Button 
                         variant="secondary" 

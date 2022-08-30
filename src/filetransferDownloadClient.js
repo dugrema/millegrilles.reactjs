@@ -385,9 +385,9 @@ async function preparerDataProcessor(opts) {
 
 /** Download un fichier, effectue les transformations (e.g. dechiffrage) et
  *  conserve le resultat dans cache storage */
-async function downloadCacheFichier(downloadEnCours, opts) {
+export async function downloadCacheFichier(downloadEnCours, progressCb, opts) {
   opts = opts || {}
-  const progressCb = opts.progressCb || function() {}  // Par defaut fonction vide
+  progressCb = progressCb || function() {}  // Par defaut fonction vide
 
   // console.debug("downloadCacheFichier %O, Options : %O", downloadEnCours, opts)
   const DEBUG = opts.DEBUG || false
@@ -662,6 +662,11 @@ export async function down_supprimerDownloads(params) {
 
   // Met a jour le client
   emettreEtat()
+}
+
+export async function down_supprimerDownloadsCache(fuuid) {
+    const cache = await caches.open(CACHE_TEMP_NAME)
+    await cache.delete('/' + fuuid)
 }
 
 /** Nettoie les entrees dans le cache de download qui ne correspondent a aucune entree de la IndexedDB */
