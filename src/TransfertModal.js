@@ -176,24 +176,24 @@ function TabUpload(props) {
     )
 }
 
-const CACHE_TEMP_NAME = 'fichiersDechiffresTmp'
+// const CACHE_TEMP_NAME = 'fichiersDechiffresTmp'
 
-async function handleDownloadUpdate(transfertFichiers, params, setEtatDownload) {
-    const etat = await transfertFichiers.down_getEtatCourant()
-    const etatComplet = {...params, ...etat}
-    setEtatDownload(etatComplet)
+// async function handleDownloadUpdate(transfertFichiers, params, setEtatDownload) {
+//     const etat = await transfertFichiers.down_getEtatCourant()
+//     const etatComplet = {...params, ...etat}
+//     setEtatDownload(etatComplet)
 
-    if(params.fuuidReady) {
-        const infoFichier = etat.downloads.filter(item=>item.fuuid===params.fuuidReady).pop()
-        try {
-            // console.debug("InfoFichier download : %O", infoFichier)
-            downloadCache(params.fuuidReady, {filename: infoFichier.filename})
-        } catch(err) {
-            console.error("Erreur download cache : %O", err)
-            throw err  // Todo : erreurCb
-        }
-    }
-}
+//     if(params.fuuidReady) {
+//         const infoFichier = etat.downloads.filter(item=>item.fuuid===params.fuuidReady).pop()
+//         try {
+//             // console.debug("InfoFichier download : %O", infoFichier)
+//             downloadCache(params.fuuidReady, {filename: infoFichier.filename})
+//         } catch(err) {
+//             console.error("Erreur download cache : %O", err)
+//             throw err  // Todo : erreurCb
+//         }
+//     }
+// }
 
 // async function handleUploadUpdate(transfertFichiers, params, setEtatUpload) {
 //     // const { nbFichiersPending, pctFichierEnCours } = params
@@ -202,41 +202,41 @@ async function handleDownloadUpdate(transfertFichiers, params, setEtatDownload) 
 //     setEtatUpload(etatComplet)
 // }
 
-async function downloadCache(fuuid, opts) {
-    opts = opts || {}
-    if(fuuid.currentTarget) fuuid = fuuid.currentTarget.value
-    // console.debug("Download fichier : %s = %O", fuuid, opts)
-    const cacheTmp = await caches.open(CACHE_TEMP_NAME)
-    const cacheFichier = await cacheTmp.match('/'+fuuid)
-    // console.debug("Cache fichier : %O", cacheFichier)
-    if(cacheFichier) {
-        promptSaveFichier(await cacheFichier.blob(), opts)
-    } else {
-        console.warn("Fichier '%s' non present dans le cache", fuuid)
-    }
-}
+// async function downloadCache(fuuid, opts) {
+//     opts = opts || {}
+//     if(fuuid.currentTarget) fuuid = fuuid.currentTarget.value
+//     // console.debug("Download fichier : %s = %O", fuuid, opts)
+//     const cacheTmp = await caches.open(CACHE_TEMP_NAME)
+//     const cacheFichier = await cacheTmp.match('/'+fuuid)
+//     // console.debug("Cache fichier : %O", cacheFichier)
+//     if(cacheFichier) {
+//         promptSaveFichier(await cacheFichier.blob(), opts)
+//     } else {
+//         console.warn("Fichier '%s' non present dans le cache", fuuid)
+//     }
+// }
 
-function promptSaveFichier(blob, opts) {
-    opts = opts || {}
-    const filename = opts.filename
-    let objectUrl = null
-    try {
-        objectUrl = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = objectUrl
-        if (filename) a.download = filename
-        if (opts.newTab) a.target = '_blank'
-        a.click()
-    } finally {
-        if (objectUrl) {
-            try {
-                URL.revokeObjectURL(objectUrl)
-            } catch (err) {
-                console.debug("Erreur revokeObjectURL : %O", err)
-            }
-        }
-    }
-}
+// function promptSaveFichier(blob, opts) {
+//     opts = opts || {}
+//     const filename = opts.filename
+//     let objectUrl = null
+//     try {
+//         objectUrl = window.URL.createObjectURL(blob)
+//         const a = document.createElement('a')
+//         a.href = objectUrl
+//         if (filename) a.download = filename
+//         if (opts.newTab) a.target = '_blank'
+//         a.click()
+//     } finally {
+//         if (objectUrl) {
+//             try {
+//                 URL.revokeObjectURL(objectUrl)
+//             } catch (err) {
+//                 console.debug("Erreur revokeObjectURL : %O", err)
+//             }
+//         }
+//     }
+// }
 
 function EtatDownload(props) {
 
@@ -244,12 +244,13 @@ function EtatDownload(props) {
 
     const { workers, continuerDownloads, supprimerDownloads, progres } = props
     // const { transfertFichiers } = workers
+    const { traitementFichiers } = workers
     const downloads = props.downloads || []
 
     const downloadClick = useCallback(event=>{
         const fuuid = event.currentTarget.value
         const { filename } = event.currentTarget.dataset
-        downloadCache(fuuid, {filename})
+        traitementFichiers.downloadCache(fuuid, {filename})
     }, [])
 
     const supprimerDownloadAction = useCallback( event => {
