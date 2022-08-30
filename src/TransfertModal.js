@@ -249,7 +249,7 @@ function EtatDownload(props) {
     const downloadClick = useCallback(event=>{
         const fuuid = event.currentTarget.value
         const { filename } = event.currentTarget.dataset
-        // downloadCache(fuuid, {filename})
+        downloadCache(fuuid, {filename})
     }, [])
 
     const supprimerDownloadAction = useCallback( event => {
