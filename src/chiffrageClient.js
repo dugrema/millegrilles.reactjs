@@ -127,26 +127,26 @@ export async function _validerCertificatChiffrage(certificatPem, opts) {
 export async function chiffrerDocument(doc, domaine, certificatChiffragePem, opts) {
     opts = opts || {}
     const { DEBUG, identificateurs_document } = opts
+    // console.debug("Chiffrer documents doc %O, identificateurs_document %O", doc, identificateurs_document)
+    // console.debug("Certificat millegrille : %O", certificatMillegrille)
 
-  console.debug("Certificat millegrille : %O", certificatMillegrille)
+    // Valider le certificat - lance une exception si invalide
+    const infoCertificatChiffrage = await _validerCertificatChiffrage(certificatChiffragePem, opts)
+    // console.debug("InfoCert chiffrage: %O", infoCertificatChiffrage)
 
-  // Valider le certificat - lance une exception si invalide
-  const infoCertificatChiffrage = await _validerCertificatChiffrage(certificatChiffragePem, opts)
-  console.debug("InfoCert chiffrage: %O", infoCertificatChiffrage)
+    const certificatsListeChiffrage = [certificatChiffragePem.shift()]
 
-  const certificatsListeChiffrage = [certificatChiffragePem.shift()]
+    const resultat = await chiffrage.chiffrerDocument(
+      doc, domaine, certificatMillegrille.pem, identificateurs_document, 
+      {...opts, certificats: certificatsListeChiffrage}
+    )
+    // console.debug("resultat chiffrage : %O", resultat)
 
-  const resultat = await chiffrage.chiffrerDocument(
-    doc, domaine, certificatMillegrille.pem, identificateurs_document, 
-    {...opts, certificats: certificatsListeChiffrage}
-  )
-  console.debug("resultat chiffrage : %O", resultat)
+    // // Signer la commande de maitre des cles
+    const commandeMaitrecles = await formatterMessage(resultat.commandeMaitrecles, 'MaitreDesCles', {action: 'sauvegarderCle', ajouterCertificat: true, DEBUG})
+    resultat.commandeMaitrecles = commandeMaitrecles
 
-  // // Signer la commande de maitre des cles
-  const commandeMaitrecles = await formatterMessage(resultat.commandeMaitrecles, 'MaitreDesCles', {action: 'sauvegarderCle', ajouterCertificat: true, DEBUG})
-  resultat.commandeMaitrecles = commandeMaitrecles
-
-  return resultat
+    return resultat
 }
 
 export function dechiffrerDocument(ciphertext, messageCle, opts) {
