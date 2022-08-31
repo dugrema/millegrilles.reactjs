@@ -607,6 +607,18 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
             // Ajouter fuuid a la transaction GrosFichiers
             docIdb.transactionGrosfichiers.fuuid = hachage_bytes
 
+            // Chiffrer champs de metadonnees
+            const transactionGrosfichiers = docIdb.transactionGrosfichiers
+            const listeChamps = ['nom', 'dateFichier']
+            const champsAChiffrer = {}
+            for (const champ of listeChamps) {
+                const value = transactionGrosfichiers[champ]
+                if(value) champsAChiffrer[champ] = value
+                // delete transactionGrosfichiers[champ]
+            }
+            const champsChiffres = await chiffrage.updateChampsChiffres(champsAChiffrer, hachage_bytes, transformInst.secretKey, {DEBUG: true})
+            transactionGrosfichiers.metadata = champsChiffres
+
             // console.debug("Resultat chiffrage : %O", etatFinalChiffrage)
             const identificateurs_document = { fuuid: hachage_bytes }
             docIdb.transactionMaitredescles = await preparerCommandeMaitrecles(
@@ -623,7 +635,7 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
             docIdb.taille = compteurPosition
             
             // Dispatch pour demarrer upload
-            // console.debug("Update final docIdb ", docIdb)
+            console.debug("Update final docIdb ", docIdb)
             if(updateFichier) await updateFichier(docIdb, {demarrer: true})
         } catch(err) {
             if(updateFichier) await updateFichier(docIdb, {err: ''+err})
