@@ -614,7 +614,7 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
             for (const champ of listeChamps) {
                 const value = transactionGrosfichiers[champ]
                 if(value) champsAChiffrer[champ] = value
-                // delete transactionGrosfichiers[champ]
+                delete transactionGrosfichiers[champ]
             }
             const champsChiffres = await chiffrage.updateChampsChiffres(champsAChiffrer, hachage_bytes, transformInst.secretKey, {DEBUG: true})
             transactionGrosfichiers.metadata = champsChiffres
