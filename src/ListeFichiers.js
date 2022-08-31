@@ -156,7 +156,7 @@ function ListeFichiersLignes(props) {
                 const selectionne = selectionnes.includes(localId)
                 return (
                     <ListeFichiersRow 
-                        key={''+idx} 
+                        key={''+localId} 
                         colonnes={colonnes} 
                         data={row} 
                         onSelectioner={onSelectioner}
