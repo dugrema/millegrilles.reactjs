@@ -627,7 +627,7 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
                 _domaine, 
                 hachage_bytes, 
                 identificateurs_document, 
-                {...paramsChiffrage, DEBUG: false}
+                {...paramsChiffrage, userId, DEBUG: false}
             )
             docIdb.transactionMaitredescles.cles[_fingerprintCa] = transformInst.secretChiffre
     
