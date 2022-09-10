@@ -90,16 +90,16 @@ async function reloadFichier(getFichierChiffre, fuuid, mimetype, opts) {
 export function fileResourceLoader(getFichierChiffre, fichierFuuid, mimetype, opts) {
     // console.debug("!!! fileResourceLoader : %s mimetype %s", fichierFuuid, mimetype)
     opts = opts || {}
-    const { thumbnail, cles } = opts
+    const { thumbnail, cles, ref_hachage_bytes, header, format } = opts
 
     // Preparation du mini-thumbnail (pour fallback ou attente de download) et de l'image pleine grandeur
     let miniLoader = null
-    if(thumbnail && thumbnail.hachage && thumbnail.data_chiffre) {
-        const thumbnailFuuid = thumbnail.hachage
-        const dataChiffre = thumbnail.data_chiffre
-        miniLoader = loadFichierChiffre(getFichierChiffre, thumbnailFuuid, thumbnail.mimetype, {dataChiffre, cles})
-    }
-    const fileLoader = loadFichierChiffre(getFichierChiffre, fichierFuuid, mimetype, {cles})
+    // if(thumbnail && thumbnail.hachage && thumbnail.data_chiffre) {
+    //     const thumbnailFuuid = thumbnail.hachage
+    //     const dataChiffre = thumbnail.data_chiffre
+    //     miniLoader = loadFichierChiffre(getFichierChiffre, thumbnailFuuid, thumbnail.mimetype, {dataChiffre, cles})
+    // }
+    const fileLoader = loadFichierChiffre(getFichierChiffre, fichierFuuid, mimetype, {cles, ref_hachage_bytes, header, format})
 
     const loader = {
         load: async (setSrc, setters, opts) => {
@@ -185,7 +185,9 @@ export function imageResourceLoader(getFichierChiffre, images, opts) {
     .filter(label=>label!=='thumb'&&label!=='thumbnail')
     .reduce((acc, item)=>{
         const image = images[item]
-        acc[item] = fileResourceLoader(getFichierChiffre, image.hachage, image.mimetype, {thumbnail, cles})
+        const ref_hachage_bytes = fuuid
+        const { header, format } = image
+        acc[item] = fileResourceLoader(getFichierChiffre, image.hachage, image.mimetype, {thumbnail, cles, ref_hachage_bytes, header, format})
         return acc
     }, {})
     if(fuuid && mimetype) {
