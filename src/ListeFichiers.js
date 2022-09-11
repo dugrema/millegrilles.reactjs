@@ -103,7 +103,7 @@ async function majSelection(event, value, rows, selectionPrecedente, selectionne
     if(shiftKey && idSelection !== selectionPrecedente) {
         // Prepare liste de tous les IDs entre selectionPrecedente et idSelection
         const resultat = rows.reduce(({modeAjout, nouvelleSelection}, item)=>{
-            const idLocal = item.fileId || item.folderId
+            const idLocal = item.tuuid || item.fileId || item.folderId
 
             let ajouter = modeAjout  // Conserver flag (pour inclure dernier element selectionne)
             if(idLocal === idSelection || idLocal === selectionPrecedente) {
