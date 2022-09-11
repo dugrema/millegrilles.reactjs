@@ -94,6 +94,9 @@ export function fileResourceLoader(getFichierChiffre, fichierFuuid, mimetype, op
 
     // Preparation du mini-thumbnail (pour fallback ou attente de download) et de l'image pleine grandeur
     let miniLoader = null
+    if(thumbnail && thumbnail.data) {
+        miniLoader = blobLoader(thumbnail.data, thumbnail.mimetype)
+    }
     // if(thumbnail && thumbnail.hachage && thumbnail.data_chiffre) {
     //     const thumbnailFuuid = thumbnail.hachage
     //     const dataChiffre = thumbnail.data_chiffre
@@ -446,12 +449,13 @@ function blobLoader(data, mimetype) {
         load(setSrc) {
             if(!urlBlob) urlBlob = URL.createObjectURL(data)
             if(setSrc) setSrc(urlBlob)
-            return urlBlob
+            return Promise.resolve(urlBlob)
         },
         unload() {
             if(urlBlob) {
                 URL.revokeObjectURL(urlBlob)
                 urlBlob = null
+                return Promise.resolve()
             }
         }
     }
