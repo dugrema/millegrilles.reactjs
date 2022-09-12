@@ -681,9 +681,9 @@ export async function partUploader(correlation, position, partContent, opts) {
 }
 
 export async function confirmerUpload(correlation, cles, transaction) {
-    // console.debug("confirmerUpload %s cles : %O, transaction : %O", correlation, cles, transaction)
+    console.debug("confirmerUpload %s cles : %O, transaction : %O", correlation, cles, transaction)
 
-    const confirmationResultat = { cles, transaction }
+    const confirmationResultat = { cles, transaction, etat: {correlation, hachage: transaction.fuuid} }
     const pathConfirmation = path.join(_pathServeur, correlation)
     const reponse = await axios({
         method: 'POST', 
