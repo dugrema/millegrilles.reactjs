@@ -102,7 +102,7 @@ export function DropDownLanguage(props) {
 
 export function ModalInfo(props) {
 
-    const { manifest, idmg, contact } = props
+    const { manifest, idmg, contact, usager } = props
 
     const { t } = useTranslation()
 
@@ -114,6 +114,7 @@ export function ModalInfo(props) {
         <Modal show={props.show} onHide={props.fermer}>
             <Modal.Header closeButton>{t('layout-millegrilles.modal-info-titre')}</Modal.Header>
             <Modal.Body>
+                <AfficherUsager usager={usager} />
                 <h3>{t('layout-millegrilles.modal-info-application')}</h3>
                 <Row>
                     <Col xs={3} sm={2}>{t('layout-millegrilles.modal-info-nom')}</Col><Col>{t('application.nom')}</Col>
@@ -164,4 +165,20 @@ function AfficherContact(props) {
             {info}
         </div>
     )
+}
+
+function AfficherUsager(props) {
+    const usager = props.usager || {}
+    const nomUsager = usager.nomUsager
+
+    const { t } = useTranslation()
+
+    return (
+        <div>
+            <h3>{t('layout-millegrilles.usager-titre')}</h3>
+            <Row>
+                <Col xs={3} sm={2}>{t('layout-millegrilles.usager-nom')}</Col><Col>{nomUsager}</Col>
+            </Row>
+        </div>
+    )    
 }
