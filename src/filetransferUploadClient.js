@@ -80,62 +80,62 @@ function filtrerEntreeFichier(entree) {
     return entreeCopy
 }
 
-export async function up_ajouterFichiersUpload(acceptedFiles, opts) {
-    if(!_chiffrage) throw new Error("_chiffrage non initialise")
+// export async function up_ajouterFichiersUpload(acceptedFiles, opts) {
+//     if(!_chiffrage) throw new Error("_chiffrage non initialise")
 
-    opts = opts || {}
-    const cuuid = opts.cuuid    // Collection de destination
+//     opts = opts || {}
+//     const cuuid = opts.cuuid    // Collection de destination
 
-    // for(let i=0; i<acceptedFiles.length; i++) {
-    const infoUploads = acceptedFiles.map(file=>{
-        //const file = acceptedFiles[i]
-        //console.debug("Ajouter upload : %O", file)
+//     // for(let i=0; i<acceptedFiles.length; i++) {
+//     const infoUploads = acceptedFiles.map(file=>{
+//         //const file = acceptedFiles[i]
+//         //console.debug("Ajouter upload : %O", file)
 
-        let dateFichier = null
-        try {
-          dateFichier = Math.floor(file.lastModified / 1000)
-        } catch(err) {
-          console.warn("Erreur chargement date fichier : %O", err)
-        }
+//         let dateFichier = null
+//         try {
+//           dateFichier = Math.floor(file.lastModified / 1000)
+//         } catch(err) {
+//           console.warn("Erreur chargement date fichier : %O", err)
+//         }
 
-        // const nomFichierBuffer = new Uint8Array(Buffer.from(new TextEncoder().encode(file.name)))
-        // throw new Error("Nom fichier buffer : " + nomFichierBuffer)
+//         // const nomFichierBuffer = new Uint8Array(Buffer.from(new TextEncoder().encode(file.name)))
+//         // throw new Error("Nom fichier buffer : " + nomFichierBuffer)
 
-        const transaction = {
-          nom: file.name.normalize(),  // iOS utilise la forme decomposee (combining)
-          mimetype: file.type || 'application/octet-stream',
-          taille: file.size,
-          dateFichier,
-        }
-        if(cuuid) transaction['cuuid'] = cuuid
+//         const transaction = {
+//           nom: file.name.normalize(),  // iOS utilise la forme decomposee (combining)
+//           mimetype: file.type || 'application/octet-stream',
+//           taille: file.size,
+//           dateFichier,
+//         }
+//         if(cuuid) transaction['cuuid'] = cuuid
         
-        const infoUpload = {
-            file: file.object,
-            size: file.size,
-            correlation: uuidv4(),
-            transaction,
-        }
+//         const infoUpload = {
+//             file: file.object,
+//             size: file.size,
+//             correlation: uuidv4(),
+//             transaction,
+//         }
 
-        // Ajouter a la liste d'uploads a traiter
-        _uploadsPending.push({
-            ...infoUpload,
-            status: STATUS_NOUVEAU,
-            position: 0,              // Position du byte de debut de la batch actuelle
-            batchLoaded: 0,           // Bytes charges par la batch actuelle
-            pctFichierEnCours: 0,     // Pct de progres total du fichier en cours
-            cancelTokenSource: null,  // Cancel token pour axios
-            complete: false,
-        })
+//         // Ajouter a la liste d'uploads a traiter
+//         _uploadsPending.push({
+//             ...infoUpload,
+//             status: STATUS_NOUVEAU,
+//             position: 0,              // Position du byte de debut de la batch actuelle
+//             batchLoaded: 0,           // Bytes charges par la batch actuelle
+//             pctFichierEnCours: 0,     // Pct de progres total du fichier en cours
+//             cancelTokenSource: null,  // Cancel token pour axios
+//             complete: false,
+//         })
 
-        return infoUpload
-    })
+//         return infoUpload
+//     })
 
-    // console.info("Uploads pending : %O", _uploadsPending)
-    emettreEtat()
-    traiterUploads()  // Demarrer traitement si pas deja en cours
+//     // console.info("Uploads pending : %O", _uploadsPending)
+//     emettreEtat()
+//     traiterUploads()  // Demarrer traitement si pas deja en cours
 
-    return infoUploads
-}
+//     return infoUploads
+// }
 
 function mapAcceptedFile(file) {
 //const file = acceptedFiles[i]
@@ -172,228 +172,228 @@ function mapAcceptedFile(file) {
     return infoUpload
 }
 
-async function traiterUploads() {
-    if(_uploadEnCours) return  // Rien a faire
-    if(!_chiffrage) throw new Error("_chiffrage non initialise")
+// async function traiterUploads() {
+//     if(_uploadEnCours) return  // Rien a faire
+//     if(!_chiffrage) throw new Error("_chiffrage non initialise")
 
-    let complete = ''
-    _uploadEnCours = _uploadsPending.shift()
-    if(_uploadEnCours) {
-        _uploadEnCours.status = STATUS_ENCOURS
+//     let complete = ''
+//     _uploadEnCours = _uploadsPending.shift()
+//     if(_uploadEnCours) {
+//         _uploadEnCours.status = STATUS_ENCOURS
 
-        try {
-            emettreEtat({complete}).catch(err=>(console.warn("Erreur maj etat : %O", err)))
-            await uploadFichier()
-        } catch(err) {
-            console.error("Erreur PUT fichier : %O", err)
-            _uploadEnCours.status = STATUS_ERREUR
-            _uploadEnCours.err = {msg: ''+err, stack: err.stack}
-        } finally {
-            try {
-                if(!_uploadEnCours.annuler) {
-                    _uploadsCompletes.push(_uploadEnCours)
-                }
-                complete = _uploadEnCours.correlation
-                _uploadEnCours.complete = true
+//         try {
+//             emettreEtat({complete}).catch(err=>(console.warn("Erreur maj etat : %O", err)))
+//             await uploadFichier()
+//         } catch(err) {
+//             console.error("Erreur PUT fichier : %O", err)
+//             _uploadEnCours.status = STATUS_ERREUR
+//             _uploadEnCours.err = {msg: ''+err, stack: err.stack}
+//         } finally {
+//             try {
+//                 if(!_uploadEnCours.annuler) {
+//                     _uploadsCompletes.push(_uploadEnCours)
+//                 }
+//                 complete = _uploadEnCours.correlation
+//                 _uploadEnCours.complete = true
 
-                const { transaction, status } = _uploadEnCours
-                _uploadEnCours = null
-                emettreEtat({complete, transaction, status}).catch(err=>(console.warn("Erreur maj etat : %O", err)))
-            } catch(err) {
-                console.warn("Erreur finalisation upload fichier : %O", err)
-            } finally {
-                // Poursuivre
-                traiterUploads()
-            }
-        }
-    }
+//                 const { transaction, status } = _uploadEnCours
+//                 _uploadEnCours = null
+//                 emettreEtat({complete, transaction, status}).catch(err=>(console.warn("Erreur maj etat : %O", err)))
+//             } catch(err) {
+//                 console.warn("Erreur finalisation upload fichier : %O", err)
+//             } finally {
+//                 // Poursuivre
+//                 traiterUploads()
+//             }
+//         }
+//     }
     
-}
+// }
 
 /** Effectue l'upload d'un fichier. */
-async function uploadFichier() {
-    if(!_chiffrage) throw new Error("_chiffrage non initialise")
+// async function uploadFichier() {
+//     if(!_chiffrage) throw new Error("_chiffrage non initialise")
 
-    const correlation = _uploadEnCours.correlation
+//     const correlation = _uploadEnCours.correlation
 
-    // console.debug("Traiter upload en cours : %O", _uploadEnCours)
-    const transformHandler = await preparerTransform()
-    const cipher = transformHandler.cipher
-    const transform = data => cipher.update(data)
+//     // console.debug("Traiter upload en cours : %O", _uploadEnCours)
+//     const transformHandler = await preparerTransform()
+//     const cipher = transformHandler.cipher
+//     const transform = data => cipher.update(data)
     
-    const reader = streamAsyncIterable(getAcceptedFileReader(_uploadEnCours.file), {batchSize: UPLOAD_BATCH_SIZE, transform})
+//     const reader = streamAsyncIterable(getAcceptedFileReader(_uploadEnCours.file), {batchSize: UPLOAD_BATCH_SIZE, transform})
 
-    try {
-        var position = 0
-        const uploadHandler = async batchContent => {
-            const pathUpload = path.join(_pathServeur, ''+correlation, ''+position)
-            position += batchContent.length
-            const cancelTokenSource = axios.CancelToken.source()
+//     try {
+//         var position = 0
+//         const uploadHandler = async batchContent => {
+//             const pathUpload = path.join(_pathServeur, ''+correlation, ''+position)
+//             position += batchContent.length
+//             const cancelTokenSource = axios.CancelToken.source()
 
-            _uploadEnCours.cancelTokenSource = cancelTokenSource
-            _uploadEnCours.batchTotal = batchContent.length
+//             _uploadEnCours.cancelTokenSource = cancelTokenSource
+//             _uploadEnCours.batchTotal = batchContent.length
         
-            const reponse = await axios({
-                url: pathUpload,
-                method: 'PUT',
-                headers: { 'content-type': 'application/data' },
-                data: batchContent,
-                onUploadProgress,
-                cancelToken: cancelTokenSource.token,
-            })
+//             const reponse = await axios({
+//                 url: pathUpload,
+//                 method: 'PUT',
+//                 headers: { 'content-type': 'application/data' },
+//                 data: batchContent,
+//                 onUploadProgress,
+//                 cancelToken: cancelTokenSource.token,
+//             })
 
-            _uploadEnCours.position = position
-            _uploadEnCours.batchLoaded = 0  // Position ajustee, on reset loaded immediatement (evite promenage % progres)
-            _uploadEnCours.pctFichierEnCours = Math.floor(position/_uploadEnCours.size * 100)
-            // console.debug("Reponse upload %s position %d Pct: %d put block %O", correlation, position, _uploadEnCours.pctFichierEnCours, reponse)
-            emettreEtat().catch(err=>(console.warn("Erreur maj etat : %O", err)))
-        }
-        for await (let batchContent of reader) {
-            await uploadHandler(batchContent)
-        }
+//             _uploadEnCours.position = position
+//             _uploadEnCours.batchLoaded = 0  // Position ajustee, on reset loaded immediatement (evite promenage % progres)
+//             _uploadEnCours.pctFichierEnCours = Math.floor(position/_uploadEnCours.size * 100)
+//             // console.debug("Reponse upload %s position %d Pct: %d put block %O", correlation, position, _uploadEnCours.pctFichierEnCours, reponse)
+//             emettreEtat().catch(err=>(console.warn("Erreur maj etat : %O", err)))
+//         }
+//         for await (let batchContent of reader) {
+//             await uploadHandler(batchContent)
+//         }
 
-        // Preprarer commande maitre des cles
-        // const resultatChiffrage = await transformHandler.finish()
-        const resultatChiffrage = await cipher.finalize()
-        // console.debug("Resultat chiffrage : %O", resultatChiffrage)
-        const { ciphertext } = resultatChiffrage
+//         // Preprarer commande maitre des cles
+//         // const resultatChiffrage = await transformHandler.finish()
+//         const resultatChiffrage = await cipher.finalize()
+//         // console.debug("Resultat chiffrage : %O", resultatChiffrage)
+//         const { ciphertext } = resultatChiffrage
 
-        const champsOptionnels = ['iv', 'nonce', 'header', 'tag']
-        const paramsChiffrage = champsOptionnels.reduce((acc, champ)=>{
-            const valeur = resultatChiffrage[champ]
-            if(valeur) acc[champ] = valeur
-            return acc
-        }, {})
+//         const champsOptionnels = ['iv', 'nonce', 'header', 'tag']
+//         const paramsChiffrage = champsOptionnels.reduce((acc, champ)=>{
+//             const valeur = resultatChiffrage[champ]
+//             if(valeur) acc[champ] = valeur
+//             return acc
+//         }, {})
 
-        if(ciphertext) {
-            // Upload derniere batch
-            await uploadHandler(ciphertext)
-        }
+//         if(ciphertext) {
+//             // Upload derniere batch
+//             await uploadHandler(ciphertext)
+//         }
 
-        const hachage_bytes = resultatChiffrage.hachage
-        // const iv = base64.encode(transformHandler.iv)
-        // console.debug("Resultat chiffrage : %O", resultatChiffrage)
-        const identificateurs_document = { fuuid: hachage_bytes }
-        const commandeMaitreDesCles = await preparerCommandeMaitrecles(
-            [_certificat[0]], transformHandler.secretKey, _domaine, hachage_bytes, identificateurs_document, {...paramsChiffrage, DEBUG: false})
+//         const hachage_bytes = resultatChiffrage.hachage
+//         // const iv = base64.encode(transformHandler.iv)
+//         // console.debug("Resultat chiffrage : %O", resultatChiffrage)
+//         const identificateurs_document = { fuuid: hachage_bytes }
+//         const commandeMaitreDesCles = await preparerCommandeMaitrecles(
+//             [_certificat[0]], transformHandler.secretKey, _domaine, hachage_bytes, identificateurs_document, {...paramsChiffrage, DEBUG: false})
 
-        // Ajouter cle du cert de millegrille
-        commandeMaitreDesCles.cles[_fingerprintCa] = transformHandler.secretChiffre
-        // console.debug("Commande maitre des cles : %O", commandeMaitreDesCles)
-        _uploadEnCours.commandeMaitreDesCles = commandeMaitreDesCles
+//         // Ajouter cle du cert de millegrille
+//         commandeMaitreDesCles.cles[_fingerprintCa] = transformHandler.secretChiffre
+//         // console.debug("Commande maitre des cles : %O", commandeMaitreDesCles)
+//         _uploadEnCours.commandeMaitreDesCles = commandeMaitreDesCles
 
-        _uploadEnCours.transaction.fuuid = hachage_bytes
+//         _uploadEnCours.transaction.fuuid = hachage_bytes
 
-        // Emettre la commande POST pour conserver le fichier
-        const reponsePost = await terminerTraitementFichier(_uploadEnCours)
-        if(reponsePost.status === 201) {
-            // console.debug("Fichier %s complete", correlation)
-            _uploadEnCours.status = STATUS_SUCCES
-        } else if(reponsePost.status === 202 ) {
-            // console.debug("Fichier %s valide mais sans confirmation (pending)", correlation)
-            _uploadEnCours.status = STATUS_NONCONFIRME
-        }
-    } catch(err) {
-        if(_uploadEnCours) {
-            const correlation = _uploadEnCours.correlation
-            console.error("Erreur traitement fichier, DELETE %s : %O", correlation, err)
-            const pathConfirmation = path.join(_pathServeur, correlation)
-            try{
-                await axios({
-                    method: 'DELETE', 
-                    url: pathConfirmation, 
-                })
-            } catch(err) {
-                console.info("Erreur DELETE fichier : %s", correlation)
-            }
-        } else {
-            console.warn("Erreur traitement upload fichier mais aucun fichier en cours : %O", err)
-        }
-        throw err
-    }
-}
+//         // Emettre la commande POST pour conserver le fichier
+//         const reponsePost = await terminerTraitementFichier(_uploadEnCours)
+//         if(reponsePost.status === 201) {
+//             // console.debug("Fichier %s complete", correlation)
+//             _uploadEnCours.status = STATUS_SUCCES
+//         } else if(reponsePost.status === 202 ) {
+//             // console.debug("Fichier %s valide mais sans confirmation (pending)", correlation)
+//             _uploadEnCours.status = STATUS_NONCONFIRME
+//         }
+//     } catch(err) {
+//         if(_uploadEnCours) {
+//             const correlation = _uploadEnCours.correlation
+//             console.error("Erreur traitement fichier, DELETE %s : %O", correlation, err)
+//             const pathConfirmation = path.join(_pathServeur, correlation)
+//             try{
+//                 await axios({
+//                     method: 'DELETE', 
+//                     url: pathConfirmation, 
+//                 })
+//             } catch(err) {
+//                 console.info("Erreur DELETE fichier : %s", correlation)
+//             }
+//         } else {
+//             console.warn("Erreur traitement upload fichier mais aucun fichier en cours : %O", err)
+//         }
+//         throw err
+//     }
+// }
 
-async function terminerTraitementFichier(uploadEnCours) {
-    if(!_chiffrage) throw new Error("_chiffrage non initialise")
+// async function terminerTraitementFichier(uploadEnCours) {
+//     if(!_chiffrage) throw new Error("_chiffrage non initialise")
 
-    // console.debug("terminerTraitementFichier %O", uploadEnCours)
-    const { commandeMaitreDesCles, transaction } = uploadEnCours
-    const partitionMaitreDesCles = commandeMaitreDesCles._partition
-    if(!partitionMaitreDesCles) throw new Error("Partition maitre des cles n'est pas identifiee")
-    delete commandeMaitreDesCles._partition
+//     // console.debug("terminerTraitementFichier %O", uploadEnCours)
+//     const { commandeMaitreDesCles, transaction } = uploadEnCours
+//     const partitionMaitreDesCles = commandeMaitreDesCles._partition
+//     if(!partitionMaitreDesCles) throw new Error("Partition maitre des cles n'est pas identifiee")
+//     delete commandeMaitreDesCles._partition
 
-    const maitreDesClesSignees = await _chiffrage.formatterMessage(
-        commandeMaitreDesCles, 'MaitreDesCles', {partition: partitionMaitreDesCles, action: 'sauvegarderCle', DEBUG: false})
-    uploadEnCours.commandeMaitreDesCles = maitreDesClesSignees
+//     const maitreDesClesSignees = await _chiffrage.formatterMessage(
+//         commandeMaitreDesCles, 'MaitreDesCles', {partition: partitionMaitreDesCles, action: 'sauvegarderCle', DEBUG: false})
+//     uploadEnCours.commandeMaitreDesCles = maitreDesClesSignees
     
-    const transactionSignee = await _chiffrage.formatterMessage(
-        transaction, 'GrosFichiers', {action: 'nouvelleVersion'})
-    uploadEnCours.transaction = transactionSignee
+//     const transactionSignee = await _chiffrage.formatterMessage(
+//         transaction, 'GrosFichiers', {action: 'nouvelleVersion'})
+//     uploadEnCours.transaction = transactionSignee
 
-    // console.debug("Etat fichier uploadEnCours : %O", uploadEnCours)
+//     // console.debug("Etat fichier uploadEnCours : %O", uploadEnCours)
 
-    const confirmationResultat = {
-        cles: maitreDesClesSignees, 
-        transaction: transactionSignee,
-    }
+//     const confirmationResultat = {
+//         cles: maitreDesClesSignees, 
+//         transaction: transactionSignee,
+//     }
 
-    const pathConfirmation = path.join(_pathServeur, uploadEnCours.correlation)
-    const reponse = await axios({
-        method: 'POST', 
-        url: pathConfirmation, 
-        data: confirmationResultat,
-    })
+//     const pathConfirmation = path.join(_pathServeur, uploadEnCours.correlation)
+//     const reponse = await axios({
+//         method: 'POST', 
+//         url: pathConfirmation, 
+//         data: confirmationResultat,
+//     })
 
-    // console.info("!!! Fichier verification (POST) reponse : %O", reponse)
+//     // console.info("!!! Fichier verification (POST) reponse : %O", reponse)
 
-    if(reponse.data.ok === false) {
-        const data = reponse.data
-        console.error("Erreur verification fichier : %O", data)
-        const err = new Error("Erreur upload fichier : %s", data.err)
-        err.reponse = data
-        throw err
-    }
+//     if(reponse.data.ok === false) {
+//         const data = reponse.data
+//         console.error("Erreur verification fichier : %O", data)
+//         const err = new Error("Erreur upload fichier : %s", data.err)
+//         err.reponse = data
+//         throw err
+//     }
 
-    return {
-        status: reponse.status, 
-        reponse: reponse.data, 
-        cles: maitreDesClesSignees, 
-        transaction: transactionSignee
-    }
-}
+//     return {
+//         status: reponse.status, 
+//         reponse: reponse.data, 
+//         cles: maitreDesClesSignees, 
+//         transaction: transactionSignee
+//     }
+// }
 
 /** Retourne un StreamReader qui applique les transformations requises */
 async function preparerTransform() {
     return preparerCipher({clePubliqueEd25519: _publicKeyCa})
 }
 
-function onUploadProgress(progress) {
-    const {loaded, total} = progress
-    // console.debug("Axios progress sur %s : %d/%d", _uploadEnCours.correlation, loaded, total)
-    if( !isNaN(loaded) && !isNaN(total) ) {
-        _uploadEnCours.batchLoaded = loaded
-        _uploadEnCours.batchTotal = total
+// function onUploadProgress(progress) {
+//     const {loaded, total} = progress
+//     // console.debug("Axios progress sur %s : %d/%d", _uploadEnCours.correlation, loaded, total)
+//     if( !isNaN(loaded) && !isNaN(total) ) {
+//         _uploadEnCours.batchLoaded = loaded
+//         _uploadEnCours.batchTotal = total
 
-        const pctProgres = Math.floor(loaded / total * 100)
-        _uploadEnCours.pctBatchProgres = pctProgres
-    }
-    emettreEtat().catch(err=>(console.warn("Erreur maj etat : %O", err)))
-}
+//         const pctProgres = Math.floor(loaded / total * 100)
+//         _uploadEnCours.pctBatchProgres = pctProgres
+//     }
+//     emettreEtat().catch(err=>(console.warn("Erreur maj etat : %O", err)))
+// }
 
-export async function up_annulerUpload(correlation) {
-    if(_uploadEnCours && (!correlation || _uploadEnCours.correlation === correlation)) {
-        // console.debug("Annuler l'upload en cours (%s)", correlation)
-        _uploadEnCours.annuler = true
-        if(_uploadEnCours.cancelTokenSource) {
-            // Toggle annulation dans Axios
-            _uploadEnCours.cancelTokenSource.cancel('Usager annule upload')
-        }
-    } else {
-        // console.debug("Retirer upload %s de la liste des pendings", correlation)
-        const pending = _uploadsPending.filter(item=>item.correlation!==correlation)
-        _uploadsPending = pending
-    }
-}
+// export async function up_annulerUpload(correlation) {
+//     if(_uploadEnCours && (!correlation || _uploadEnCours.correlation === correlation)) {
+//         // console.debug("Annuler l'upload en cours (%s)", correlation)
+//         _uploadEnCours.annuler = true
+//         if(_uploadEnCours.cancelTokenSource) {
+//             // Toggle annulation dans Axios
+//             _uploadEnCours.cancelTokenSource.cancel('Usager annule upload')
+//         }
+//     } else {
+//         // console.debug("Retirer upload %s de la liste des pendings", correlation)
+//         const pending = _uploadsPending.filter(item=>item.correlation!==correlation)
+//         _uploadsPending = pending
+//     }
+// }
   
 async function emettreEtat(flags) {
     flags = flags || {}
@@ -627,7 +627,7 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
                 _domaine, 
                 hachage_bytes, 
                 identificateurs_document, 
-                {...paramsChiffrage, userId, DEBUG: false}
+                {...paramsChiffrage, /*userId,*/ DEBUG: false}
             )
             docIdb.transactionMaitredescles.cles[_fingerprintCa] = transformInst.secretChiffre
     
