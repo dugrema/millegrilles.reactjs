@@ -11,6 +11,8 @@ export * as idmg from '@dugrema/millegrilles.utiljs/src/idmg'
 //export * as utiljs from '@dugrema/millegrilles.utiljs/dist/index.min'
 export * as forgecommon from '@dugrema/millegrilles.utiljs/src/forgecommon'
 
+export * as certificats from '@dugrema/millegrilles.utiljs/src/certificats'
+
 // Components a exporter
 import { Thumbnail,  ThumbnailFooter, ThumbnailHeader, ThumbnailBoutonContexte } 
     from './Thumbnail'
