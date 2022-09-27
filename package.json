@@ -1,6 +1,6 @@
 {
   "name": "millegrilles.reactjs",
-  "version": "2022.6.0",
+  "version": "2022.7.0",
   "description": "Composants communs pour MilleGrilles front-end avec ReactJS",
   "author": "dugrema",
   "license": "MIT",
@@ -21,7 +21,7 @@
     "deploy": "gh-pages -d example/build"
   },
   "dependencies": {
-    "@dugrema/millegrilles.utiljs": "github:dugrema/millegrilles.utiljs#2022.6",
+    "@dugrema/millegrilles.utiljs": "github:dugrema/millegrilles.utiljs#2022.7",
     "@reduxjs/toolkit": "^1.8.5",
     "axios": "^0.27.2",
     "base64url": "^3.0.1",
@@ -30,8 +30,8 @@
     "font-awesome": "^4.7.0",
     "hash-wasm": "^4.9.0",
     "html5-qrcode": "^2.2.1",
-    "i18n": "^0.15.0",
-    "idb": "^7.0.2",
+    "i18n": "^0.15.1",
+    "idb": "^7.1.0",
     "libsodium-wrappers": "^0.7.10",
     "moment-duration-format": "^2.3",
     "moment-timezone": "^0.5.37",
@@ -40,7 +40,7 @@
     "react-bootstrap": "^2.5",
     "react-dropzone": "^14.2.2",
     "react-i18next": "^11.18.6",
-    "react-redux": "^8.0.2",
+    "react-redux": "^8.0.4",
     "react-visibility-sensor": "^5.1.1",
     "socket.io-client": "^4.5.2",
     "webpack": "5.74.0"
