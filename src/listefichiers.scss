@@ -95,7 +95,7 @@
 
 /* Thumbnails */
 .thumbnail {
-  border: 2px solid lightgray;
+  border: 2pt solid $third-color; /*lightgray;*/
   background-color: lightgray;
   cursor: pointer;
   float: left;

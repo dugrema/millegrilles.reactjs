@@ -1,18 +1,17 @@
 import React, {useState, useEffect} from 'react'
 import {Button, Card} from 'react-bootstrap'
-import styles from './styles.module.css'
 
 export function Thumbnail(props) {
     const { mini, small } = props
     
     let styleBase, labelImage = 'small'
     if(small) {
-        styleBase = styles.thumbnailsmall
+        styleBase = 'thumbnailsmall'
     } else if(mini) {
-        styleBase = styles.thumbnailmini
+        styleBase = 'thumbnailmini'
         labelImage = 'thumb'
     } else {
-        styleBase = styles.thumbnail
+        styleBase = 'thumbnail'
     }
 
     const className = [styleBase, (props.className || '')].join(' ')
@@ -60,7 +59,7 @@ export function Thumbnail(props) {
 
 export function ThumbnailHeader(props) {
     return (
-        <div className={styles.thumbnailheader}>
+        <div className='thumbnailheader'>
             {props.children}
         </div>
     )
@@ -68,7 +67,7 @@ export function ThumbnailHeader(props) {
 
 export function ThumbnailFooter(props) {
     return (
-        <div className={styles.thumbnailfooter}>
+        <div className='thumbnailfooter'>
             {props.children}
         </div>
     )
@@ -80,7 +79,7 @@ export function ThumbnailBoutonContexte(props) {
         <Button 
             variant="secondary" 
             onClick={onClick} 
-            className={styles.thumbnailboutoncontexte}>
+            className='thumbnailboutoncontexte'>
         
             <span className="fa fa-ellipsis-h"/>
         
