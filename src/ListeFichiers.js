@@ -146,13 +146,15 @@ function ListeFichiersLignes(props) {
 
     const selectionnes = props.selectionne || []
 
+    const idMapperFct = colonnes.idMapper || idMapper
+
     return (
         <div className='fichierstable'>
 
             <ListeFichiersEntete colonnes={colonnes} onClickEntete={props.onClickEntete} />
-            
+
             {rows.map((row, idx)=>{
-                const localId = row.tuuid || row.fileId || row.folderId
+                const localId = idMapperFct(row)
                 const selectionne = selectionnes.includes(localId)
                 return (
                     <ListeFichiersRow 
@@ -448,6 +450,10 @@ function ListeFichiersRow(props) {
 //     return params
 // }
 
+function idMapper(row) {
+    return row.localId || row.tuuid || row.fileId || row.folderId
+}
+
 function ListeFichiersThumbnails(props) {
     const {rows, colonnes, onSelectioner, onOuvrir, onContextMenu, touchEnabled, touchBegin, modeView, suivantCb} = props
     if(!rows) return ''  // Ecran n'est pas encore configure
@@ -457,11 +463,12 @@ function ListeFichiersThumbnails(props) {
 
     const selectionnes = props.selectionne || []
     // console.debug("ListeFichierThumbnails selectionnes : %O", selectionnes)
+    const idMapperFct = colonnes.idMapper || idMapper
 
     return (
         <div>
             {rows.map(row=>{
-                const localId = row.tuuid || row.fileId || row.folderId
+                const localId = idMapperFct(row)
                 const selectionne = selectionnes.includes(localId)
                 let classNames = []
                 if(selectionne) classNames.push('selectionne')
@@ -591,7 +598,6 @@ function ListeFichiersRecents(props) {
 
     useEffect(()=>{
         const jours = grouperFichiersRecents(rows)
-        console.debug("Praparer rows pour recents, jours : %O", jours)
         setJours(jours)
     }, [setJours, rows])
 
@@ -747,7 +753,6 @@ function grouperFichiersRecents(rows) {
     })
 
     const jours = Object.keys(joursParDate)
-    console.debug("Jours keys : %O", jours)
     jours.sort(trierDates)
     const joursTries = jours.map(jour=>{
         return {
