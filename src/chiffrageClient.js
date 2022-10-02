@@ -124,17 +124,24 @@ export async function _validerCertificatChiffrage(certificatPem, opts) {
   return resultat
 }
 
-export async function chiffrerDocument(doc, domaine, certificatChiffragePem, opts) {
+export async function chiffrerDocument(doc, domaine, certificatsChiffragePem, opts) {
     opts = opts || {}
     const { DEBUG, identificateurs_document } = opts
-    // console.debug("Chiffrer documents doc %O, identificateurs_document %O", doc, identificateurs_document)
+    // console.debug("chiffrerDocument doc %O, identificateurs_document %O", doc, identificateurs_document)
     // console.debug("Certificat millegrille : %O", certificatMillegrille)
 
-    // Valider le certificat - lance une exception si invalide
-    const infoCertificatChiffrage = await _validerCertificatChiffrage(certificatChiffragePem, opts)
-    // console.debug("InfoCert chiffrage: %O", infoCertificatChiffrage)
-
-    const certificatsListeChiffrage = [certificatChiffragePem.shift()]
+    // Valider les certificats de maitre des cles
+    // Conserver uniquement le premier certificat dans chaque instance de PEMs
+    const certificatsListeChiffrage = []
+    for await (const pems of certificatsChiffragePem) {
+      try {
+        // Valider le certificat - lance une Erreur si invalide
+        await _validerCertificatChiffrage(pems, opts)
+        certificatsListeChiffrage.push(pems[0])
+      } catch(err) {
+        console.warn("Certificate maitre des cles invalide ", err)
+      }
+    }
 
     const resultat = await chiffrage.chiffrerDocument(
       doc, domaine, certificatMillegrille.pem, identificateurs_document, 
