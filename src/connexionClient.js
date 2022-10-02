@@ -24,13 +24,9 @@ let _callbackSetEtatConnexion,
     _urlCourant = '',
     _connecte = false,
     _certificatsMaitreDesCles = '',
-    _timeoutCertificatsMaitreDesCles,
-    _x509Worker
+    _timeoutCertificatsMaitreDesCles
 
-export function setX509Worker(x509Worker) {
-  _x509Worker = x509Worker
-}
-    
+   
 export function setCallbacks(setEtatConnexion, callbackSetUsager, callbackFormatteurMessage) {
   _callbackSetEtatConnexion = setEtatConnexion
   _callbackSetUsager = callbackSetUsager
@@ -338,16 +334,31 @@ export function clearFormatteurMessage() {
 export async function getCertificatsMaitredescles() {
   if(_certificatsMaitreDesCles) return _certificatsMaitreDesCles
   const reponse = await emitBlocking('getCertificatsMaitredescles', null, {noformat: true, ajouterCertificat: true})
+  const certificats = []
+  console.debug("getCertificatsMaitredescles Reponse : ", reponse)
   if(!reponse.err) {
+    // Valider les certificats recus
+    for await (const certificat of reponse) {
+      try {
+        console.warn("fixme Valider certificat maitre des cles ", certificat)
+        // const valide = await _x509Worker.verifierCertificat(certificat)
+        // console.debug("Certificat valide? ", valide)
+        // if(valide === true) certificats.push(certificat)
+        certificats.push(certificat)
+      } catch(err) {
+        console.error("getCertificatsMaitredescles Erreur validation ", err)
+      }
+    }
+
     // Cacher la reponse
-    // console.debug("Cert maitre des cles mis en cache : %O", reponse)
-    _certificatsMaitreDesCles = reponse
+    console.debug("Cert maitre des cles mis en cache : %O", certificats)
+    _certificatsMaitreDesCles = certificats
     _timeoutCertificatsMaitreDesCles = setTimeout(()=>{
       _certificatsMaitreDesCles = null
       _timeoutCertificatsMaitreDesCles = null
     }, 300000)  // Clear apres 5 minutes
   }
-  return reponse
+  return certificats.length>0?certificats:null
 }
 
 export function genererChallengeWebAuthn(params) {
