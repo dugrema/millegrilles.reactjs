@@ -137,9 +137,16 @@ export async function chiffrerDocument(doc, domaine, certificatsChiffragePem, op
       try {
         // Valider le certificat - lance une Erreur si invalide
         await _validerCertificatChiffrage(pems, opts)
-        certificatsListeChiffrage.push(pems[0])
+        const certificatForge = forgePki.certificateFromPem(pems[0])
+        const extensions = extraireExtensionsMillegrille(certificatForge)
+        const roles = extensions.roles || []
+        if(roles.includes('maitredescles')) {
+          certificatsListeChiffrage.push(pems[0])
+        } else {
+          console.warn("Certificat maitre des cles invalide - role maitredescles manquant")
+        }
       } catch(err) {
-        console.warn("Certificate maitre des cles invalide ", err)
+        console.warn("Certificat maitre des cles invalide ", err)
       }
     }
 
