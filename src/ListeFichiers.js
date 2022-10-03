@@ -14,7 +14,9 @@ const MIMETYPE_PDF = 'application/pdf'
 export function ListeFichiers(props) {
 
     // Intercepter onClick pour capturer la selection
-    const { modeView, onClick, onDoubleClick, onContextMenu, rows, onSelection } = props
+    const { modeView, onClick, onDoubleClick, onContextMenu, rows, colonnes, onSelection } = props
+
+    const idMapperFct = colonnes.idMapper || idMapper
 
     let ClasseViewer = useMemo(()=>{
         switch(modeView) {
@@ -36,7 +38,7 @@ export function ListeFichiers(props) {
             event.persist()  // Permet de reutiliser event avec Promises (onClick)
             const idSelection = value.fileId || value.folderId
             await setSelectionCourante(idSelection)
-            await majSelection(event, value, rows, selectionCourante, selectionne, setSelectionne)
+            await majSelection(event, idMapperFct, value, rows, selectionCourante, selectionne, setSelectionne)
         }
         if(onClick) onClick(event, value)
     }, [onClick, onSelection, selectionne, selectionCourante, setSelectionne, setSelectionCourante, rows])
@@ -55,12 +57,12 @@ export function ListeFichiers(props) {
 
         // console.debug("Context event : %O", event.currentTarget)
         if(onSelection) {
-            const idSelection = value.fileId || value.folderId
+            const idSelection = idMapperFct(value)
             if(!selectionne.includes(idSelection)) {
                 event.persist()  // Permet de reutiliser event avec Promises (onDoubleClick)
                 // On reselectionne l'element courant
                 await setSelectionCourante(idSelection)
-                await majSelection(event, value, rows, selectionCourante, selectionne, setSelectionne)
+                await majSelection(event, idMapperFct, value, rows, selectionCourante, selectionne, setSelectionne)
             }
         }
         if(onContextMenu) onContextMenu(event, value)
@@ -90,8 +92,8 @@ export function ListeFichiers(props) {
     )
 }
 
-async function majSelection(event, value, rows, selectionPrecedente, selectionne, setSelectionne, callback) {
-    const idSelection = value.fileId || value.folderId
+async function majSelection(event, idMapperFct, value, rows, selectionPrecedente, selectionne, setSelectionne, callback) {
+    const idSelection = value.localId || value.fileId || value.folderId
     const {shiftKey, ctrlKey} = event
 
     // Determiner comportement cles speciales
@@ -103,7 +105,7 @@ async function majSelection(event, value, rows, selectionPrecedente, selectionne
     if(shiftKey && idSelection !== selectionPrecedente) {
         // Prepare liste de tous les IDs entre selectionPrecedente et idSelection
         const resultat = rows.reduce(({modeAjout, nouvelleSelection}, item)=>{
-            const idLocal = item.tuuid || item.fileId || item.folderId
+            const idLocal = idMapperFct(item)
 
             let ajouter = modeAjout  // Conserver flag (pour inclure dernier element selectionne)
             if(idLocal === idSelection || idLocal === selectionPrecedente) {
@@ -154,7 +156,7 @@ function ListeFichiersLignes(props) {
             <ListeFichiersEntete colonnes={colonnes} onClickEntete={props.onClickEntete} />
 
             {rows.map((row, idx)=>{
-                const localId = idMapperFct(row)
+                const localId = idMapperFct(row, idx)
                 const selectionne = selectionnes.includes(localId)
                 return (
                     <ListeFichiersRow 
@@ -280,6 +282,8 @@ function ListeFichiersRow(props) {
     const [touchEvent, setTouchEvent] = useState('')
 
     const {fileId, folderId} = dataRow
+    const idMapperFct = colonnes.idMapper || idMapper
+    const localId = idMapperFct(dataRow)
 
     const classNames = useMemo(()=>{
         let classNames = ['fichierstablerow']
@@ -300,15 +304,15 @@ function ListeFichiersRow(props) {
 
     const onClickAction = useCallback(event=>{
         if(touchEnabled) return  // Rien a faire
-        if(onSelectioner && !touchEnabled) onSelectioner(event, {fileId, folderId})
-    }, [onSelectioner, touchEnabled, touchBegin, fileId, folderId])
+        if(onSelectioner && !touchEnabled) onSelectioner(event, {localId, fileId, folderId})
+    }, [onSelectioner, touchEnabled, touchBegin, localId, fileId, folderId])
 
     const onDoubleClickAction = useCallback(event=>{
         if(touchEnabled === true) return  // Rien a faire
         event.preventDefault()
         event.stopPropagation()
-        if(onOuvrir) onOuvrir(event, {fileId, folderId})
-    }, [onOuvrir, fileId, folderId, touchEnabled])
+        if(onOuvrir) onOuvrir(event, {localId, fileId, folderId})
+    }, [onOuvrir, localId, fileId, folderId, touchEnabled])
 
     const onTouchMove = useCallback(event=>{
         setTouchEvent('')
@@ -323,21 +327,21 @@ function ListeFichiersRow(props) {
     const onTouchEnd = useCallback(event=>{
         if(!touchEvent) return  // Deplacement
 
-        if(onSelectioner) onSelectioner(event, {fileId, folderId})
-        if(onOuvrir) onOuvrir(event, {fileId, folderId})
+        if(onSelectioner) onSelectioner(event, {localId, fileId, folderId})
+        if(onOuvrir) onOuvrir(event, {localId, fileId, folderId})
         setTouchEvent('')
 
-    }, [onOuvrir, fileId, folderId, touchEvent, setTouchEvent])
+    }, [onOuvrir, localId, fileId, folderId, touchEvent, setTouchEvent])
 
     const onContextMenuAction = useCallback(event=>{
         event.stopPropagation()
-        if(onContextMenu) onContextMenu(event, {fileId, folderId})
-    }, [onContextMenu, fileId, folderId])
+        if(onContextMenu) onContextMenu(event, {localId, fileId, folderId})
+    }, [onContextMenu, localId, fileId, folderId])
 
     const onBoutonContext = useCallback(event=>{
         event.stopPropagation()
         event.preventDefault()
-        if(onContextMenu) onContextMenu(event, {fileId, folderId})
+        if(onContextMenu) onContextMenu(event, {localId, fileId, folderId})
     })
 
     // Convertir data avec rowLoader au besoin
@@ -356,6 +360,7 @@ function ListeFichiersRow(props) {
             className={classNames.join(' ')}
             onDoubleClick={onDoubleClickAction} 
             onContextMenu={onContextMenuAction}
+            data-localid={localId}
             data-fileid={fileId}
             data-folderid={folderId}
             >
