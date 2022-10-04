@@ -9,6 +9,7 @@ const CONST_TIMEOUT_THUMBNAIL_BLOB = 15000
 export function loadFichierChiffre(getFichierChiffre, fuuid, mimetype, opts) {
     // console.debug("!!! loadFichierChiffre fuuid %s, mimetype %s, opts : %O", fuuid, mimetype, opts)
     opts = opts || {}
+    const ref_hachage_bytes = opts.ref_hachage_bytes
     // const { traitementFichiers } = workers
     const { delay, callbackOnClean } = opts
     const timeoutBlob = opts.timeout || CONST_TIMEOUT_THUMBNAIL_BLOB
@@ -24,7 +25,7 @@ export function loadFichierChiffre(getFichierChiffre, fuuid, mimetype, opts) {
                 // console.debug("Reload blob pour %s", fuuid)
                 if(controller) controller.abort() // S'assurer d'annuler un download en limbo
                 controller = new AbortController()
-                blobPromise = reloadFichier(getFichierChiffre, fuuid, mimetype, {...opts, controller})
+                blobPromise = reloadFichier(getFichierChiffre, fuuid, mimetype, {...opts, ref_hachage_bytes, controller})
             } else if(timeoutCleanup) {
                 // console.debug("Reutilisation blob pour thumbnail %s", fuuid)
                 clearTimeout(timeoutCleanup)
@@ -175,7 +176,7 @@ export function imageResourceLoader(getFichierChiffre, images, opts) {
     // console.debug("!!! imageResourceLoader images: %O, opts: %O", images, opts)
     const supporteWebp = opts.supporteWebp===false?false:true
     const anime = opts.anime?true:false
-    const { fuuid, mimetype, cles } = opts
+    const { fuuid, mimetype, ref_hachage_bytes, cles } = opts
 
     const thumbnail = images.thumbnail || images.thumb
 
@@ -188,14 +189,13 @@ export function imageResourceLoader(getFichierChiffre, images, opts) {
     .filter(label=>label!=='thumb'&&label!=='thumbnail')
     .reduce((acc, item)=>{
         const image = images[item]
-        const ref_hachage_bytes = fuuid
         const { header, format } = image
         acc[item] = fileResourceLoader(getFichierChiffre, image.hachage, image.mimetype, {thumbnail, cles, ref_hachage_bytes, header, format})
         return acc
     }, {})
     if(fuuid && mimetype) {
         // Loader pour original
-        loaders.original = fileResourceLoader(getFichierChiffre, fuuid, mimetype, {thumbnail, cles})
+        loaders.original = fileResourceLoader(getFichierChiffre, fuuid, mimetype, {thumbnail, ref_hachage_bytes, cles})
     }
 
     // Ajouter loader de thumbnail
