@@ -374,7 +374,7 @@ function ListeFichiersRow(props) {
                 const showBoutonContexte = param.showBoutonContexte || false
 
                 const contenu = dataRow[nomColonne] || ''
-                let spanContenu = <span>{contenu}</span>
+                let spanContenu = <span title={contenu}>{contenu}</span>
                 if(Formatteur) {
                     spanContenu = <span><Formatteur value={contenu} data={dataRow} /></span>
                 }
