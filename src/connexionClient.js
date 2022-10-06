@@ -95,6 +95,7 @@ export async function connecter(urlApp, opts) {
 export function getCertificatFormatteur() {
   return {
     // certificat: _formatteurMessage.cert,
+    fingerprint: _formatteurMessage.fingerprint,
     extensions: extraireExtensionsMillegrille(_formatteurMessage.cert)
   }
 }

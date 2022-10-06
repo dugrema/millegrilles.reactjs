@@ -48,6 +48,11 @@ export async function initialiserFormatteurMessage(certificatPem, clePrivee, opt
   await formatteurMessage.ready  // Permet de recevoir erreur si applicable
 }
 
+export async function getFingerprintSignature() {
+  await formatteurMessage.ready  // Permet de recevoir erreur si applicable
+  return formatterMessage.fingerprint
+}
+
 export function clearInfoSecrete() {
   formatteurMessage = null
   _cleMillegrille = null
