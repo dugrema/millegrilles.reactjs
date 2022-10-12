@@ -215,11 +215,22 @@ export async function rechiffrerAvecCleMillegrille(
     throw new Error("Cle de MilleGrille non chargee")
   }
 
-  const certificat = forgePki.certificateFromPem(pemRechiffrage),
-        publicKey = certificat.publicKey.publicKeyBytes,
-        fingerprintMaitredescles = await _hacherCertificat(certificat)
+  const fingerprintsClepub = []
+  for await (const pemChain of pemRechiffrage) {
+    const forgeCert = forgePki.certificateFromPem(pemChain)
+    const publicKey = forgeCert.publicKey.publicKeyBytes
+    const fingerprintMaitredescles = await _hacherCertificat(forgeCert)
+    fingerprintsClepub.push({
+      partition: fingerprintMaitredescles,
+      publicKey,
+    })
+  }
 
-  if(DEBUG) console.debug("Rechiffrer cles avec cert %O", certificat)
+  // const certificat = forgePki.certificateFromPem(pemRechiffrage),
+  //       publicKey = certificat.publicKey.publicKeyBytes,
+  //       fingerprintMaitredescles = await _hacherCertificat(certificat)
+
+  if(DEBUG) console.debug("Rechiffrer cles avec certs %O", fingerprintsClepub)
 
   let nombreClesRechiffrees = 0,
       nombreErreurs = 0,
@@ -243,13 +254,16 @@ export async function rechiffrerAvecCleMillegrille(
       }
     }
     if(DEBUG) console.debug("Cles non dechiffrables : %O", clesNonDechiffrables)
-    excludeHachageBytes = cles.map(item=>item.hachage_bytes)
+    // excludeHachageBytes = cles.map(item=>item.hachage_bytes)
 
     try {
       //const debutRechiffrage = new Date().getTime()
-      const clesRechiffrees = await Promise.all(cles.map(cle=>{
-        return ed25519Utils.dechiffrerCle(cle.cle, _cleMillegrille)
-          .then(async cleDechiffree=>{
+      const clesRechiffrees = []
+      //const clesRechiffrees = await Promise.all(cles.map(cle=>{
+      for await (const cle of cles) {
+        try { 
+          const cleDechiffree = await ed25519Utils.dechiffrerCle(cle.cle, _cleMillegrille)
+          //.then(async cleDechiffree=>{
             if(DEBUG) console.debug("Cle dechiffree : %O", cleDechiffree)
             if(Array.isArray(cleDechiffree)) {
               // Convertir en uint8array
@@ -258,21 +272,30 @@ export async function rechiffrerAvecCleMillegrille(
               cleDechiffree = cleDechiffreeUintArray
             }
 
-            const cleRechiffree = await ed25519Utils.chiffrerCle(cleDechiffree, publicKey)
-
-            const cleComplete = {
-              ...cle, 
-              cle: cleRechiffree,
+            const fingerprintClesRechiffrees = {}
+            for await (const clePub of fingerprintsClepub) {
+              const cleRechiffree = await ed25519Utils.chiffrerCle(cleDechiffree, clePub.publicKey)
+              fingerprintClesRechiffrees[clePub.partition] = cleRechiffree
             }
 
-            return cleComplete
-          })
-          .catch(err=>{
+            const cleComplete = {...cle, cles: fingerprintClesRechiffrees}
+            delete cleComplete.cle  // Cleanup
+
+            //return cleComplete
+            clesRechiffrees.push(cleComplete)
+          // })
+          // .catch(err=>{
+          //   console.error("Erreur dechiffrage cle : %O", err)
+          //   nombreErreurs++
+          //   return {ok: false, err: err}
+          // })
+        } catch(err) {
             console.error("Erreur dechiffrage cle : %O", err)
             nombreErreurs++
-            return {ok: false, err: err}
-          })
-      }))
+            clesRechiffrees.push({...cle, ok: false, err: err})
+        }
+      }
+      //))
       // const finRechiffrage = new Date().getTime()
       // const dureeRechiffrage = finRechiffrage - debutRechiffrage
       // console.debug("Duree rechiffrage cles : %d ms", dureeRechiffrage)
@@ -280,7 +303,7 @@ export async function rechiffrerAvecCleMillegrille(
 
       const clesPretes = clesRechiffrees.filter(cle=>cle.ok!==false)
       const commande = { cles: clesPretes }
-      dernierePromise = connexion.rechiffrerClesBatch(commande, fingerprintMaitredescles)
+      dernierePromise = connexion.rechiffrerClesBatch(commande)
         .then(reponse=>{
           if(DEBUG) console.debug("Reponse rechiffrerClesBatch : %O", reponse)
           nombreClesRechiffrees += cles.length
