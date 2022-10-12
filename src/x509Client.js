@@ -13,15 +13,14 @@ var _certificatCaForge = null,
     _certificateStore = null,
     _idmgLocal = ''
 
-export function init(caPem) {
+export async function init(caPem) {
   // console.debug("Init x509Client")
   _certificatCaForge = forgePki.certificateFromPem(caPem)
   // console.debug("Certificat Store class : %O\nCert forge : %O", CertificateStore, _certificatCaForge)
   _certificateStore = new CertificateStore(_certificatCaForge)
 
-  getIdmg(caPem).then(idmg=>{
-    _idmgLocal = idmg
-  })
+  const idmg = await getIdmg(caPem)
+  _idmgLocal = idmg
 }
 
 export function getIdmgLocal() {
@@ -36,7 +35,7 @@ export function validerCertificat(chainePem, dateValidation) {
   const certificatValide = _certificateStore.verifierChaine(chainePem, {validityCheckDate: dateValidation})
   // verifierChaine retourne false si le certificat est invalide, un objet si valide
   if(certificatValide) {
-    console.debug("Certificat valide : %O", certificatValide)
+    // console.debug("Certificat valide : %O", certificatValide)
     return true
   }
   return false
@@ -54,7 +53,7 @@ export async function verifierMessage(message, opts) {
 
   const estampille = new Date(estampilleInt * 1000)
   let certValide = false
-  if(idmg === _idmgLocal) {
+  if(!idmg || idmg === _idmgLocal) {
     // Utiliser store avec CA local
     certValide = verifierCertificat(certificat, estampille)
   } else if(support_idmg_tiers && certMillegrille) {
@@ -63,7 +62,7 @@ export async function verifierMessage(message, opts) {
     certValide = certificatStore.verifierChaine(certificat, {validityCheckDate: estampille})
   } else {
     // console.warn("Erreur validation, aucun match : idmg message %s, idmg local %s", idmg, _idmgLocal)
-    throw new Error("x509Client.verifierMessage idmg tiers non supporte ou sans certificat _millegrille")
+    throw new Error(`x509Client.verifierMessage idmg tiers non supporte ou sans certificat _millegrille : idmg message ${idmg}`)
   }
 
   if(!certValide) {
@@ -75,6 +74,7 @@ export async function verifierMessage(message, opts) {
 
   try {
     const certForge = forgePki.certificateFromPem(certificat[0])
+    // console.debug("Cert forge : ", certForge)
     await _verifierMessage(message, certForge)
   } catch(err) {
     console.error("Erreur validation message", err)

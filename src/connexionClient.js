@@ -1,6 +1,7 @@
 import {io as openSocket} from 'socket.io-client'
+import { pki } from '@dugrema/node-forge'
 import { FormatteurMessageEd25519 } from '@dugrema/millegrilles.utiljs/src/formatteurMessage'
-import { extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
+import { CertificateStore, extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
 
 import * as hachage from './hachage'  // Wiring hachage pour utiljs
 import './chiffrage'
@@ -10,8 +11,16 @@ import {
   formatterMessage, chargerCleMillegrille, signerMessageCleMillegrille, clearCleMillegrille,
 } from './chiffrageClient'
 
+import {
+  init as initX509,
+  verifierCertificat,
+  verifierMessage,
+} from './x509Client'
+
 // Re-exporter fonctions de chiffrageClient
 export { formatterMessage, chargerCleMillegrille, signerMessageCleMillegrille, clearCleMillegrille } 
+
+const { hacherCertificat: _hacherCertificat } = hachage
 
 let _socket = null,
     _formatteurMessage = null,
@@ -23,14 +32,18 @@ let _callbackSetEtatConnexion,
     _callbackFormatteurMessage,
     _urlCourant = '',
     _connecte = false,
-    _certificatsMaitreDesCles = '',
-    _timeoutCertificatsMaitreDesCles
-
+    _certificatsMaitreDesCles = ''
    
 export function setCallbacks(setEtatConnexion, callbackSetUsager, callbackFormatteurMessage) {
   _callbackSetEtatConnexion = setEtatConnexion
   _callbackSetUsager = callbackSetUsager
   _callbackFormatteurMessage = callbackFormatteurMessage
+}
+
+export async function initialiserCertificateStore(caCert, opts) {
+  // const DEBUG = opts.DEBUG
+  // if(DEBUG) console.debug("Initialisation du CertificateStore avec %O", caCert)
+  return initX509(caCert)
 }
 
 export function estActif() {
@@ -236,7 +249,18 @@ export async function emitBlocking(event, message, opts) {
 
       if(reponse && reponse.err) return reject(reponse.err)  // Erreur cote serveur
 
-      resolve(reponse)
+      if(reponse['_signature'] && reponse['_certificat']) {
+        verifierMessage(reponse)
+          .then(resultat=>{
+            // console.debug("Resultat validation : %O", resultat)
+            if(resultat === true) resolve(reponse)
+            reject("Reponse invalide (hachage/signature incorrect)")
+          })
+          .catch(err=>reject(err))
+      } else {
+        //console.warn("Reponse recue sans signature/cert : ", reponse)
+        resolve(reponse)
+      }
     }
 
     if(message) {
@@ -333,30 +357,47 @@ export function clearFormatteurMessage() {
 }
 
 export async function getCertificatsMaitredescles() {
+  // console.debug("getCertificatsMaitredescles local ", _certificatsMaitreDesCles)
   if(_certificatsMaitreDesCles) return _certificatsMaitreDesCles
   const reponse = await emitBlocking('getCertificatsMaitredescles', null, {noformat: true, ajouterCertificat: true})
   const certificats = []
-  console.debug("getCertificatsMaitredescles Reponse : ", reponse)
+  // console.debug("getCertificatsMaitredescles Reponse : ", reponse)
   if(!reponse.err) {
     // Valider les certificats recus
     for await (const certificat of reponse) {
       try {
-        console.warn("fixme Valider certificat maitre des cles ", certificat)
-        // const valide = await _x509Worker.verifierCertificat(certificat)
-        // console.debug("Certificat valide? ", valide)
-        // if(valide === true) certificats.push(certificat)
-        certificats.push(certificat)
+        const forgeCert = await verifierCertificat(certificat)
+
+        // console.debug("Resultat validation : %s", forgeCert!==null)
+        if(forgeCert) {
+          const extensionCert = extraireExtensionsMillegrille(forgeCert)
+          const roles = extensionCert.roles || []
+          if(roles.includes('maitredescles')) {
+            certificats.push(certificat)
+          } else {
+            console.warn("Certificat sans role maitredescles, rejete")
+          }
+        } else {
+          console.warn("Certificat maitre des cles invalide ", certificat)
+        }
+    
       } catch(err) {
         console.error("getCertificatsMaitredescles Erreur validation ", err)
       }
     }
 
+    if(certificats.length === 0) {
+      console.warn("Aucun certificat de maitre des cles valide n'a ete recu")
+      return null
+    }
+
     // Cacher la reponse
-    console.debug("Cert maitre des cles mis en cache : %O", certificats)
+    // console.debug("Cert maitre des cles mis en cache : %O", certificats)
     _certificatsMaitreDesCles = certificats
-    _timeoutCertificatsMaitreDesCles = setTimeout(()=>{
+    //_timeoutCertificatsMaitreDesCles = 
+    setTimeout(()=>{
       _certificatsMaitreDesCles = null
-      _timeoutCertificatsMaitreDesCles = null
+      //_timeoutCertificatsMaitreDesCles = null
     }, 300000)  // Clear apres 5 minutes
   }
   return certificats.length>0?certificats:null

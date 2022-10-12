@@ -62,7 +62,7 @@ export function clearInfoSecrete() {
 
 export function verifierCertificat(certificat, opts) {
   /* Expose verifierChaine du certificate store */
-  if(typeof(chainePEM) === 'string') {
+  if(typeof(certificat) === 'string') {
     certificat = forgePki.certificateFromPem(certificat)
   }
   
