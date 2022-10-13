@@ -173,10 +173,11 @@ export function fileResourceLoader(getFichierChiffre, fichierFuuid, mimetype, op
 
 export function imageResourceLoader(getFichierChiffre, images, opts) {
     opts = opts || {}
-    // console.debug("!!! imageResourceLoader images: %O, opts: %O", images, opts)
+    // console.trace("!!! imageResourceLoader images: %O, opts: %O", images, opts)
     const supporteWebp = opts.supporteWebp===false?false:true
     const anime = opts.anime?true:false
-    const { fuuid, mimetype, ref_hachage_bytes, cles } = opts
+    let { fuuid, mimetype, cles } = opts
+    const ref_hachage_bytes = opts.ref_hachage_bytes || fuuid
 
     const thumbnail = images.thumbnail || images.thumb
 
