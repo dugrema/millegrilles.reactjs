@@ -29,7 +29,7 @@ var _chiffrage = null
 var _callbackEtatUpload = null,
     _publicKeyCa = null,
     _fingerprintCa = null,
-    _certificat = null,
+    _certificats = null,
     _domaine = 'GrosFichiers',
     _pathServeur = '/collections/fichiers'
 
@@ -441,11 +441,11 @@ export function up_setCertificatCa(certificat) {
     // console.debug("Cle CA chargee : %O, cle : %O", cert, _publicKeyCa)
 }
 
-export function up_setCertificat(certificat) {
-    if( typeof(certificat) === 'string' ) {
-        certificat = splitPEMCerts(certificat)
+export function up_setCertificats(certificats) {
+    if( ! Array.isArray(certificats) ) {
+        throw new Error(`Certificats de mauvais type (pas Array) : ${certificats}`)
     }
-    _certificat = certificat
+    _certificats = certificats
 }
 
 export function up_setDomaine(domaine) {
@@ -621,8 +621,9 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
 
             // console.debug("Resultat chiffrage : %O", etatFinalChiffrage)
             const identificateurs_document = { fuuid: hachage_bytes }
+            const certificats = _certificats.map(item=>item[0])  // Conserver les certificats maitredescles (pas chaine)
             docIdb.transactionMaitredescles = await preparerCommandeMaitrecles(
-                [_certificat[0]], 
+                certificats, 
                 transformInst.secretKey, 
                 _domaine, 
                 hachage_bytes, 
