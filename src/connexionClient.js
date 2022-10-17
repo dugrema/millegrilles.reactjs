@@ -14,7 +14,7 @@ import {
 import {
   init as initX509,
   verifierCertificat,
-  verifierMessage,
+  verifierMessage as x509VerifierMessage,
 } from './x509Client'
 
 // Re-exporter fonctions de chiffrageClient
@@ -219,6 +219,10 @@ export function deconnecter() {
   if(_callbackFormatteurMessage) _callbackFormatteurMessage(false)
 }
 
+export async function verifierMessage(message) {
+  return x509VerifierMessage(message)
+}
+
 export async function emitBlocking(event, message, opts) {
   /* Emet un message et attend la reponse. */
   opts = opts || {}
@@ -250,7 +254,7 @@ export async function emitBlocking(event, message, opts) {
       if(reponse && reponse.err) return reject(reponse.err)  // Erreur cote serveur
 
       if(reponse['_signature'] && reponse['_certificat']) {
-        verifierMessage(reponse)
+        x509VerifierMessage(reponse)
           .then(resultat=>{
             // console.debug("Resultat validation : %O", resultat)
             if(resultat === true) resolve(reponse)
