@@ -417,23 +417,22 @@ export function upgradeProteger(data) {
   return authentifier(data)
 }
 
-export function authentifier(data) {
+export async function authentifier(data) {
   if(data) {
-    return emitBlocking('upgrade', data, {noformat: true})
-      .then(reponse=>{
-        if(reponse.nomUsager && _callbackSetUsager) _callbackSetUsager(reponse.nomUsager)
-        return reponse
-      })
+      const reponse = await emitBlocking('upgrade', data, {noformat: true})
+
+      if(reponse.nomUsager && _callbackSetUsager) _callbackSetUsager(reponse.nomUsager)
+
+      return reponse
   } else {
-    // Faire une requete pour upgrader avec le certificat
-    return emitBlocking('genererChallengeCertificat', null).then( reponse => {
+      // Faire une requete pour upgrader avec le certificat
+      const reponse = await emitBlocking('genererChallengeCertificat', null)
+      
       // Repondre pour creer l'upgrade
       const data = {...reponse.challengeCertificat}
-      return emitBlocking('upgrade', data, {domaine: 'login', action: 'login', attacherCertificat: true})
-    })
-    .then(reponse=>{
-      if(reponse.nomUsager && _callbackSetUsager) _callbackSetUsager(reponse.nomUsager)
-      return reponse
-    })
+      const reponseUpgrade = await emitBlocking('upgrade', data, {domaine: 'login', action: 'login', attacherCertificat: true})
+      if(reponseUpgrade.nomUsager && _callbackSetUsager) _callbackSetUsager(reponseUpgrade.nomUsager)
+      
+      return reponseUpgrade
   }
 }
