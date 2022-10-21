@@ -41,6 +41,7 @@ export function setCallbacks(setEtatConnexion, callbackSetUsager, callbackFormat
 }
 
 export async function initialiserCertificateStore(caCert, opts) {
+  opts = opts || {}
   const DEBUG = opts.DEBUG
   if(DEBUG) console.debug("Initialisation du CertificateStore avec %O", caCert)
   return initX509(caCert)

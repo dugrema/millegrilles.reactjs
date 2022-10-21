@@ -24,6 +24,7 @@ var _cleMillegrille = null
 var _callbackCleMillegrille = null  // Callback sur etat de la cle de millegrille
 
 export async function initialiserCertificateStore(caCert, opts) {
+  opts = opts || {}
   const DEBUG = opts.DEBUG
   if(DEBUG) console.debug("Initialisation du CertificateStore avec %O, opts=%O", caCert, opts)
   certificateStore = new CertificateStore(caCert, opts)
