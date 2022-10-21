@@ -61,7 +61,7 @@ export async function verifierMessage(message, opts) {
     const certificatStore = new CertificateStore(certCaForge)
     certValide = certificatStore.verifierChaine(certificat, {validityCheckDate: estampille})
   } else {
-    // console.warn("Erreur validation, aucun match : idmg message %s, idmg local %s", idmg, _idmgLocal)
+    console.warn("Erreur validation, aucun match : idmg message '%s', idmg local '%s'", idmg, _idmgLocal)
     throw new Error(`x509Client.verifierMessage idmg tiers non supporte ou sans certificat _millegrille : idmg message ${idmg}`)
   }
 

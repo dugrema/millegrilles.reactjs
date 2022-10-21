@@ -41,8 +41,8 @@ export function setCallbacks(setEtatConnexion, callbackSetUsager, callbackFormat
 }
 
 export async function initialiserCertificateStore(caCert, opts) {
-  // const DEBUG = opts.DEBUG
-  // if(DEBUG) console.debug("Initialisation du CertificateStore avec %O", caCert)
+  const DEBUG = opts.DEBUG
+  if(DEBUG) console.debug("Initialisation du CertificateStore avec %O", caCert)
   return initX509(caCert)
 }
 
@@ -260,7 +260,10 @@ export async function emitBlocking(event, message, opts) {
             if(resultat === true) resolve(reponse)
             reject("Reponse invalide (hachage/signature incorrect)")
           })
-          .catch(err=>reject(err))
+          .catch(err=>{
+            console.error("Erreur validation reponse  %O : %O", reponse, err)
+            reject(err)
+          })
       } else {
         //console.warn("Reponse recue sans signature/cert : ", reponse)
         resolve(reponse)
