@@ -2,7 +2,7 @@ import { base64 } from 'multiformats/bases/base64'
 import path from 'path'
 import {trouverLabelImage, trouverLabelVideo, trierLabelsVideos} from './labelsRessources'
 
-const CONST_TIMEOUT_THUMBNAIL_BLOB = 15000
+const CONST_TIMEOUT_THUMBNAIL_BLOB = 90_000
 
 // Charge un fichier chiffre.
 // Utilise un cache/timer pour reutiliser le blob si l'image est chargee/dechargee rapidement.
