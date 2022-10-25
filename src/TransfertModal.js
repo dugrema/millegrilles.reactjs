@@ -240,9 +240,9 @@ function TabUpload(props) {
 
 function EtatDownload(props) {
 
-    console.debug("EtatDownload PROPPYS %O", props)
+    // console.debug("EtatDownload PROPPYS %O", props)
 
-    const { workers, continuerDownloads, supprimerDownloads, progres } = props
+    const { workers, continuerDownloads, supprimerDownloads } = props
     // const { transfertFichiers } = workers
     const { traitementFichiers } = workers
     const downloads = props.downloads || []
@@ -255,19 +255,19 @@ function EtatDownload(props) {
 
     const supprimerDownloadAction = useCallback( event => {
         const fuuid = event.currentTarget.value
-        console.debug("Supprimer download ", fuuid)
+        // console.debug("Supprimer download ", fuuid)
         supprimerDownloads({fuuid})
         // transfertFichiers.down_supprimerDownloads({hachage_bytes: fuuid})
         //     .catch(err=>{console.error("Erreur supprimer download %O", err)})
     }, [supprimerDownloads])
 
     const supprimerDownloadsSuccesAction = useCallback( event => {
-        console.debug("Supprimer tous downloads")
+        // console.debug("Supprimer tous downloads")
         supprimerDownloads({succes: true})
     }, [supprimerDownloads])
 
     const supprimerDownloadsErreurAction = useCallback( event => {
-        console.debug("Supprimer tous downloads")
+        // console.debug("Supprimer tous downloads")
         supprimerDownloads({echecs: true})
     }, [supprimerDownloads])
 
@@ -285,6 +285,13 @@ function EtatDownload(props) {
     const compteEnCours = downloadsPending.length + (downloadEnCours?1:0)
 
     const downloadActif = (compteEnCours)?true:false
+
+    let progres = ''
+    if(downloadEnCours && downloadEnCours.taille && downloadEnCours.tailleCompletee) {
+        const progresFloat = 100.0 * downloadEnCours.tailleCompletee / downloadEnCours.taille
+        progres = ''+Math.floor(progresFloat)
+        // console.debug("Progres %O (%O), tailleCompletee %d / %d ", progres, progresFloat, downloadEnCours.tailleCompletee, downloadEnCours.taille)
+    }
 
     return (
         <div>
@@ -308,12 +315,12 @@ function EtatDownload(props) {
             }
 
             {downloadEnCours?
-                <DownloadEnCours key={downloadEnCours.fuuid} etat={etat} value={downloadEnCours} annulerDownloadAction={supprimerDownloadAction} />
+                <DownloadEnCours key={downloadEnCours.fuuid} value={downloadEnCours} annulerDownloadAction={supprimerDownloadAction} />
                 :''
             }
 
             {downloadsPending.map(item=>{
-                return <DownloadPending key={item.fuuid} etat={etat} value={item} annulerDownloadAction={supprimerDownloadAction} />
+                return <DownloadPending key={item.fuuid} value={item} annulerDownloadAction={supprimerDownloadAction} />
             })}
 
             <DownloadsErreur
@@ -438,7 +445,7 @@ function DownloadPending(props) {
 }
 
 function DownloadEnCours(props) {
-    const { etat, value, annulerDownloadAction } = props
+    const { value, annulerDownloadAction } = props
     
     const label = value.nom || value.fuuid
 
