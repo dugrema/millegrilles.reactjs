@@ -87,7 +87,7 @@ export async function connecter(urlApp, opts) {
   socketOn('reconnect', () => {
     if(opts.DEBUG) console.debug("Reconnecte")
     _connecte = true
-    _callbackSetEtatConnexion(_connecte)
+    _callbackSetEtatConnexion(_connecte, {reconnecte: true})
     onConnect().catch(err=>console.error("connexionClient.onConnect ERROR %O", err))
   })
   socketOn('disconnect', () => {
