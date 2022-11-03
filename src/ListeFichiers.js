@@ -190,7 +190,7 @@ function BoutonSuivantListe(props) {
     if(!suivantCb) return ''  // Cacher le bouton si suivantCb est vide (fin de la liste)
 
     return (
-        <VisibilitySensor onChange={visibleSuivantCb} offset={{top: 200}}>
+        <VisibilitySensor onChange={visibleSuivantCb} offset={{top: 50}} partialVisibility={true}>
             <Row className='section-suivante'>
                 <Col>
                     <Button variant="secondary" onClick={visibleSuivantCb}><i className='fa fa-chevron-down'/></Button>
