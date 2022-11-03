@@ -390,7 +390,10 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
     const loader = {
         load: async (selecteur, opts) => {
             // Prendre la plus faible qualite de video si aucune fournie
-            if(!selecteur || !selecteurs.includes(selecteur)) selecteur = 'faible'
+            if(!selecteur || !selecteurs.includes(selecteur)) {
+                if(loaders.faible) selecteur = 'faible'
+                else selecteur = 'original'
+            }
 
             // console.debug("Loader video %s", selecteur)
             const loader = loaders[selecteur]
