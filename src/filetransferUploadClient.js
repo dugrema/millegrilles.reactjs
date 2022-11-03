@@ -33,8 +33,23 @@ var _callbackEtatUpload = null,
     _domaine = 'GrosFichiers',
     _pathServeur = '/collections/fichiers'
 
-const UPLOAD_BATCH_SIZE = 5 * 1024 * 1024,  // 5 MB
-      CONST_BUFFER_CHIFFRAGE = 64 * 1024
+const THRESHOLD_256kb = 5 * 1024 * 1024,
+      THRESHOLD_512kb = 20 * 1024 * 1024,
+      THRESHOLD_1mb = 50 * 1024 * 1024,
+      THRESHOLD_2mb = 100 * 1024 * 1024
+
+// Retourne la taille a utiliser pour les batch
+function getUploadBatchSize(fileSize) {
+    if(isNaN(fileSize)) throw new Error("NaN")
+    if(fileSize < THRESHOLD_256kb) return 256 * 1024
+    if(fileSize < THRESHOLD_512kb) return 512 * 1024
+    if(fileSize < THRESHOLD_1mb) return 1024 * 1024
+    if(fileSize < THRESHOLD_2mb) return 2 * 1024 * 1024
+    return 5 * 1024 * 1024
+}
+
+// const UPLOAD_BATCH_SIZE = 5 * 1024 * 1024,  // 5 MB
+//       CONST_BUFFER_CHIFFRAGE = 64 * 1024
 const STATUS_NOUVEAU = 1,
       STATUS_ENCOURS = 2,
       STATUS_SUCCES = 3,
@@ -536,13 +551,15 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
         const fileMappe = mapAcceptedFile(file)
         fileMappe.transaction.cuuid = cuuid
         // console.debug("File mappe : ", fileMappe)
+        const fileSize = fileMappe.size
 
         const correlation = '' + uuidv4()
         // const stream = file.stream()
         // console.debug("File %s stream : %O", fileMappe.name, stream)
 
+        const batchSize = getUploadBatchSize(fileSize)
         const reader = getAcceptedFileReader(file)
-        const iterReader = streamAsyncIterable(reader, {batchSize: UPLOAD_BATCH_SIZE, transform})
+        const iterReader = streamAsyncIterable(reader, {batchSize, transform})
         let compteurChunks = 0,
             compteurPosition = 0
 
@@ -552,7 +569,7 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
 
             // Metadata recue
             nom: fileMappe.nom || correlation,
-            taille: fileMappe.size,
+            taille: fileSize, //fileMappe.size,
             mimetype: fileMappe.type || 'application/octet-stream',
 
             // Etat initial
