@@ -528,7 +528,7 @@ export function up_retryErreur(opts) {
     traiterUploads()  // Demarrer traitement si pas deja en cours
 }
 
-export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouterPart, updateFichier, setProgres) {
+export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouterPart, updateFichier, setProgres, signalAnnuler) {
     const now = new Date().getTime()
 
     // console.debug("Accepted files ", acceptedFiles)
@@ -540,6 +540,7 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
 
     let taillePreparee = 0
     for await (const file of acceptedFiles) {
+        if(await signalAnnuler()) throw new Error("Cancelled")
 
         // Preparer chiffrage
         const transformInst = await preparerTransform(),
@@ -591,6 +592,7 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
 
         try {
             for await (const chunk of iterReader) {
+                if(await signalAnnuler()) throw new Error("Cancelled")
                 // console.debug("Traitement chunk %d transforme taille %d", compteurChunks, chunk.length)
 
                 // Conserver dans idb
