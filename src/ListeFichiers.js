@@ -355,11 +355,20 @@ function ListeFichiersRow(props) {
         }
     }, [data, rowLoader, setDataRow])
 
+    const disabled = !!data.disabled
+
+    let actions = {}
+    if(!disabled) {
+        actions = {
+            onDoubleClick: onDoubleClickAction,
+            onContextMenu: onContextMenuAction,
+        }
+    }
+
     return (
         <Row 
             className={classNames.join(' ')}
-            onDoubleClick={onDoubleClickAction} 
-            onContextMenu={onContextMenuAction}
+            {...actions}
             data-localid={localId}
             data-fileid={fileId}
             data-folderid={folderId}
@@ -391,16 +400,20 @@ function ListeFichiersRow(props) {
                 }
                 let boutonContexte = ''
                 if(showBoutonContexte) {
-                    boutonContexte = (
-                        <Button 
-                            variant="secondary" 
-                            size="sm" 
-                            onClick={onBoutonContext} 
-                            className='lignehover boutoncontexte'
-                        >
-                            <i className="fa fa-ellipsis-h"/>
-                        </Button>
-                    )
+                    if(disabled) {
+                        boutonContexte = <span>X</span>
+                    } else {
+                        boutonContexte = (
+                            <Button 
+                                variant="secondary" 
+                                size="sm" 
+                                onClick={onBoutonContext} 
+                                className='lignehover boutoncontexte'
+                            >
+                                <i className="fa fa-ellipsis-h"/>
+                            </Button>
+                        )
+                    }
                 }
 
                 const infoDimension = {
