@@ -355,10 +355,10 @@ function ListeFichiersRow(props) {
         }
     }, [data, rowLoader, setDataRow])
 
-    const disabled = !!data.disabled
+    const fichierDesactive = !!data.disabled
 
     let actions = {}
-    if(!disabled) {
+    if(!fichierDesactive) {
         actions = {
             onDoubleClick: onDoubleClickAction,
             onContextMenu: onContextMenuAction,
@@ -400,7 +400,7 @@ function ListeFichiersRow(props) {
                 }
                 let boutonContexte = ''
                 if(showBoutonContexte) {
-                    if(disabled) {
+                    if(fichierDesactive) {
                         boutonContexte = <span>X</span>
                     } else {
                         boutonContexte = (
