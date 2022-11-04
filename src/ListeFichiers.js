@@ -355,22 +355,20 @@ function ListeFichiersRow(props) {
         }
     }, [data, rowLoader, setDataRow])
 
-    // const fichierDesactive = !!data.disabled
+    const fichierDesactive = !!data.disabled
 
-    // let actions = {}
-    // if(!fichierDesactive) {
-    //     actions = {
-    //         onDoubleClick: onDoubleClickAction,
-    //         onContextMenu: onContextMenuAction,
-    //     }
-    // }
+    let actions = {}
+    if(!fichierDesactive) {
+        actions = {
+            onDoubleClick: onDoubleClickAction,
+            onContextMenu: onContextMenuAction,
+        }
+    }
 
     return (
         <Row 
             className={classNames.join(' ')}
-            //{...actions}
-            onDoubleClick={onDoubleClickAction}
-            onContextMenu={onContextMenuAction}
+            {...actions}
             data-localid={localId}
             data-fileid={fileId}
             data-folderid={folderId}
@@ -402,9 +400,9 @@ function ListeFichiersRow(props) {
                 }
                 let boutonContexte = ''
                 if(showBoutonContexte) {
-                    // if(fichierDesactive) {
-                    //     boutonContexte = <span>X</span>
-                    // } else {
+                    if(fichierDesactive) {
+                        boutonContexte = <span>X</span>
+                    } else {
                         boutonContexte = (
                             <Button 
                                 variant="secondary" 
@@ -415,7 +413,7 @@ function ListeFichiersRow(props) {
                                 <i className="fa fa-ellipsis-h"/>
                             </Button>
                         )
-                    // }
+                    }
                 }
 
                 const infoDimension = {
