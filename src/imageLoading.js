@@ -271,9 +271,10 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
 
                 if(genererToken === true && creerToken) {
                     const fuuids = [fuuidVideo]
-                    const tokenVideo = await creerToken(fuuids)
-                    // console.debug("Token cree pour fuuids %O : %s", fuuids, tokenVideo)
-                    srcVideo = path.join(baseUrlVideo, fuuidVideo, tokenVideo)
+                    const tokensJwts = await creerToken(fuuids)
+                    // console.debug("Token cree pour fuuids %O : %O", fuuids, tokensJwts)
+                    const tokenJwt = tokensJwts[fuuidVideo]
+                    srcVideo = path.join(baseUrlVideo, fuuidVideo) + "?jwt=" + tokenJwt
                 }
 
                 const url = [{src: srcVideo, mimetype: video.mimetype, codecVideo: video.codec, label: item}]
@@ -331,12 +332,15 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
 
                     if(genererToken === true && creerToken) {
                         const fuuids = url.map(item=>item.fuuid)
-                        const tokenVideo = await creerToken(fuuids)
-                        // console.debug("Token cree pour fuuids %O : %s", fuuids, tokenVideo)
+                        const tokensJwts = await creerToken(fuuids)
+                        // console.debug("Token cree pour fuuids %O : %O", fuuids, tokensJwts)
 
                         const nouveauUrls = url.map(item=>{
-                            item.src = path.join(baseUrlVideo, item.fuuid, tokenVideo)
-                            item.token = tokenVideo
+                            const fuuid = item.fuuid
+                            const tokenJwt = tokensJwts[fuuid]
+                            // item.src = path.join(baseUrlVideo, item.fuuid, tokenVideo)
+                            item.src = path.join(baseUrlVideo, fuuid) + "?jwt=" + tokenJwt
+                            item.token = tokenJwt
                             return item
                         })
                         return nouveauUrls
@@ -368,9 +372,11 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
 
                 if(genererToken === true && creerToken) {
                     const fuuids = [fuuid]
-                    const tokenVideo = await creerToken(fuuids)
-                    // console.debug("Token cree pour fuuids %O : %s", fuuids, tokenVideo)
-                    srcVideo = path.join(baseUrlVideo, fuuid, tokenVideo)
+                    const tokensJwts = await creerToken(fuuids)
+                    // console.debug("Token cree pour fuuids %O : %O", fuuids, tokensJwts)
+                    const tokenJwt = tokensJwts[fuuid]
+                    // srcVideo = path.join(baseUrlVideo, fuuid, tokenVideo)
+                    srcVideo = path.join(baseUrlVideo, fuuid) + "?jwt=" + tokenJwt
                 }
 
                 const url = [{src: srcVideo, mimetype: version_courante.mimetype, codecVideo: version_courante.codec, label: 'original'}]
