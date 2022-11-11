@@ -249,6 +249,9 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
           baseUrlVideo = opts.baseUrl || '/collections/streams',
           creerToken = opts.creerToken
 
+    const version_courante = opts.version_courante
+    const fuuid = opts.fuuid || version_courante.fuuid
+
     const labels = Object.keys(videos)
     const selecteurs = [...labels]
     selecteurs.sort(trierLabelsVideos)
@@ -273,7 +276,7 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
                     const fuuids = [fuuidVideo]
                     const tokensJwts = await creerToken(fuuids)
                     // console.debug("Token cree pour fuuids %O : %O", fuuids, tokensJwts)
-                    const tokenJwt = tokensJwts[fuuidVideo]
+                    const tokenJwt = tokensJwts[fuuid]
                     srcVideo = path.join(baseUrlVideo, fuuidVideo) + "?jwt=" + tokenJwt
                 }
 
@@ -333,9 +336,10 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
                     if(genererToken === true && creerToken) {
                         const fuuids = url.map(item=>item.fuuid)
                         const tokensJwts = await creerToken(fuuids)
-                        // console.debug("Token cree pour fuuids %O : %O", fuuids, tokensJwts)
+                        console.debug("Token cree pour fuuids %O : %O", fuuids, tokensJwts)
 
                         const nouveauUrls = url.map(item=>{
+                            console.debug("Mapper item %O", item)
                             const fuuid = item.fuuid
                             const tokenJwt = tokensJwts[fuuid]
                             // item.src = path.join(baseUrlVideo, item.fuuid, tokenVideo)
@@ -359,8 +363,6 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
     })
     
     // Loader pour l'original (c'est necessairement un video!)
-    const version_courante = opts.version_courante
-    const fuuid = opts.fuuid || version_courante.fuuid
     if(version_courante) {
         const loaderOriginal = {
             load: async opts => {
