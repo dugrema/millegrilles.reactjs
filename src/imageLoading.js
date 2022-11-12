@@ -420,6 +420,41 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
     return loader
 }
 
+export function audioResourceLoader(fuuid, opts) {
+    opts = opts || {}
+    const baseUrlVideo = opts.baseUrl || '/collections/streams',
+          version_courante = opts.version_courante || {},
+          creerToken = opts.creerToken
+
+    const loaderOriginal = {
+        load: async opts => {
+            opts = opts || {}
+            const genererToken = opts.genererToken
+
+            // console.debug("Chargement original avec : %O", version_courante)
+            let srcAudio = path.join(baseUrlVideo, fuuid)
+
+            if(creerToken) {
+                const fuuids = [fuuid]
+                const tokensJwts = await creerToken(fuuids)
+                // console.debug("Token cree pour fuuids %O : %O", fuuids, tokensJwts)
+                const tokenJwt = tokensJwts[fuuid]
+                // srcVideo = path.join(baseUrlVideo, fuuid, tokenVideo)
+                srcAudio = path.join(baseUrlVideo, fuuid) + "?jwt=" + tokenJwt
+            }
+
+            const url = [{src: srcAudio, mimetype: version_courante.mimetype, label: 'original'}]
+
+            // console.debug("Load videos : %O", url)
+            return url
+        }, 
+        unload: ()=>{
+        }
+    }
+
+    return loaderOriginal
+}
+
 // export function videoResourceLoader(getFichierChiffre, videos, opts) {
 //     opts = opts || {}
 //     const supporteWebm = opts.supporteWebm?true:false
