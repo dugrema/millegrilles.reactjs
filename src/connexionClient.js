@@ -87,7 +87,6 @@ export async function connecter(urlApp, opts) {
   socketOn('reconnect', () => {
     if(opts.DEBUG) console.debug("Reconnecte")
     _connecte = true
-    _callbackSetEtatConnexion(_connecte, {reconnecte: true})
     onConnect().catch(err=>console.error("connexionClient.onConnect ERROR %O", err))
   })
   socketOn('disconnect', () => {
@@ -115,15 +114,17 @@ export function getCertificatFormatteur() {
 }
 
 async function onConnect(infoPromise) {
-
   // Pour la premiere connexion, infoPromise est le resultat d'une requete getInfoIdmg.
   let info = null
-  if(!_connecteUneFois && infoPromise) {
+  if(infoPromise) {
+    // console.debug("connexionClient.onConnect Connexion initiale, getInfoIdmg")
     _connecteUneFois = true
     info = await infoPromise
   } else {
     // Connexion subsequente, il faut faire une requete emitBlocking pour info session
     info = await emitBlocking('getInfoIdmg', {}, {noformat: true})
+    // console.debug("Reconnect info recu, marquer connecte : ", info)
+    if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(_connecte, {reconnecte: true})
   }
 
   // console.debug("connexionClient.onConnect %O", info)
@@ -317,7 +318,9 @@ export async function subscribe(nomEventSocketio, cb, params, opts) {
     resultat.routingKeys.forEach(item=>{
       // console.debug("subscribe %s Ajouter socketOn %s", nomEventSocketio, item)
       // socketOn(item, cb)  // Note : pas sur pourquoi ca ne fonctionne pas (recoit erreur value)
-      socketOn(item, message => cb(message))
+      socketOn(item, message => {
+        cb(message).catch(err=>console.error("subscribe.socketOn Erreur relai message ", message))
+      })
     })
   } else {
     const err = new Error("Erreur subscribe %s", nomEventSocketio)
