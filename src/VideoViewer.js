@@ -10,7 +10,7 @@ function VideoViewer(props) {
         selecteur,
         timeStamp,
         // Evenements
-        onTimeUpdate, onProgress, onPlay, onWaiting,
+        onTimeUpdate, onProgress, onPlay, onError, onWaiting, onCanPlay, onAbort, onEmptied,
     } = props
 
     const width = props.width || '100%',
@@ -94,7 +94,11 @@ function VideoViewer(props) {
             onPlay={playbackCommenceHandler}
             onTimeUpdate={onTimeUpdate}
             onProgress={onProgress}
-            onWaiting={onWaiting}>
+            onWaiting={onWaiting}
+            onError={onError}
+            onCanPlay={onCanPlay}
+            onAbort={onAbort}
+            onEmptied={onEmptied}>
             {sources}
         </video>
     )
