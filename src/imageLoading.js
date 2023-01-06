@@ -266,13 +266,13 @@ export function videoResourceLoader(videos, opts) {
                       genererToken = opts.genererToken
 
                 const fuuidVideo = video.fuuid_video
-                console.debug("Load video (individuel) : %O", fuuidVideo)
+                // console.debug("Load video (individuel) : %O", fuuidVideo)
                 let srcVideo = path.join(baseUrlVideo, fuuidVideo)
 
                 if(genererToken === true && creerToken) {
                     const fuuids = [fuuidVideo]
                     const tokensJwts = await creerToken(fuuids)
-                    console.debug("Token (label individuel) cree pour fuuids %O : %O", fuuids, tokensJwts)
+                    // console.debug("Token (label individuel) cree pour fuuids %O : %O", fuuids, tokensJwts)
                     const tokenJwt = tokensJwts[fuuidVideo]
                     srcVideo = path.join(baseUrlVideo, fuuidVideo) + "?jwt=" + tokenJwt
                 }
@@ -310,10 +310,10 @@ export function videoResourceLoader(videos, opts) {
         }
     })
 
-    console.debug("Buckets type video selecteur : %O, fallback", buckets, fallbackH264)
+    // console.debug("Buckets type video selecteur : %O, fallback", buckets, fallbackH264)
     Object.keys(buckets).forEach(label=>{
         const values = Object.values(buckets[label])
-        console.debug("Map buckets pour label %O = %O", label, values)
+        // console.debug("Map buckets pour label %O = %O", label, values)
         if(values.length > 0) {
             values.sort(trierLabelsVideos)
             selecteurs.unshift(label)
@@ -334,10 +334,10 @@ export function videoResourceLoader(videos, opts) {
                     if(genererToken === true && creerToken) {
                         const fuuids = url.map(item=>item.fuuid)
                         const tokensJwts = await creerToken(fuuids)
-                        console.debug("Token cree pour fuuids %O : %O", fuuids, tokensJwts)
+                        // console.debug("Token cree pour fuuids %O : %O", fuuids, tokensJwts)
 
                         const nouveauUrls = url.map(item=>{
-                            console.debug("Mapper item %O", item)
+                            // console.debug("Mapper item %O", item)
                             const fuuid = item.fuuid
                             const tokenJwt = tokensJwts[fuuid]
                             // item.src = path.join(baseUrlVideo, item.fuuid, tokenVideo)
@@ -373,7 +373,7 @@ export function videoResourceLoader(videos, opts) {
                 if(genererToken === true && creerToken) {
                     const fuuids = [fuuid]
                     const tokensJwts = await creerToken(fuuids)
-                    console.debug("Token cree pour fuuids %O : %O", fuuids, tokensJwts)
+                    // console.debug("Token cree pour fuuids %O : %O", fuuids, tokensJwts)
                     const tokenJwt = tokensJwts[fuuid]
                     // srcVideo = path.join(baseUrlVideo, fuuid, tokenVideo)
                     srcVideo = path.join(baseUrlVideo, fuuid) + "?jwt=" + tokenJwt
