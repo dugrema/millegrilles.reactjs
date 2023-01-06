@@ -243,7 +243,7 @@ function getFaviconLoader() {
     }
 }
 
-export function videoResourceLoader(getFichierChiffre, videos, opts) {
+export function videoResourceLoader(videos, opts) {
     opts = opts || {}
     const supporteWebm = opts.supporteWebm?true:false,
           baseUrlVideo = opts.baseUrl || '/collections/streams',
@@ -255,13 +255,10 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
     const labels = Object.keys(videos)
     const selecteurs = [...labels]
     selecteurs.sort(trierLabelsVideos)
-    // const labelHauteResolution = trouverLabelVideo(labels, {supporteWebm})
-    // console.debug("videoResourceLoader Labels : %O", labels)
 
     // Generer loaders pour tous les labels (sauf thumbnail)
     const loaders = labels.reduce((acc, item)=>{
         const video = videos[item]
-        // acc[item] = loadFichierChiffre(getFichierChiffre, video.fuuid_video, video.mimetype, {...opts})
         acc[item] = {
             load: async opts => {
                 opts = opts || {}
@@ -269,14 +266,14 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
                       genererToken = opts.genererToken
 
                 const fuuidVideo = video.fuuid_video
-                // console.debug("Load video : %O", fuuidVideo)
+                console.debug("Load video (individuel) : %O", fuuidVideo)
                 let srcVideo = path.join(baseUrlVideo, fuuidVideo)
 
                 if(genererToken === true && creerToken) {
                     const fuuids = [fuuidVideo]
                     const tokensJwts = await creerToken(fuuids)
-                    // console.debug("Token cree pour fuuids %O : %O", fuuids, tokensJwts)
-                    const tokenJwt = tokensJwts[fuuid]
+                    console.debug("Token (label individuel) cree pour fuuids %O : %O", fuuids, tokensJwts)
+                    const tokenJwt = tokensJwts[fuuidVideo]
                     srcVideo = path.join(baseUrlVideo, fuuidVideo) + "?jwt=" + tokenJwt
                 }
 
@@ -313,9 +310,10 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
         }
     })
 
-    // console.debug("Buckets type video selecteur : %O, fallback", buckets, fallbackH264)
+    console.debug("Buckets type video selecteur : %O, fallback", buckets, fallbackH264)
     Object.keys(buckets).forEach(label=>{
         const values = Object.values(buckets[label])
+        console.debug("Map buckets pour label %O = %O", label, values)
         if(values.length > 0) {
             values.sort(trierLabelsVideos)
             selecteurs.unshift(label)
@@ -375,7 +373,7 @@ export function videoResourceLoader(getFichierChiffre, videos, opts) {
                 if(genererToken === true && creerToken) {
                     const fuuids = [fuuid]
                     const tokensJwts = await creerToken(fuuids)
-                    // console.debug("Token cree pour fuuids %O : %O", fuuids, tokensJwts)
+                    console.debug("Token cree pour fuuids %O : %O", fuuids, tokensJwts)
                     const tokenJwt = tokensJwts[fuuid]
                     // srcVideo = path.join(baseUrlVideo, fuuid, tokenVideo)
                     srcVideo = path.join(baseUrlVideo, fuuid) + "?jwt=" + tokenJwt
@@ -454,39 +452,6 @@ export function audioResourceLoader(fuuid, opts) {
 
     return loaderOriginal
 }
-
-// export function videoResourceLoader(getFichierChiffre, videos, opts) {
-//     opts = opts || {}
-//     const supporteWebm = opts.supporteWebm?true:false
-
-//     const labels = Object.keys(videos)
-//     const labelHauteResolution = trouverLabelVideo(labels, {supporteWebm})
-//     console.debug("Labels : %O", labels)
-
-//     // Generer loaders pour tous les labels (sauf thumbnail)
-//     const loaders = labels
-//     .reduce((acc, item)=>{
-//         const video = videos[item]
-//         acc[item] = loadFichierChiffre(getFichierChiffre, video.fuuid_video, video.mimetype, {...opts})
-//         return acc
-//     }, {})
-
-//     const loader = {
-//         load: async (selecteur, setSrc, opts) => {
-//             if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite de video
-//             console.debug("Loader video %s", selecteur)
-//             const loader = loaders[selecteur]
-//             return loader.load(setSrc, null, opts)
-//         },
-//         unload: async (selecteur) => {
-//             if(!selecteur || !labels.includes(selecteur)) selecteur = labelHauteResolution  // Prendre la meilleure qualite de video
-//             const loader = loaders[selecteur]
-//             return loader.unload()
-//         }
-//     }
-
-//     return loader
-// }
 
 function blobLoader(data, mimetype) {
     data = base64.decode(data)
