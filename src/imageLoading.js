@@ -333,7 +333,11 @@ export function videoResourceLoader(videos, opts) {
 
                     if(genererToken === true && creerToken) {
                         const fuuids = url.map(item=>item.fuuid)
-                        const tokensJwts = await creerToken(fuuids)
+                        const tokensJwts = {}
+                        for await (const fuuid of fuuids) {
+                            const tokens = await creerToken(fuuid)
+                            Object.assign(tokensJwts, tokens)
+                        }
                         // console.debug("Token cree pour fuuids %O : %O", fuuids, tokensJwts)
 
                         const nouveauUrls = url.map(item=>{
