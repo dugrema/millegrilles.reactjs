@@ -41,13 +41,15 @@ export function Menu(props) {
 
     const { brand, labelMenu, etatConnexion, onSelect, children } = props
 
+    const expand = props.expand || 'md'
+
     const OverlayDeconnecte = useMemo(()=>{
         if(etatConnexion === true) return () => <span/>
         return DeconnecteInfo
     }, [etatConnexion])
 
     return (
-        <Navbar collapseOnSelect expand="md">
+        <Navbar collapseOnSelect expand={expand}>
            
             {brand}
 
