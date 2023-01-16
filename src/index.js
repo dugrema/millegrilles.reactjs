@@ -55,7 +55,7 @@ export * from './CleMillegrille'
 
 export { AfficherActivationsUsager } from './ActivationCodeUsager'
 
-export { default as LayoutMillegrilles, Menu, DropDownLanguage, ModalInfo } from './LayoutMillegrilles'
+export { default as LayoutMillegrilles, Menu, DropDownLanguage, ModalInfo, initI18n } from './LayoutMillegrilles'
 
 export * from './AffichageNotices'
 

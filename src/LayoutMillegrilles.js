@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 
-import { useTranslation } from 'react-i18next'
+import { useTranslation, initReactI18next } from 'react-i18next'
 
 import Container from 'react-bootstrap/Container'
 import Nav from 'react-bootstrap/Nav'
@@ -36,6 +36,10 @@ function LayoutMillegrilles(props) {
 }
 
 export default LayoutMillegrilles
+
+export function initI18n(instance) {
+    initReactI18next.init(instance)
+}
 
 export function Menu(props) {
 
