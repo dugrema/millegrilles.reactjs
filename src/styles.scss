@@ -74,3 +74,16 @@ button.bouton-actif.echec {
     background: $red;
     border-color: $second-color;
 }
+
+/* Overrides pour dropdowns */
+.form-select:disabled {
+    background-color: $second-color;
+}
+
+.dropdown-menu {
+    background-color: $second-color;
+}
+
+.dropdown-item {
+    background-color: $second-color;
+}
