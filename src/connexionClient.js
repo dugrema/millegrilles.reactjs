@@ -425,7 +425,11 @@ export function upgradeProteger(data) {
   return authentifier(data)
 }
 
-export async function authentifier(data) {
+export async function authentifier(data, opts) {
+  opts = opts || {}
+
+  const noCallback = opts.noCallback === true
+
   if(data) {
       const reponse = await emitBlocking('upgrade', data, {noformat: true})
 
@@ -439,7 +443,7 @@ export async function authentifier(data) {
       // Repondre pour creer l'upgrade
       const data = {...reponse.challengeCertificat}
       const reponseUpgrade = await emitBlocking('upgrade', data, {domaine: 'login', action: 'login', attacherCertificat: true})
-      if(reponseUpgrade.nomUsager && _callbackSetUsager) _callbackSetUsager(reponseUpgrade.nomUsager)
+      if(!noCallback && reponseUpgrade.nomUsager && _callbackSetUsager) _callbackSetUsager(reponseUpgrade.nomUsager)
       
       return reponseUpgrade
   }
