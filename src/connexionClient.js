@@ -113,7 +113,8 @@ export function getCertificatFormatteur() {
   }
 }
 
-async function onConnect(infoPromise) {
+// Charger et conserver information backend de l'usager
+export async function onConnect(infoPromise) {
   // Pour la premiere connexion, infoPromise est le resultat d'une requete getInfoIdmg.
   let info = null
   if(infoPromise) {
@@ -127,9 +128,9 @@ async function onConnect(infoPromise) {
     if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(_connecte, {reconnecte: true})
   }
 
-  // console.debug("connexionClient.onConnect %O", info)
+  console.debug("connexionClient.onConnect %O", info)
   if(_callbackSetUsager && info.nomUsager) {
-    // console.debug("connexionClient.onConnect setUsager %s", info.nomUsager)
+    console.debug("connexionClient.onConnect setUsager %s", info.nomUsager)
     _callbackSetUsager(info.nomUsager)
       .catch(err=>{
         console.error("connexionClient.onConnect Erreur _callbackSetUsager : %O", err)
