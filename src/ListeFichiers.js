@@ -536,7 +536,6 @@ function ListeFichiersRow(props) {
                 const className = classNameCol || param.className
                 const Formatteur = param.formatteur
                 const showThumbnail = param.showThumbnail || false
-                const showBoutonContexte = param.showBoutonContexte || false
 
                 const contenu = data[nomColonne] || ''
                 let spanContenu = <span title={contenu}>{contenu}</span>
@@ -554,23 +553,6 @@ function ListeFichiersRow(props) {
                         thumbnail = <div className='thumbnailmini'></div>
                     }
                 }
-                let boutonContexte = ''
-                // if(showBoutonContexte) {
-                //     if(fichierDesactive) {
-                //         boutonContexte = <span>X</span>
-                //     } else {
-                //         boutonContexte = (
-                //             <Button 
-                //                 variant="secondary" 
-                //                 size="sm" 
-                //                 onClick={onBoutonContext} 
-                //                 className='lignehover boutoncontexte'
-                //             >
-                //                 <i className="fa fa-ellipsis-h"/>
-                //             </Button>
-                //         )
-                //     }
-                // }
 
                 const infoDimension = {
                     xs: param.xs,
@@ -579,14 +561,6 @@ function ListeFichiersRow(props) {
                     lg: param.lg,
                     xl: param.xl,
                     xxl: param.xxl,
-                }
-
-                if(boutonContexte) {
-                    return (
-                        <Col key={nomColonne} {...infoDimension} className={className}>
-                            {boutonContexte}
-                        </Col>
-                    )
                 }
 
                 return (
