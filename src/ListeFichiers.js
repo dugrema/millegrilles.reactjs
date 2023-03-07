@@ -16,17 +16,12 @@ export function ListeFichiers(props) {
     const { 
         modeView, rows, colonnes, modeSelectionActif, selection, 
         onContextMenu, onSelect, scrollValue, onScroll, onOpen,
-        // colonnes, onClick, onDoubleClick, 
     } = props
 
-    console.debug("!!! ListeFichiers props ", props)
-
-    // const [selection, setSelection] = useState([])
     const [idxSelectionShift, setIdxSelectionShift] = useState(0)
     const [touchEvent, setTouchEvent] = useState('')
     const [scrollRestored, setScrollRestored] = useState(false)
-
-    // const idMapperFct = colonnes.idMapper || idMapper
+    const [longTouchTimer, setLongTouchTimer] = useState('')
 
     // let ClasseViewer = useMemo(()=>{
     //     switch(modeView) {
@@ -38,27 +33,18 @@ export function ListeFichiers(props) {
     //     }
     // }, [modeView])
 
-    // // Gerer comportement selection
-    // const [selectionne, setSelectionne] = useState([])
-    // const [selectionCourante, setSelectionCourante] = useState('')
-    
-    // const selectionHandler = useCallback( async (event, value) => {
-    //     if(onSelect) {
-    //         event.persist()  // Permet de reutiliser event avec Promises (onClick)
-    //         const idSelection = value.fileId || value.folderId
-    //         await setSelectionCourante(idSelection)
-    //         await majSelection(event, idMapperFct, value, rows, selectionCourante, selectionne, setSelectionne)
-    //     }
-    //     if(onClick) onClick(event, value)
-    // }, [onClick, onSelect, selectionne, selectionCourante, setSelectionne, setSelectionCourante, rows])
-    
-    // const ouvrirHandler = useCallback( async (event, value) => {
-    //     if(onDoubleClick) onDoubleClick(event, value)
-    // }, [onDoubleClick, touchEnabled])
-    
-    // const touchBegin = useCallback( event => {
-    //     // TODO
-    // }, [])
+    const contextMenuHandler = useCallback( async e => {
+        e.stopPropagation()
+        e.preventDefault()
+        const value = e.currentTarget.dataset.value
+        if(onSelect) {
+            if(!selection || !selection.includes(value)) {
+                // On reselectionne l'element courant
+                onSelect([value])
+            }
+        }
+        if(onContextMenu) onContextMenu(e, value)
+    }, [onContextMenu, onSelect, selection, rows, onSelect])
 
     const ouvrirItemHandler = useCallback(e=>{
         const { idx, value } = e.currentTarget.dataset
@@ -95,7 +81,6 @@ export function ListeFichiers(props) {
                 if(!selectionMaj.includes(valueAdd)) selectionMaj.push(valueAdd)
             }
 
-            // setSelection(selectionMaj)
             onSelect(selectionMaj)
 
         } else if(modeSelection) {
@@ -104,12 +89,10 @@ export function ListeFichiers(props) {
             // Reset selection cumulee
             if( selection.includes(value) ) {
                 // Deselectionner
-                // console.debug("Retrait selection %s (de %O)", value, selection)
                 const selectionMaj = selection.filter(item=>item!==value)
                 onSelect(selectionMaj)
             } else {
                 // Selectionner
-                // console.debug("Ajout selection %s", value)
                 onSelect([...selection, value])
             }
 
@@ -124,27 +107,58 @@ export function ListeFichiers(props) {
         e.preventDefault()
         if(e.touches.length > 1) {
             // Touch supplementaires cancel
-            // console.debug("Multi-touch, annuler selection")
             setTouchEvent('')
+            if(longTouchTimer) clearTimeout(longTouchTimer)
+            setLongTouchTimer('')
             return
         }
 
         const dataset = e.currentTarget.dataset || e.parentElement.dataset
         const item = {...dataset}
-        // console.debug("Set touch event : ", item)
+        const value = dataset.value
+        let eventTouches = {}
+        if(e.targetTouches) {
+            const { clientX, clientY } = e.targetTouches[0]
+            eventTouches = {clientX, clientY}
+        }
+
+        console.debug("Set touch event item %O, event %O", item, e)
         setTouchEvent(item)
-    }, [setTouchEvent])
+
+        if(!modeSelectionActif) {
+            const timer = setTimeout(()=>{
+                setTouchEvent('')
+                if(onContextMenu) {
+                    console.debug("Context menu %O, %O, %O", eventTouches, e, value)
+                    onSelect([value])
+                    onContextMenu(eventTouches, value)
+                    window.getSelection().removeAllRanges()
+                    setLongTouchTimer(false)
+                } else {
+                    setLongTouchTimer('')
+                }
+            }, 800)
+            setLongTouchTimer(timer)
+        }
+    }, [onContextMenu, modeSelectionActif, setTouchEvent, longTouchTimer, setLongTouchTimer])
 
     const touchMoveHandler = useCallback(e=>{
         e.preventDefault()
         // console.debug("Move, reset")
         setTouchEvent('')  // Reset
-    }, [setTouchEvent])
+        if(longTouchTimer) clearTimeout(longTouchTimer)
+        setLongTouchTimer('')
+    }, [setTouchEvent, longTouchTimer, setLongTouchTimer])
 
     const touchEndHandler = useCallback(e=>{
         e.preventDefault()
         // console.debug("end - touch event : ", touchEvent)
-        setTouchEvent('')  // Reset
+
+        // Reset
+        setTouchEvent('')
+        if(longTouchTimer) clearTimeout(longTouchTimer)
+        window.getSelection().removeAllRanges()
+
         if(touchEvent) {
             const eventSimule = {currentTarget: {dataset: touchEvent}}
             if(modeSelectionActif) {
@@ -152,26 +166,13 @@ export function ListeFichiers(props) {
             } else {
                 ouvrirItemHandler(eventSimule)
             }
-        }
-    }, [modeSelectionActif, touchEvent, setTouchEvent, ouvrirItemHandler, selectionToggleHandler])
-
-    const contextMenuHandler = useCallback( async (event, value) => {
-        event.stopPropagation()
-        event.preventDefault()
-
-        // console.debug("Context event : %O", event.currentTarget)
-        if(onSelect) {
-            // const idSelection = idMapperFct(value)
-            const value = event.currentTarget.dataset.value
-            if(!selection.includes(value)) {
-                // event.persist()  // Permet de reutiliser event avec Promises (onDoubleClick)
-                // On reselectionne l'element courant
-                onSelect([value])
-                // await majSelection(event, idMapperFct, value, rows, selectionCourante, selectionne, setSelectionne)
+        } else {
+            if(!modeSelectionActif && longTouchTimer !== false) {
+                if(onSelect) onSelect('')
             }
+            setLongTouchTimer('')
         }
-        if(onContextMenu) onContextMenu(event, value)
-    }, [onContextMenu, onSelect, selection, rows, onSelect])
+    }, [modeSelectionActif, touchEvent, setTouchEvent, ouvrirItemHandler, selectionToggleHandler, onSelect, longTouchTimer, setLongTouchTimer])
 
     const eventHandlers = useMemo(()=>{
         if(TOUCH_ENABLED) {
@@ -180,7 +181,6 @@ export function ListeFichiers(props) {
                 onTouchStart: touchStartHandler,
                 onTouchMove: touchMoveHandler,
                 onTouchEnd: touchEndHandler,
-                onContextMenu: contextMenuHandler,
             }
         } else {
             // PC
@@ -220,57 +220,10 @@ export function ListeFichiers(props) {
     )
 }
 
-// async function majSelection(event, idMapperFct, value, rows, selectionPrecedente, selectionne, setSelectionne, callback) {
-//     const idSelection = value.localId || value.fileId || value.folderId
-//     const {shiftKey, ctrlKey} = event
-
-//     // Determiner comportement cles speciales
-//     if(!ctrlKey) {
-//         // Reset selection cumulee
-//         selectionne = []
-//     }
-
-//     if(shiftKey && idSelection !== selectionPrecedente) {
-//         // Prepare liste de tous les IDs entre selectionPrecedente et idSelection
-//         const resultat = rows.reduce(({modeAjout, nouvelleSelection}, item)=>{
-//             const idLocal = idMapperFct(item)
-
-//             let ajouter = modeAjout  // Conserver flag (pour inclure dernier element selectionne)
-//             if(idLocal === idSelection || idLocal === selectionPrecedente) {
-//                 modeAjout = !modeAjout
-//             }
-//             ajouter = ajouter || modeAjout
-
-//             if(ajouter) nouvelleSelection = [...nouvelleSelection, idLocal]
-//             return {modeAjout, nouvelleSelection}
-//         }, {modeAjout: false, nouvelleSelection: []})
-
-//         selectionne.forEach(item=>{
-//             if(!resultat.nouvelleSelection.includes(item)) resultat.nouvelleSelection.push(item)
-//         })
-//         selectionne = resultat.nouvelleSelection
-
-//     } else if(ctrlKey) {
-//         // Toggle l'identificateur
-//         if(selectionne.includes(idSelection)) {
-//             // Retirer l'identificateur
-//             selectionne = selectionne.filter(item=>item!==idSelection)
-//         } else {
-//             // Ajouter l'identificateur
-//             selectionne = [...selectionne, idSelection]
-//         }
-//     } else {
-//         // Ajoute l'identificateur courant
-//         selectionne = [...selectionne, idSelection]
-//     }
-
-//     await setSelectionne(selectionne)
-// }
-
 /** Liste de fichiers avec details sur lignes, colonnes configurables */
 function ListeFichiersItems(props) {
 
-    console.debug("!!! ListeFichiersItems proppies ", props)
+    // console.debug("!!! ListeFichiersItems proppies ", props)
 
     const {
         modeView, colonnes, rows, 
@@ -303,12 +256,6 @@ function ListeFichiersItems(props) {
                         selected={selected}
                         idx={idx}
                         value={localId}
-                        // onSelectioner={onSelectioner}
-                        // onOuvrir={onOuvrir} 
-                        // onContextMenu={onContextMenu}
-                        // selectionne={selectionne}
-                        // touchEnabled={touchEnabled}
-                        // touchBegin={touchBegin}
                         >
                         
                     </FichierItem>
