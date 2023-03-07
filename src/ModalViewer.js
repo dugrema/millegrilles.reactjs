@@ -7,18 +7,13 @@ import Carousel from 'react-bootstrap/Carousel'
 import VideoViewer from './VideoViewer'
 import { useDetecterSupport } from './detecterAppareils'
 
-// import styles from './styles.module.css'
-
 function ModalViewer(props) {
 
-    // console.debug("ModalViewer props : %O", props)
-
-    const {tuuidSelectionne, fichiers, DEBUG} = props
+    const { tuuidSelectionne, fichiers } = props
 
     const support = useDetecterSupport()
 
     const handle = useFullScreenHandle()
-    const [afficherHeaderFooter, setAfficherHeaderFooter] = useState(true)
     const [downloadSrc, setDownloadSrc] = useState('')
     // const [images, setImages] = useState('')
     const [item, setItem] = useState('')
@@ -44,7 +39,6 @@ function ModalViewer(props) {
         event.preventDefault()
 
         if(support.fullscreen) {
-            setAfficherHeaderFooter(handle.active)
             if(!handle.active) {
                 handle.enter(event)
                 setShowButtons(false)
@@ -58,13 +52,13 @@ function ModalViewer(props) {
     }, [handle, support, setShowButtons, toggleShowButtons])
 
     const handleCloseModal = useCallback(event=>{
-        setAfficherHeaderFooter(true)
+        setShowButtons(true)
         if(handle.active) {
             handle.exit()  // Fermer full screen
             handle.active = false
         }
         props.handleClose(event)
-    }, [handle])
+    }, [handle, setShowButtons])
 
     const onSelectCb = useCallback(idx=>{
         const fichier = images[idx]
@@ -143,7 +137,7 @@ function ModalViewer(props) {
             fullscreen={true} 
             animation={false}
             className='preview'
-            >
+        >
 
             <Modal.Body>
                 <FullScreen handle={handle}>
@@ -302,35 +296,8 @@ function ImageCarousel(props) {
 
 }
 
-// function preparerItemsCarousel(images, defaultActiveIndex, onClick, setDownloadSrc, opts) {
-//     // console.debug("!!! preparerItemsCarousel, images %O, defaultActiveIndex %s", images, defaultActiveIndex)
-//     opts = opts || {}
-//     const DEBUG = opts.DEBUG || false
-
-//     return images.map((item, idx)=>{
-//         const itemId = item.fileId||item.tuuid||item.fuuid
-//         const show = defaultActiveIndex === idx
-//         const preparer = idx >= defaultActiveIndex - 1 && idx <= defaultActiveIndex + 2
-
-//         return (
-//             <Carousel.Item key={itemId}>
-//                 <PreviewImage 
-//                     item={item} 
-//                     show={show}
-//                     preparer={preparer}
-//                     onClick={onClick} 
-//                     setDownloadSrc={setDownloadSrc} 
-//                     showButtons={showButtons}
-//                     DEBUG={DEBUG} />
-//             </Carousel.Item>            
-//         )
-//     })
-// }
-
 function PreviewImage(props) {
 
-    // console.debug("PreviewImage PROPPYS : %O", props)
-    // console.debug("PreviewImage tuuid : %O", props.tuuid)
     const { item, onClick, setDownloadSrc, preparer, show, showButtons } = props
     const { imageLoader } = item
     const version_courante = item.version_courante || {},
@@ -437,12 +404,6 @@ function PreviewImage(props) {
 }
 
 function PreviewVideo(props) {
-    // const { loader, onClick, setDownloadSrc, idxItem, idxCourant } = props
-
-    // const [srcImage, setSrcImage] = useState('')
-    // const [srcVideo, setSrcVideo] = useState('')
-    // const [message, setMessage] = useState(<p> <i className="fa fa-spinner fa-spin" />... Chargement en cours ...</p>)
-
     const { item, onClick, setDownloadSrc, preparer, show, erreurCb } = props
     const { videoLoader, imageLoader, mimetype } = item
 
