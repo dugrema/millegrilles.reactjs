@@ -2,7 +2,7 @@ import React, {useState, useEffect} from 'react'
 import {Button, Card} from 'react-bootstrap'
 
 export function Thumbnail(props) {
-    const { mini, small } = props
+    const { mini, small, idx, value } = props
     
     let styleBase, labelImage = 'small'
     if(small) {
@@ -42,6 +42,8 @@ export function Thumbnail(props) {
             onTouchEnd={onTouchEnd} 
             onContextMenu={onContextMenu} 
             className={className}
+            data-idx={idx}
+            data-value={value}
             >
 
             <Card.Img src={imgSrc}/>

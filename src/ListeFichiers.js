@@ -23,16 +23,6 @@ export function ListeFichiers(props) {
     const [scrollRestored, setScrollRestored] = useState(false)
     const [longTouchTimer, setLongTouchTimer] = useState('')
 
-    // let ClasseViewer = useMemo(()=>{
-    //     switch(modeView) {
-    //         case 'thumbnails': return ListeFichiersThumbnails
-    //         case 'thumbnails-small': return ListeFichiersThumbnails
-    //         case 'recents': return ListeFichiersRecents
-    //         default: 
-    //             return ListeFichiersLignes
-    //     }
-    // }, [modeView])
-
     const contextMenuHandler = useCallback( async e => {
         e.stopPropagation()
         e.preventDefault()
@@ -56,6 +46,7 @@ export function ListeFichiers(props) {
     const selectionToggleHandler = useCallback(e=>{
         const {shiftKey, ctrlKey} = e
         const { idx, value } = e.currentTarget.dataset
+        // console.debug("Selection handler idx:%O, value:%O, ctrl:%s, shift:%s", idx, value, ctrlKey, shiftKey)
 
         // Mode selection - soit touche CTRL (PC) ou toggle sur mobile
         const modeSelection = ctrlKey || modeSelectionActif
@@ -76,8 +67,8 @@ export function ListeFichiers(props) {
             
             const selectionMaj = [...selection]
             for(let i=debut; i<=fin; i++) {
-                const valueAdd = rows[i].value
-                console.debug("Ajouter %s", valueAdd)
+                const valueAdd = idMapper(rows[i])
+                // console.debug("Ajouter idx:%s : %s", i, valueAdd)
                 if(!selectionMaj.includes(valueAdd)) selectionMaj.push(valueAdd)
             }
 
@@ -355,8 +346,8 @@ function FichierItem(props) {
 
     let ClasseItem = useMemo(()=>{
         switch(modeView) {
-            case 'thumbnails': return ListeFichiersThumbnails
-            case 'thumbnails-small': return ListeFichiersThumbnails
+            case 'thumbnails': return FichierThumbnail
+            case 'thumbnails-small': return FichierThumbnail
             case 'recents': return ListeFichiersRecents
             default: 
                 return ListeFichiersRow
@@ -617,134 +608,145 @@ function idMapper(row) {
     return row.localId || row.tuuid || row.fileId || row.folderId
 }
 
-function ListeFichiersThumbnails(props) {
-    // const {
-    //     rows, colonnes, 
-    //     // onSelectioner, onOuvrir, onContextMenu, touchEnabled, touchBegin, 
-    //     modeView, suivantCb,
-    // } = props
-    const { 
-        rows, colonnes,
-        selected, idx, value, data, 
-        eventHandlers,
-    } = props
+// function ListeFichiersThumbnails(props) {
+//     // const {
+//     //     rows, colonnes, 
+//     //     // onSelectioner, onOuvrir, onContextMenu, touchEnabled, touchBegin, 
+//     //     modeView, suivantCb,
+//     // } = props
+//     const { 
+//         rows, colonnes,
+//         selected, idx, value, data, 
+//         eventHandlers,
+//     } = props
 
-    if(!rows) return ''  // Ecran n'est pas encore configure
+//     if(!rows) return ''  // Ecran n'est pas encore configure
 
-    let modeSmall = ''
-    if(modeView === 'thumbnails-small') modeSmall = true
+//     let modeSmall = ''
+//     if(modeView === 'thumbnails-small') modeSmall = true
 
-    const selectionnes = props.selectionne || []
-    // console.debug("ListeFichierThumbnails selectionnes : %O", selectionnes)
-    const idMapperFct = colonnes.idMapper || idMapper
+//     const selectionnes = props.selectionne || []
+//     // console.debug("ListeFichierThumbnails selectionnes : %O", selectionnes)
+//     const idMapperFct = colonnes.idMapper || idMapper
 
-    return (
-        <div>
-            {rows.map(row=>{
-                const localId = idMapperFct(row)
-                const selectionne = selectionnes.includes(localId)
-                let classNames = []
-                if(selectionne) classNames.push('selectionne')
-                return (
-                    <FichierThumbnail
-                        key={localId} 
-                        data={row} 
-                        colonnes={colonnes}
-                        onSelectioner={onSelectioner}
-                        onOuvrir={onOuvrir}
-                        onContextMenu={onContextMenu}
-                        selectionne={selectionne}
-                        touchEnabled={touchEnabled}
-                        touchBegin={touchBegin}
-                        className={classNames.join(' ')}
-                        small={modeSmall}
-                        />
-                )
-            })}
+//     return (
+//         <div>
+//             {rows.map(row=>{
+//                 const localId = idMapperFct(row)
+//                 const selectionne = selectionnes.includes(localId)
+//                 let classNames = []
+//                 if(selectionne) classNames.push('selectionne')
+//                 return (
+//                     <FichierThumbnail
+//                         key={localId} 
+//                         data={row} 
+//                         colonnes={colonnes}
+//                         onSelectioner={onSelectioner}
+//                         onOuvrir={onOuvrir}
+//                         onContextMenu={onContextMenu}
+//                         selectionne={selectionne}
+//                         touchEnabled={touchEnabled}
+//                         touchBegin={touchBegin}
+//                         className={classNames.join(' ')}
+//                         small={modeSmall}
+//                         />
+//                 )
+//             })}
             
-            <BoutonSuivantListe suivantCb={suivantCb} />
+//             <BoutonSuivantListe suivantCb={suivantCb} />
 
-        </div>
-    )
-}
+//         </div>
+//     )
+// }
 
 function FichierThumbnail(props) {
 
-    const {data, colonnes, className, onSelectioner, onOuvrir, onContextMenu, touchEnabled, small, touchBegin} = props
+    // const {data, colonnes, className, onSelectioner, onOuvrir, onContextMenu, touchEnabled, small, touchBegin} = props
+    const { selected, idx, value, data, eventHandlers, small } = props
 
-    const { rowLoader } = colonnes
-    const [ dataRow, setDataRow ] = useState('')
+    // const { rowLoader } = colonnes
+    // const [ dataRow, setDataRow ] = useState('')
 
-    const {fileId, folderId, duration} = dataRow
-    const thumbnail = dataRow.thumbnail || {},
-          {thumbnailIcon, thumbnailSrc, thumbnailCaption} = thumbnail
+    const { duration } = data
+    const thumbnail = data.thumbnail || {},
+          { thumbnailIcon, thumbnailSrc, thumbnailCaption } = thumbnail
 
     const imageLoader = useMemo(()=>{
-        if(!dataRow) return
-        return dataRow.imageLoader
-    }, [dataRow])
+        if(!data) return
+        return data.imageLoader
+    }, [data])
 
-    // const thumbnailLoader = small?miniLoader:smallLoader  // small veut dire mini dans le parametre
-    const [touchEvent, setTouchEvent] = useState('')
+    const className = useMemo( () => {
+        const classNames = []
+        if(selected) classNames.push('selectionne')
+        return classNames.join(' ')
+    }, [selected])
+    
 
-    const onClickAction = useCallback(event=>{
-        if(touchEnabled) return  // Rien a faire
-        if(onSelectioner) onSelectioner(event, {fileId, folderId})
-    }, [touchEnabled, touchBegin, onSelectioner, fileId, folderId])
+    // // const thumbnailLoader = small?miniLoader:smallLoader  // small veut dire mini dans le parametre
+    // const [touchEvent, setTouchEvent] = useState('')
 
-    const onDoubleClickAction = useCallback(event=>{
-        if(touchEnabled) return  // Rien a faire
-        event.preventDefault()
-        event.stopPropagation()
-        if(onOuvrir) onOuvrir(event, {fileId, folderId})
-    }, [touchEnabled, onOuvrir, fileId, folderId])
+    // const onClickAction = useCallback(event=>{
+    //     if(touchEnabled) return  // Rien a faire
+    //     if(onSelectioner) onSelectioner(event, {fileId, folderId})
+    // }, [touchEnabled, touchBegin, onSelectioner, fileId, folderId])
 
-    const onTouchMove = useCallback(event=>{
-        setTouchEvent('')
-    }, [setTouchEvent])
+    // const onDoubleClickAction = useCallback(event=>{
+    //     if(touchEnabled) return  // Rien a faire
+    //     event.preventDefault()
+    //     event.stopPropagation()
+    //     if(onOuvrir) onOuvrir(event, {fileId, folderId})
+    // }, [touchEnabled, onOuvrir, fileId, folderId])
 
-    const onTouchStart = useCallback(event=>{
-        event.preventDefault()
-        event.stopPropagation()
-        setTouchEvent(event)
-    }, [setTouchEvent])
+    // const onTouchMove = useCallback(event=>{
+    //     setTouchEvent('')
+    // }, [setTouchEvent])
 
-    const onTouchEndAction = useCallback(event=>{
-        if(!touchEvent) return  // Deplacement de l'ecran
-        if(onOuvrir) onOuvrir(event, {fileId, folderId})
-        setTouchEvent('')
-    }, [onOuvrir, touchEvent, fileId, folderId, setTouchEvent])
+    // const onTouchStart = useCallback(event=>{
+    //     event.preventDefault()
+    //     event.stopPropagation()
+    //     setTouchEvent(event)
+    // }, [setTouchEvent])
 
-    const onContextMenuAction = useCallback(event=>{
-        event.stopPropagation()
-        if(onContextMenu) onContextMenu(event, {fileId, folderId})
-    }, [onContextMenu, fileId, folderId])
+    // const onTouchEndAction = useCallback(event=>{
+    //     if(!touchEvent) return  // Deplacement de l'ecran
+    //     if(onOuvrir) onOuvrir(event, {fileId, folderId})
+    //     setTouchEvent('')
+    // }, [onOuvrir, touchEvent, fileId, folderId, setTouchEvent])
 
-    // Convertir data avec rowLoader au besoin
-    useEffect(()=>{
-        if(data && rowLoader) {
-            Promise.resolve(rowLoader(data))
-                .then(setDataRow)
-                .catch(err=>console.error("Erreur chargement data row %O : %O", data, err))
-        } else {
-            setDataRow(data)
-        }
-    }, [data, rowLoader, setDataRow])
+    // const onContextMenuAction = useCallback(event=>{
+    //     event.stopPropagation()
+    //     if(onContextMenu) onContextMenu(event, {fileId, folderId})
+    // }, [onContextMenu, fileId, folderId])
+
+    // // Convertir data avec rowLoader au besoin
+    // useEffect(()=>{
+    //     if(data && rowLoader) {
+    //         Promise.resolve(rowLoader(data))
+    //             .then(setDataRow)
+    //             .catch(err=>console.error("Erreur chargement data row %O : %O", data, err))
+    //     } else {
+    //         setDataRow(data)
+    //     }
+    // }, [data, rowLoader, setDataRow])
     
     return (
         <Thumbnail
-            onClick={onClickAction}
-            onDoubleClick={onDoubleClickAction}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEndAction}
-            onContextMenu={onContextMenuAction}
+            {...eventHandlers}    
+            // onClick={onClickAction}
+            // onDoubleClick={onDoubleClickAction}
+            // onTouchStart={onTouchStart}
+            // onTouchMove={onTouchMove}
+            // onTouchEnd={onTouchEndAction}
+            // onContextMenu={onContextMenuAction}
             src={thumbnailSrc}
             loader={imageLoader}
             placeholder={thumbnailIcon}
             className={className}
             small={small}
-            >
+            idx={idx}
+            value={value}
+        >
 
             {duration?
                 <ThumbnailHeader>
@@ -755,8 +757,6 @@ function FichierThumbnail(props) {
             }
 
             <ThumbnailFooter>{thumbnailCaption}</ThumbnailFooter>
-            
-            <ThumbnailBoutonContexte onClick={onContextMenuAction} />
 
         </Thumbnail>
     )
