@@ -6,147 +6,282 @@ import {Thumbnail, ThumbnailHeader, ThumbnailFooter, ThumbnailBoutonContexte} fr
 import { isTouchEnabled } from './detecterAppareils'
 import { FormatterDate, FormatterDuree } from './Formatters'
 
-// import 'intersection-observer'  // Pour react-is-visible
-// import { useIsVisible } from 'react-is-visible'
-
 const MIMETYPE_PDF = 'application/pdf'
+
+const TOUCH_ENABLED = isTouchEnabled()  // Detecter touch (appareil mobile)
 
 export function ListeFichiers(props) {
 
     // Intercepter onClick pour capturer la selection
-    const { modeView, onClick, onDoubleClick, onContextMenu, rows, colonnes, onSelection } = props
+    const { 
+        modeView, rows, colonnes, modeSelectionActif, selection, 
+        onContextMenu, onSelect, scrollValue, onScroll, onOpen,
+        // colonnes, onClick, onDoubleClick, 
+    } = props
 
-    const idMapperFct = colonnes.idMapper || idMapper
+    console.debug("!!! ListeFichiers props ", props)
 
-    let ClasseViewer = useMemo(()=>{
-        switch(modeView) {
-            case 'thumbnails': return ListeFichiersThumbnails
-            case 'thumbnails-small': return ListeFichiersThumbnails
-            case 'recents': return ListeFichiersRecents
-            default: 
-                return ListeFichiersLignes
+    // const [selection, setSelection] = useState([])
+    const [idxSelectionShift, setIdxSelectionShift] = useState(0)
+    const [touchEvent, setTouchEvent] = useState('')
+    const [scrollRestored, setScrollRestored] = useState(false)
+
+    // const idMapperFct = colonnes.idMapper || idMapper
+
+    // let ClasseViewer = useMemo(()=>{
+    //     switch(modeView) {
+    //         case 'thumbnails': return ListeFichiersThumbnails
+    //         case 'thumbnails-small': return ListeFichiersThumbnails
+    //         case 'recents': return ListeFichiersRecents
+    //         default: 
+    //             return ListeFichiersLignes
+    //     }
+    // }, [modeView])
+
+    // // Gerer comportement selection
+    // const [selectionne, setSelectionne] = useState([])
+    // const [selectionCourante, setSelectionCourante] = useState('')
+    
+    // const selectionHandler = useCallback( async (event, value) => {
+    //     if(onSelect) {
+    //         event.persist()  // Permet de reutiliser event avec Promises (onClick)
+    //         const idSelection = value.fileId || value.folderId
+    //         await setSelectionCourante(idSelection)
+    //         await majSelection(event, idMapperFct, value, rows, selectionCourante, selectionne, setSelectionne)
+    //     }
+    //     if(onClick) onClick(event, value)
+    // }, [onClick, onSelect, selectionne, selectionCourante, setSelectionne, setSelectionCourante, rows])
+    
+    // const ouvrirHandler = useCallback( async (event, value) => {
+    //     if(onDoubleClick) onDoubleClick(event, value)
+    // }, [onDoubleClick, touchEnabled])
+    
+    // const touchBegin = useCallback( event => {
+    //     // TODO
+    // }, [])
+
+    const ouvrirItemHandler = useCallback(e=>{
+        const { idx, value } = e.currentTarget.dataset
+        setIdxSelectionShift(idx)
+        onSelect([value])
+        onOpen(rows[idx])
+    }, [rows, setIdxSelectionShift, onSelect, onOpen])
+
+    const selectionToggleHandler = useCallback(e=>{
+        const {shiftKey, ctrlKey} = e
+        const { idx, value } = e.currentTarget.dataset
+
+        // Mode selection - soit touche CTRL (PC) ou toggle sur mobile
+        const modeSelection = ctrlKey || modeSelectionActif
+
+        if(shiftKey) {
+            // Retirer selection texte
+            const selection = window.getSelection()
+            selection.removeAllRanges()
         }
-    }, [modeView])
 
-    // Gerer comportement selection
-    const [selectionne, setSelectionne] = useState([])
-    const [selectionCourante, setSelectionCourante] = useState('')
-    const [touchEnabled, setTouchEnabled] = useState(false)
-    
-    const selectionHandler = useCallback( async (event, value) => {
-        if(onSelection) {
-            event.persist()  // Permet de reutiliser event avec Promises (onClick)
-            const idSelection = value.fileId || value.folderId
-            await setSelectionCourante(idSelection)
-            await majSelection(event, idMapperFct, value, rows, selectionCourante, selectionne, setSelectionne)
+        // Determiner comportement cles speciales
+        if(shiftKey && !selection.includes(value)) {
+            // Selectionner un range
+            const debut = Math.min(idx, idxSelectionShift),
+                  fin = Math.max(idx, idxSelectionShift)
+
+            // console.debug("Ajouter range %d -> %d", debut, fin)
+            
+            const selectionMaj = [...selection]
+            for(let i=debut; i<=fin; i++) {
+                const valueAdd = rows[i].value
+                console.debug("Ajouter %s", valueAdd)
+                if(!selectionMaj.includes(valueAdd)) selectionMaj.push(valueAdd)
+            }
+
+            // setSelection(selectionMaj)
+            onSelect(selectionMaj)
+
+        } else if(modeSelection) {
+            if(!shiftKey) setIdxSelectionShift(idx)
+
+            // Reset selection cumulee
+            if( selection.includes(value) ) {
+                // Deselectionner
+                // console.debug("Retrait selection %s (de %O)", value, selection)
+                const selectionMaj = selection.filter(item=>item!==value)
+                onSelect(selectionMaj)
+            } else {
+                // Selectionner
+                // console.debug("Ajout selection %s", value)
+                onSelect([...selection, value])
+            }
+
+        } else {
+            setIdxSelectionShift(idx)
+            onSelect([value])
         }
-        if(onClick) onClick(event, value)
-    }, [onClick, onSelection, selectionne, selectionCourante, setSelectionne, setSelectionCourante, rows])
-    
-    const ouvrirHandler = useCallback( async (event, value) => {
-        if(onDoubleClick) onDoubleClick(event, value)
-    }, [onDoubleClick, touchEnabled])
-    
-    const touchBegin = useCallback( event => {
-        // TODO
-    }, [])
+
+    }, [rows, selection, idxSelectionShift, modeSelectionActif, onSelect, setIdxSelectionShift])
+
+    const touchStartHandler = useCallback(e=>{
+        e.preventDefault()
+        if(e.touches.length > 1) {
+            // Touch supplementaires cancel
+            // console.debug("Multi-touch, annuler selection")
+            setTouchEvent('')
+            return
+        }
+
+        const dataset = e.currentTarget.dataset || e.parentElement.dataset
+        const item = {...dataset}
+        // console.debug("Set touch event : ", item)
+        setTouchEvent(item)
+    }, [setTouchEvent])
+
+    const touchMoveHandler = useCallback(e=>{
+        e.preventDefault()
+        // console.debug("Move, reset")
+        setTouchEvent('')  // Reset
+    }, [setTouchEvent])
+
+    const touchEndHandler = useCallback(e=>{
+        e.preventDefault()
+        // console.debug("end - touch event : ", touchEvent)
+        setTouchEvent('')  // Reset
+        if(touchEvent) {
+            const eventSimule = {currentTarget: {dataset: touchEvent}}
+            if(modeSelectionActif) {
+                selectionToggleHandler(eventSimule)
+            } else {
+                ouvrirItemHandler(eventSimule)
+            }
+        }
+    }, [modeSelectionActif, touchEvent, setTouchEvent, ouvrirItemHandler, selectionToggleHandler])
 
     const contextMenuHandler = useCallback( async (event, value) => {
         event.stopPropagation()
         event.preventDefault()
 
         // console.debug("Context event : %O", event.currentTarget)
-        if(onSelection) {
-            const idSelection = idMapperFct(value)
-            if(!selectionne.includes(idSelection)) {
-                event.persist()  // Permet de reutiliser event avec Promises (onDoubleClick)
+        if(onSelect) {
+            // const idSelection = idMapperFct(value)
+            const value = event.currentTarget.dataset.value
+            if(!selection.includes(value)) {
+                // event.persist()  // Permet de reutiliser event avec Promises (onDoubleClick)
                 // On reselectionne l'element courant
-                await setSelectionCourante(idSelection)
-                await majSelection(event, idMapperFct, value, rows, selectionCourante, selectionne, setSelectionne)
+                onSelect([value])
+                // await majSelection(event, idMapperFct, value, rows, selectionCourante, selectionne, setSelectionne)
             }
         }
         if(onContextMenu) onContextMenu(event, value)
-    }, [onContextMenu, onSelection, selectionne, selectionCourante, setSelectionne, setSelectionCourante, rows])
+    }, [onContextMenu, onSelect, selection, rows, onSelect])
+
+    const eventHandlers = useMemo(()=>{
+        if(TOUCH_ENABLED) {
+            // Mobile
+            return {
+                onTouchStart: touchStartHandler,
+                onTouchMove: touchMoveHandler,
+                onTouchEnd: touchEndHandler,
+                onContextMenu: contextMenuHandler,
+            }
+        } else {
+            // PC
+            return {
+                onClick: selectionToggleHandler, 
+                onDoubleClick: ouvrirItemHandler,
+                onContextMenu: contextMenuHandler,
+            }
+        }
+    }, [selectionToggleHandler, ouvrirItemHandler, touchStartHandler, touchMoveHandler, touchEndHandler])
 
     useEffect(()=>{
-        // Mise a jour selection (ecoute callback setSelectionne)
-        if(onSelection) onSelection(selectionne)
-    }, [selectionne, onSelection])
+        if(scrollRestored) return
+        setScrollRestored(true)
+        if(scrollValue > 0) window.scroll({top: scrollValue})
+    }, [scrollValue, scrollRestored, setScrollRestored])
 
-    useEffect(()=>{
-        setTouchEnabled(isTouchEnabled())
-    }, [setTouchEnabled])
+    useEffect(() => {
+        const onScrollHandler = (e) => {
+            const pos = e.target.documentElement.scrollTop
+            if(onScroll) onScroll(pos)
+            setTouchEvent('')
+        };
+        window.addEventListener('scroll', onScrollHandler);
+        return () => window.removeEventListener('scroll', onScrollHandler);
+    }, [onScroll, setTouchEvent])
 
     return (
         <div>
-        <ClasseViewer 
-                {...props}
-                selectionne={selectionne}
-                setSelectionne={setSelectionne}
-                onSelectioner={selectionHandler} 
-                onOuvrir={ouvrirHandler}
-                onContextMenu={contextMenuHandler} 
-                touchEnabled={touchEnabled} 
-                touchBegin={touchBegin} />
+        <ListeFichiersItems 
+            modeView={modeView}
+            rows={rows} 
+            colonnes={colonnes}
+            selection={selection}
+            eventHandlers={eventHandlers} />
         </div>
     )
 }
 
-async function majSelection(event, idMapperFct, value, rows, selectionPrecedente, selectionne, setSelectionne, callback) {
-    const idSelection = value.localId || value.fileId || value.folderId
-    const {shiftKey, ctrlKey} = event
+// async function majSelection(event, idMapperFct, value, rows, selectionPrecedente, selectionne, setSelectionne, callback) {
+//     const idSelection = value.localId || value.fileId || value.folderId
+//     const {shiftKey, ctrlKey} = event
 
-    // Determiner comportement cles speciales
-    if(!ctrlKey) {
-        // Reset selection cumulee
-        selectionne = []
-    }
+//     // Determiner comportement cles speciales
+//     if(!ctrlKey) {
+//         // Reset selection cumulee
+//         selectionne = []
+//     }
 
-    if(shiftKey && idSelection !== selectionPrecedente) {
-        // Prepare liste de tous les IDs entre selectionPrecedente et idSelection
-        const resultat = rows.reduce(({modeAjout, nouvelleSelection}, item)=>{
-            const idLocal = idMapperFct(item)
+//     if(shiftKey && idSelection !== selectionPrecedente) {
+//         // Prepare liste de tous les IDs entre selectionPrecedente et idSelection
+//         const resultat = rows.reduce(({modeAjout, nouvelleSelection}, item)=>{
+//             const idLocal = idMapperFct(item)
 
-            let ajouter = modeAjout  // Conserver flag (pour inclure dernier element selectionne)
-            if(idLocal === idSelection || idLocal === selectionPrecedente) {
-                modeAjout = !modeAjout
-            }
-            ajouter = ajouter || modeAjout
+//             let ajouter = modeAjout  // Conserver flag (pour inclure dernier element selectionne)
+//             if(idLocal === idSelection || idLocal === selectionPrecedente) {
+//                 modeAjout = !modeAjout
+//             }
+//             ajouter = ajouter || modeAjout
 
-            if(ajouter) nouvelleSelection = [...nouvelleSelection, idLocal]
-            return {modeAjout, nouvelleSelection}
-        }, {modeAjout: false, nouvelleSelection: []})
+//             if(ajouter) nouvelleSelection = [...nouvelleSelection, idLocal]
+//             return {modeAjout, nouvelleSelection}
+//         }, {modeAjout: false, nouvelleSelection: []})
 
-        selectionne.forEach(item=>{
-            if(!resultat.nouvelleSelection.includes(item)) resultat.nouvelleSelection.push(item)
-        })
-        selectionne = resultat.nouvelleSelection
+//         selectionne.forEach(item=>{
+//             if(!resultat.nouvelleSelection.includes(item)) resultat.nouvelleSelection.push(item)
+//         })
+//         selectionne = resultat.nouvelleSelection
 
-    } else if(ctrlKey) {
-        // Toggle l'identificateur
-        if(selectionne.includes(idSelection)) {
-            // Retirer l'identificateur
-            selectionne = selectionne.filter(item=>item!==idSelection)
-        } else {
-            // Ajouter l'identificateur
-            selectionne = [...selectionne, idSelection]
-        }
-    } else {
-        // Ajoute l'identificateur courant
-        selectionne = [...selectionne, idSelection]
-    }
+//     } else if(ctrlKey) {
+//         // Toggle l'identificateur
+//         if(selectionne.includes(idSelection)) {
+//             // Retirer l'identificateur
+//             selectionne = selectionne.filter(item=>item!==idSelection)
+//         } else {
+//             // Ajouter l'identificateur
+//             selectionne = [...selectionne, idSelection]
+//         }
+//     } else {
+//         // Ajoute l'identificateur courant
+//         selectionne = [...selectionne, idSelection]
+//     }
 
-    await setSelectionne(selectionne)
-}
+//     await setSelectionne(selectionne)
+// }
 
 /** Liste de fichiers avec details sur lignes, colonnes configurables */
-function ListeFichiersLignes(props) {
+function ListeFichiersItems(props) {
 
-    const {colonnes, rows, onSelectioner, onOuvrir, onContextMenu, touchEnabled, touchBegin, isListeComplete, suivantCb} = props
+    console.debug("!!! ListeFichiersItems proppies ", props)
+
+    const {
+        modeView, colonnes, rows, 
+        eventHandlers, 
+        isListeComplete, suivantCb,
+        // onSelectioner, onOuvrir, onContextMenu, touchEnabled, touchBegin, 
+    } = props
 
     if(!colonnes || !rows) return ''  // Ecran n'est pas encore configure
 
-    const selectionnes = props.selectionne || []
+    const selection = props.selection || []
 
     const idMapperFct = colonnes.idMapper || idMapper
 
@@ -157,19 +292,26 @@ function ListeFichiersLignes(props) {
 
             {rows.map((row, idx)=>{
                 const localId = idMapperFct(row, idx)
-                const selectionne = selectionnes.includes(localId)
+                const selected = selection.includes(localId)
                 return (
-                    <ListeFichiersRow 
+                    <FichierItem
                         key={''+localId} 
+                        modeView={modeView}
+                        eventHandlers={eventHandlers}
                         colonnes={colonnes} 
-                        data={row} 
-                        onSelectioner={onSelectioner}
-                        onOuvrir={onOuvrir} 
-                        onContextMenu={onContextMenu}
-                        selectionne={selectionne}
-                        touchEnabled={touchEnabled}
-                        touchBegin={touchBegin}
-                        />
+                        data={row}
+                        selected={selected}
+                        idx={idx}
+                        value={localId}
+                        // onSelectioner={onSelectioner}
+                        // onOuvrir={onOuvrir} 
+                        // onContextMenu={onContextMenu}
+                        // selectionne={selectionne}
+                        // touchEnabled={touchEnabled}
+                        // touchBegin={touchBegin}
+                        >
+                        
+                    </FichierItem>
                 )
             })}
 
@@ -199,30 +341,6 @@ function BoutonSuivantListe(props) {
         </VisibilitySensor>
     )
 }
-
-// function BoutonSuivantListe(props) {
-
-//     const {suivantCb} = props
-
-//     const nodeRef = useRef()
-//     const isVisible = useIsVisible(nodeRef)
-
-//     useEffect( () => {
-//         console.debug("!!! IsVisible : %O", isVisible)
-//         if(!isVisible) return
-//         suivantCb()
-//     }, [isVisible, suivantCb])
-
-//     if(!suivantCb) return ''  // Cacher le bouton si suivantCb est vide (fin de la liste)
-
-//     return (
-//         <Row ref={nodeRef} className='section-suivante'>
-//             <Col>
-//                 <Button variant="secondary" onClick={suivantCb}><i className='fa fa-chevron-down'/></Button>
-//             </Col>
-//         </Row>
-//     )
-// }
 
 function ListeFichiersEntete(props) {
     const colonnes = props.colonnes
@@ -271,23 +389,36 @@ function ListeFichiersEntete(props) {
     )
 }
 
-function ListeFichiersRow(props) {
-    const colonnes = props.colonnes
-    const { rowLoader, rowClassname } = colonnes
+function FichierItem(props) {
+
+    const { 
+        selected, idx, value, data,
+        eventHandlers, modeView,
+    } = props
+
+    const colonnes = props.colonnes || {}
+    const { rowLoader, rowClassname } = colonnes || {}
     const paramsColonnes = colonnes.paramsColonnes || {}
-    const {data} = props
-    const {onSelectioner, onOuvrir, onContextMenu, selectionne, touchEnabled, touchBegin} = props
 
     const [dataRow, setDataRow] = useState(data)
-    const [touchEvent, setTouchEvent] = useState('')
 
     const {fileId, folderId} = dataRow
     const idMapperFct = colonnes.idMapper || idMapper
     const localId = idMapperFct(dataRow)
 
+    let ClasseItem = useMemo(()=>{
+        switch(modeView) {
+            case 'thumbnails': return ListeFichiersThumbnails
+            case 'thumbnails-small': return ListeFichiersThumbnails
+            case 'recents': return ListeFichiersRecents
+            default: 
+                return ListeFichiersRow
+        }
+    }, [modeView])
+
     const classNames = useMemo(()=>{
         let classNames = ['fichierstablerow']
-        if(selectionne) classNames.push('selectionne')
+        if(selected) classNames.push('selectionne')
         if(rowClassname) {
             const rowClasses = rowClassname(dataRow)
             if(rowClasses) {
@@ -295,54 +426,23 @@ function ListeFichiersRow(props) {
             }
         }
         return classNames
-    }, [dataRow, selectionne, rowClassname])
+    }, [dataRow, selected, rowClassname])
 
     // Thumbnails
     const thumbnail = dataRow.thumbnail || {},
           {thumbnailIcon, thumbnailSrc} = thumbnail
     const thumbnailLoader = dataRow.imageLoader
 
-    const onClickAction = useCallback(event=>{
-        if(touchEnabled) return  // Rien a faire
-        if(onSelectioner && !touchEnabled) onSelectioner(event, {localId, fileId, folderId})
-    }, [onSelectioner, touchEnabled, touchBegin, localId, fileId, folderId])
+    // const onContextMenuAction = useCallback(event=>{
+    //     event.stopPropagation()
+    //     if(eventHandlers.onContextMenu) eventHandlers.onContextMenu(event, {localId, fileId, folderId})
+    // }, [eventHandlers, localId, fileId, folderId])
 
-    const onDoubleClickAction = useCallback(event=>{
-        if(touchEnabled === true) return  // Rien a faire
-        event.preventDefault()
-        event.stopPropagation()
-        if(onOuvrir) onOuvrir(event, {localId, fileId, folderId})
-    }, [onOuvrir, localId, fileId, folderId, touchEnabled])
-
-    const onTouchMove = useCallback(event=>{
-        setTouchEvent('')
-    }, [setTouchEvent])
-
-    const onTouchStart = useCallback(event=>{
-        event.preventDefault()
-        event.stopPropagation()
-        setTouchEvent(event)
-    }, [setTouchEvent])
-
-    const onTouchEnd = useCallback(event=>{
-        if(!touchEvent) return  // Deplacement
-
-        if(onSelectioner) onSelectioner(event, {localId, fileId, folderId})
-        if(onOuvrir) onOuvrir(event, {localId, fileId, folderId})
-        setTouchEvent('')
-
-    }, [onOuvrir, localId, fileId, folderId, touchEvent, setTouchEvent])
-
-    const onContextMenuAction = useCallback(event=>{
-        event.stopPropagation()
-        if(onContextMenu) onContextMenu(event, {localId, fileId, folderId})
-    }, [onContextMenu, localId, fileId, folderId])
-
-    const onBoutonContext = useCallback(event=>{
-        event.stopPropagation()
-        event.preventDefault()
-        if(onContextMenu) onContextMenu(event, {localId, fileId, folderId})
-    })
+    // const onBoutonContext = useCallback(event=>{
+    //     event.stopPropagation()
+    //     event.preventDefault()
+    //     if(eventHandlers.onContextMenu) eventHandlers.onContextMenu(event, {localId, fileId, folderId})
+    // }, [eventHandlers])
 
     // Convertir data avec rowLoader au besoin
     useEffect(()=>{
@@ -357,35 +457,153 @@ function ListeFichiersRow(props) {
 
     const fichierDesactive = !!data.disabled
 
-    let actions = {}
+    let actions = {...eventHandlers}
     if(!fichierDesactive) {
-        actions = {
-            onDoubleClick: onDoubleClickAction,
-            onContextMenu: onContextMenuAction,
-        }
+        // actions = {
+        //     onDoubleClick: onDoubleClickAction,
+        //     onContextMenu: onContextMenuAction,
+        // }
     }
+
+    return (
+        <ClasseItem 
+            selected={selected}
+            idx={idx}
+            value={value}
+            data={dataRow}
+            colonnes={colonnes}
+            eventHandlers={actions}
+        />
+    )
+
+    // return (
+    //     <Row 
+    //         className={classNames.join(' ')}
+    //         {...actions}
+    //         data-idx={idx}
+    //         data-value={value}
+    //     >
+    //         {colonnes.ordreColonnes.map(nomColonne=>{
+    //             const param = paramsColonnes[nomColonne]
+    //             const classNameCol = param.className || ''
+    //             const className = classNameCol || param.className
+    //             const Formatteur = param.formatteur
+    //             const showThumbnail = param.showThumbnail || false
+    //             const showBoutonContexte = param.showBoutonContexte || false
+
+    //             const contenu = dataRow[nomColonne] || ''
+    //             let spanContenu = <span title={contenu}>{contenu}</span>
+    //             if(Formatteur) {
+    //                 spanContenu = <span><Formatteur value={contenu} data={dataRow} /></span>
+    //             }
+
+    //             let thumbnail = ''
+    //             if(showThumbnail) {
+    //                 if(thumbnailSrc || thumbnailLoader) {
+    //                     thumbnail = <Thumbnail src={thumbnailSrc} loader={thumbnailLoader} mini={true} />
+    //                 } else if(thumbnailIcon) {
+    //                     thumbnail = <div className='thumbnailmini'>{thumbnailIcon}</div>
+    //                 } else {
+    //                     thumbnail = <div className='thumbnailmini'></div>
+    //                 }
+    //             }
+    //             let boutonContexte = ''
+    //             if(showBoutonContexte) {
+    //                 if(fichierDesactive) {
+    //                     boutonContexte = <span>X</span>
+    //                 } else {
+    //                     boutonContexte = (
+    //                         <Button 
+    //                             variant="secondary" 
+    //                             size="sm" 
+    //                             onClick={onBoutonContext} 
+    //                             className='lignehover boutoncontexte'
+    //                         >
+    //                             <i className="fa fa-ellipsis-h"/>
+    //                         </Button>
+    //                     )
+    //                 }
+    //             }
+
+    //             const infoDimension = {
+    //                 xs: param.xs,
+    //                 sm: param.sm,
+    //                 md: param.md,
+    //                 lg: param.lg,
+    //                 xl: param.xl,
+    //                 xxl: param.xxl,
+    //             }
+
+    //             if(boutonContexte) {
+    //                 return (
+    //                     <Col key={nomColonne} {...infoDimension} className={className}>
+    //                         {boutonContexte}
+    //                     </Col>
+    //                 )
+    //             }
+
+    //             return (
+    //                 <Col 
+    //                     key={nomColonne} 
+    //                     {...infoDimension} 
+    //                     className={className}
+    //                 >
+    //                     {thumbnail}
+    //                     {spanContenu}
+    //                 </Col>
+    //             )
+    //         })}
+    //     </Row>
+    // )
+}
+
+
+function ListeFichiersRow(props) {
+
+    const { selected, idx, value, data, eventHandlers } = props
+
+    const colonnes = props.colonnes || {}
+    const { rowClassname } = colonnes || {}
+    const paramsColonnes = colonnes.paramsColonnes || {}
+
+    const fichierDesactive = !!data.disabled
+
+    const classNames = useMemo(()=>{
+        let classNames = ['fichierstablerow']
+        if(selected) classNames.push('selectionne')
+        if(rowClassname) {
+            const rowClasses = rowClassname(data)
+            if(rowClasses) {
+                classNames = [...classNames, ...rowClasses.split(' ')]
+            }
+        }
+        return classNames
+    }, [data, selected, rowClassname])
+
+    // Thumbnails
+    const thumbnail = data.thumbnail || {},
+          {thumbnailIcon, thumbnailSrc} = thumbnail
+    const thumbnailLoader = data.imageLoader
 
     return (
         <Row 
             className={classNames.join(' ')}
-            {...actions}
-            data-localid={localId}
-            data-fileid={fileId}
-            data-folderid={folderId}
-            >
+            {...eventHandlers}
+            data-idx={idx}
+            data-value={value}
+        >
             {colonnes.ordreColonnes.map(nomColonne=>{
                 const param = paramsColonnes[nomColonne]
-                const width = param.width || '100px'
                 const classNameCol = param.className || ''
                 const className = classNameCol || param.className
                 const Formatteur = param.formatteur
                 const showThumbnail = param.showThumbnail || false
                 const showBoutonContexte = param.showBoutonContexte || false
 
-                const contenu = dataRow[nomColonne] || ''
+                const contenu = data[nomColonne] || ''
                 let spanContenu = <span title={contenu}>{contenu}</span>
                 if(Formatteur) {
-                    spanContenu = <span><Formatteur value={contenu} data={dataRow} /></span>
+                    spanContenu = <span><Formatteur value={contenu} data={data} /></span>
                 }
 
                 let thumbnail = ''
@@ -399,22 +617,22 @@ function ListeFichiersRow(props) {
                     }
                 }
                 let boutonContexte = ''
-                if(showBoutonContexte) {
-                    if(fichierDesactive) {
-                        boutonContexte = <span>X</span>
-                    } else {
-                        boutonContexte = (
-                            <Button 
-                                variant="secondary" 
-                                size="sm" 
-                                onClick={onBoutonContext} 
-                                className='lignehover boutoncontexte'
-                            >
-                                <i className="fa fa-ellipsis-h"/>
-                            </Button>
-                        )
-                    }
-                }
+                // if(showBoutonContexte) {
+                //     if(fichierDesactive) {
+                //         boutonContexte = <span>X</span>
+                //     } else {
+                //         boutonContexte = (
+                //             <Button 
+                //                 variant="secondary" 
+                //                 size="sm" 
+                //                 onClick={onBoutonContext} 
+                //                 className='lignehover boutoncontexte'
+                //             >
+                //                 <i className="fa fa-ellipsis-h"/>
+                //             </Button>
+                //         )
+                //     }
+                // }
 
                 const infoDimension = {
                     xs: param.xs,
@@ -422,6 +640,7 @@ function ListeFichiersRow(props) {
                     md: param.md,
                     lg: param.lg,
                     xl: param.xl,
+                    xxl: param.xxl,
                 }
 
                 if(boutonContexte) {
@@ -437,10 +656,6 @@ function ListeFichiersRow(props) {
                         key={nomColonne} 
                         {...infoDimension} 
                         className={className}
-                        onClick={onClickAction}
-                        onTouchStart={onTouchStart}
-                        onTouchMove={onTouchMove}
-                        onTouchEnd={onTouchEnd}
                     >
                         {thumbnail}
                         {spanContenu}
@@ -451,29 +666,22 @@ function ListeFichiersRow(props) {
     )
 }
 
-// function preparerColonnes() {
-//     const params = {
-//         // colonnes: ['favoris', 'nom', 'taille', 'type', 'dateAjout', 'dateModifie', 'versions', 'etiquette'],
-//         ordreColonnes: ['favoris', 'nom', 'mimetype', 'taille', 'dateAjout', 'boutonDetail'],
-//         paramsColonnes: {
-//             'favoris': {'label': 'FV', className: 'favoris', xs: 1, lg: 1}, 
-//             'nom': {'label': 'Nom', showThumbnail: true, xs: 11, lg: 4},
-//             'taille': {'label': 'Taille', className: 'details', formatteur: FormatteurTaille, xs: 3, lg: 1},
-//             'mimetype': {'label': 'Type', className: 'details', xs: 3, lg: 2},
-//             'dateAjout': {'label': 'Date ajout', className: 'details', formatteur: FormatterDate, xs: 5, lg: 3},
-//             'boutonDetail': {label: ' ', className: 'details', showBoutonContexte: true, xs: 1, lg: 1},
-//         },
-//         tri: {colonne: 'nom', ordre: 1},
-//     }
-//     return params
-// }
-
 function idMapper(row) {
     return row.localId || row.tuuid || row.fileId || row.folderId
 }
 
 function ListeFichiersThumbnails(props) {
-    const {rows, colonnes, onSelectioner, onOuvrir, onContextMenu, touchEnabled, touchBegin, modeView, suivantCb} = props
+    // const {
+    //     rows, colonnes, 
+    //     // onSelectioner, onOuvrir, onContextMenu, touchEnabled, touchBegin, 
+    //     modeView, suivantCb,
+    // } = props
+    const { 
+        rows, colonnes,
+        selected, idx, value, data, 
+        eventHandlers,
+    } = props
+
     if(!rows) return ''  // Ecran n'est pas encore configure
 
     let modeSmall = ''
