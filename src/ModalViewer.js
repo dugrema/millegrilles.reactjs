@@ -5,21 +5,9 @@ import Alert from 'react-bootstrap/Alert'
 import Button from 'react-bootstrap/Button'
 import Carousel from 'react-bootstrap/Carousel'
 import VideoViewer from './VideoViewer'
-import { detecterSupport } from './detecterAppareils'
+import { useDetecterSupport } from './detecterAppareils'
 
 // import styles from './styles.module.css'
-
-export function useDetecterSupport() {
-    const [support, setSupport] = useState('')
-    
-    useEffect(()=>{
-        detecterSupport()
-            .then(support=>setSupport(support))
-            .catch(err=>console.error("Erreur detection support media ", err))
-    }, [setSupport])
-    
-    return support
-}
 
 function ModalViewer(props) {
 
@@ -27,22 +15,45 @@ function ModalViewer(props) {
 
     const {tuuidSelectionne, fichiers, DEBUG} = props
 
+    const support = useDetecterSupport()
+
     const handle = useFullScreenHandle()
     const [afficherHeaderFooter, setAfficherHeaderFooter] = useState(true)
     const [downloadSrc, setDownloadSrc] = useState('')
-    const [images, setImages] = useState('')
+    // const [images, setImages] = useState('')
     const [item, setItem] = useState('')
     const [viewer, setViewer] = useState('ItemViewer')
+    const [showButtons, setShowButtons] = useState(true)
     
+    // Conserver liste des images. Utilise par le carousel.
+    const images = useMemo(()=>{
+        if(!fichiers) return ''
+        return fichiers.filter(item=>{
+            if(!item) return false
+            const mimetype = item.mimetype?item.mimetype.split(';').shift():''
+            return mimetype.startsWith('image/')
+        })
+    }, [fichiers])
+
+    const toggleShowButtons = useCallback(()=>{
+        setShowButtons(!showButtons)
+    }, [showButtons, setShowButtons])
+
     const onClick = useCallback(event=>{
         event.stopPropagation()
-        setAfficherHeaderFooter(handle.active)
-        if(!handle.active) {
-            handle.enter(event)
+        event.preventDefault()
+
+        if(support.fullscreen) {
+            setAfficherHeaderFooter(handle.active)
+            if(!handle.active) {
+                handle.enter(event)
+            } else {
+                handle.exit(event)
+            }
         } else {
-            handle.exit(event)
+            toggleShowButtons()
         }
-    }, [handle])
+    }, [handle, support, toggleShowButtons])
 
     const handleCloseModal = useCallback(event=>{
         setAfficherHeaderFooter(true)
@@ -58,7 +69,7 @@ function ModalViewer(props) {
         setItem(fichier)
     }, [images])
 
-    const setDownloadSrcAction = setDownloadSrc  // useCallback(setDownloadSrc, [setDownloadSrc])
+    const setDownloadSrcAction = setDownloadSrc
 
     // Calculer l'index de l'item a afficher dans le carousel
     useEffect(()=>{
@@ -73,17 +84,6 @@ function ModalViewer(props) {
         // No match
         setItem('')
     }, [fichiers, tuuidSelectionne, setItem])
-
-    // Conserver liste des images. Utilise par le carousel.
-    useEffect(()=>{
-        if(!fichiers) return setImages('')
-        const images = fichiers.filter(item=>{
-            if(!item) return false
-            const mimetype = item.mimetype?item.mimetype.split(';').shift():''
-            return mimetype.startsWith('image/')
-        })
-        setImages(images)
-    }, [fichiers, setImages])
 
     useEffect(()=>{
         if(item && item.mimetype) {
@@ -123,6 +123,7 @@ function ModalViewer(props) {
         link.click()
         document.body.removeChild(link)
     }, [downloadSrc])
+    
 
     let Viewer
     switch(viewer) {
@@ -142,38 +143,38 @@ function ModalViewer(props) {
             className='preview'
             >
 
-            {afficherHeaderFooter?
-                <Modal.Header>
-                    <Modal.Title>{nomFichier}</Modal.Title>
-                    <div className='modal-heading-buttons'>
-                        <Button 
-                                variant="secondary" 
-                                onClick={downloadSrcClick} 
-                                disabled={!downloadSrc} 
-                                title="Download" 
-                                className='accessoire'>
-                            <i className="fa fa-download"/>
-                        </Button>
-                        <Button variant="secondary" onClick={viewSrcClick} disabled={!downloadSrc} title="View">
-                            <i className="fa fa-window-maximize"/>
-                        </Button>
-                        <Button variant="secondary" onClick={handleCloseModal} title="View" className='remove'>
-                            <i className="fa fa-remove"/>
-                        </Button>
-                    </div>
-                </Modal.Header>
-                :''
-            }
-
             <Modal.Body>
                 <FullScreen handle={handle}>
                     <div className='carousel-viewer'>
+                    
                         <Viewer 
                             item={item} 
                             images={images} 
                             onSelect={onSelectCb}
                             onClick={onClick}
                             setDownloadSrc={setDownloadSrcAction} />
+                        
+                        {showButtons?
+                            <div className='info'>
+                                <p><span className='titre'>{nomFichier}</span></p>
+                                <Button 
+                                    variant="secondary" 
+                                    onClick={downloadSrcClick} 
+                                    disabled={!downloadSrc} 
+                                    title="Download" 
+                                    className='accessoire'>
+                                    <i className="fa fa-download"/>
+                                </Button>
+                                <Button variant="secondary" onClick={viewSrcClick} disabled={!downloadSrc} title="View">
+                                    <i className="fa fa-window-maximize"/>
+                                </Button>
+                                <Button variant="secondary" onClick={handleCloseModal} title="View" className='remove'>
+                                    <i className="fa fa-remove"/>
+                                </Button>
+                            </div>
+                            :''
+                        }
+                    
                     </div>
                 </FullScreen>
             </Modal.Body>

@@ -124,7 +124,7 @@ export function ListeFichiers(props) {
                     onSelect([value])
                     onContextMenu(eventTouches, value)
                     window.getSelection().removeAllRanges()
-                    setLongTouchTimer(false)
+                    setLongTouchTimer(false)  // Flag pour empecher de-select sur end touch
                 } else {
                     setLongTouchTimer('')
                 }

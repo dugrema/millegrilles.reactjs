@@ -1,12 +1,28 @@
+import { useState, useEffect } from 'react'
+
+const FULLSCREEN_ENABLED = document.fullscreenEnabled
+
 export async function detecterSupport() {
   const webp = await supporteFormatWebp()
   const webm = supporteFormatWebm()
   const fileStream = await supporteFileStream()
   const touch = isTouchEnabled()
 
-  const support = {webp, webm, fileStream, touch}
+  const support = {webp, webm, fileStream, touch, fullscreen: FULLSCREEN_ENABLED}
   
   // console.info("Support du navigateur : %O", support)
+  return support
+}
+
+export function useDetecterSupport() {
+  const [support, setSupport] = useState('')
+  
+  useEffect(()=>{
+      detecterSupport()
+          .then(support=>setSupport(support))
+          .catch(err=>console.error("Erreur detection support media ", err))
+  }, [setSupport])
+  
   return support
 }
 
