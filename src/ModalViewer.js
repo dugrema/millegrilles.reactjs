@@ -47,13 +47,15 @@ function ModalViewer(props) {
             setAfficherHeaderFooter(handle.active)
             if(!handle.active) {
                 handle.enter(event)
+                setShowButtons(false)
             } else {
                 handle.exit(event)
+                setShowButtons(true)
             }
         } else {
             toggleShowButtons()
         }
-    }, [handle, support, toggleShowButtons])
+    }, [handle, support, setShowButtons, toggleShowButtons])
 
     const handleCloseModal = useCallback(event=>{
         setAfficherHeaderFooter(true)
@@ -152,7 +154,8 @@ function ModalViewer(props) {
                             images={images} 
                             onSelect={onSelectCb}
                             onClick={onClick}
-                            setDownloadSrc={setDownloadSrcAction} />
+                            setDownloadSrc={setDownloadSrcAction} 
+                            showButtons={showButtons} />
                         
                         {showButtons?
                             <div className='info'>
@@ -239,7 +242,7 @@ function ItemViewer(props) {
 function ImageCarousel(props) {
     // console.debug("ImageCarousel proppies : %O", props)
 
-    const { images, item, onSelect, onClick, setDownloadSrc, DEBUG } = props
+    const { images, item, onSelect, onClick, setDownloadSrc, showButtons, DEBUG } = props
 
     const [defaultActiveIndex, setDefaultActiveIndex] = useState('')
 
@@ -258,10 +261,10 @@ function ImageCarousel(props) {
         setDefaultActiveIndex('')
     }, [images, item, setDownloadSrc])
 
-    const imagesCarousel = useMemo(
-        ()=>preparerItemsCarousel(images, defaultActiveIndex, onClick, setDownloadSrc, (DEBUG)), 
-        [images, defaultActiveIndex, onClick, setDownloadSrc, DEBUG]
-    )
+    // const imagesCarousel = useMemo(
+    //     ()=>preparerItemsCarousel(images, defaultActiveIndex, onClick, setDownloadSrc, (DEBUG)), 
+    //     [images, defaultActiveIndex, onClick, setDownloadSrc, DEBUG]
+    // )
 
     if(defaultActiveIndex === '') return ''
 
@@ -275,42 +278,60 @@ function ImageCarousel(props) {
             indicators={false}
             touch={false}>
             
-            {imagesCarousel}
+            {images.map((item, idx)=>{
+                const itemId = item.fileId||item.tuuid||item.fuuid
+                const show = defaultActiveIndex === idx
+                const preparer = idx >= defaultActiveIndex - 1 && idx <= defaultActiveIndex + 2
+
+                return (
+                    <Carousel.Item key={itemId}>
+                        <PreviewImage 
+                            item={item} 
+                            show={show}
+                            preparer={preparer}
+                            onClick={onClick} 
+                            setDownloadSrc={setDownloadSrc} 
+                            showButtons={showButtons}
+                            DEBUG={DEBUG} />
+                    </Carousel.Item>            
+                )
+            })}
 
         </Carousel>        
     )
 
 }
 
-function preparerItemsCarousel(images, defaultActiveIndex, onClick, setDownloadSrc, opts) {
-    // console.debug("!!! preparerItemsCarousel, images %O, defaultActiveIndex %s", images, defaultActiveIndex)
-    opts = opts || {}
-    const DEBUG = opts.DEBUG || false
+// function preparerItemsCarousel(images, defaultActiveIndex, onClick, setDownloadSrc, opts) {
+//     // console.debug("!!! preparerItemsCarousel, images %O, defaultActiveIndex %s", images, defaultActiveIndex)
+//     opts = opts || {}
+//     const DEBUG = opts.DEBUG || false
 
-    return images.map((item, idx)=>{
-        const itemId = item.fileId||item.tuuid||item.fuuid
-        const show = defaultActiveIndex === idx
-        const preparer = idx >= defaultActiveIndex - 1 && idx <= defaultActiveIndex + 2
+//     return images.map((item, idx)=>{
+//         const itemId = item.fileId||item.tuuid||item.fuuid
+//         const show = defaultActiveIndex === idx
+//         const preparer = idx >= defaultActiveIndex - 1 && idx <= defaultActiveIndex + 2
 
-        return (
-            <Carousel.Item key={itemId}>
-                <PreviewImage 
-                    item={item} 
-                    show={show}
-                    preparer={preparer}
-                    onClick={onClick} 
-                    setDownloadSrc={setDownloadSrc} 
-                    DEBUG={DEBUG} />
-            </Carousel.Item>            
-        )
-    })
-}
+//         return (
+//             <Carousel.Item key={itemId}>
+//                 <PreviewImage 
+//                     item={item} 
+//                     show={show}
+//                     preparer={preparer}
+//                     onClick={onClick} 
+//                     setDownloadSrc={setDownloadSrc} 
+//                     showButtons={showButtons}
+//                     DEBUG={DEBUG} />
+//             </Carousel.Item>            
+//         )
+//     })
+// }
 
 function PreviewImage(props) {
 
     // console.debug("PreviewImage PROPPYS : %O", props)
     // console.debug("PreviewImage tuuid : %O", props.tuuid)
-    const { item, onClick, setDownloadSrc, preparer, show } = props
+    const { item, onClick, setDownloadSrc, preparer, show, showButtons } = props
     const { imageLoader } = item
     const version_courante = item.version_courante || {},
           anime = version_courante.anime?true:false
@@ -324,6 +345,7 @@ function PreviewImage(props) {
     const [complet, setComplet] = useState(false)
     const [err, setErr] = useState('')
     const [srcLocal, setSrcLocal] = useState('')
+    const [rotate, setRotate] = useState(0)
 
     useEffect(()=>{
         if(show) {
@@ -367,6 +389,18 @@ function PreviewImage(props) {
         }
     }, [anime, imageLoader, loadImage, setSrcImage, setErr, setComplet])
 
+    const rotateClockwise = useCallback(()=>{
+        let rotateMaj = rotate + 90
+        if(rotateMaj >= 360) rotateMaj -= 360
+        setRotate(rotateMaj)
+    }, [rotate, setRotate])
+
+    const rotateCounterClockwise = useCallback(()=>{
+        let rotateMaj = rotate - 90
+        if(rotateMaj < 0) rotateMaj += 360
+        setRotate(rotateMaj)
+    }, [rotate, setRotate])
+
     return (
         <div>
             <Alert variant="danger" show={err?true:false}>
@@ -375,7 +409,20 @@ function PreviewImage(props) {
             </Alert>
 
             {srcImage?
-                <img src={srcImage} onClick={onClick} />
+                <div>
+                    <img src={srcImage} onClick={onClick} style={{rotate: rotate+'deg'}} />
+                    {showButtons?
+                        <div className='rotate-buttons'>
+                            <Button variant="secondary" onClick={rotateCounterClockwise}>
+                                <i className="fa fa-rotate-left"/>
+                            </Button>
+                            {' '}
+                            <Button variant="secondary" onClick={rotateClockwise}>
+                                <i className="fa fa-rotate-right"/>
+                            </Button>
+                        </div>
+                    :''}
+                </div>
                 :''
             }
             
