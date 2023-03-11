@@ -203,7 +203,7 @@ export async function creerStreamDecipherXChacha20Poly1305(key, header) {
             let decipheredMessage
             if(positionBuffer) {
                 const resultat = sodium.crypto_secretstream_xchacha20poly1305_pull(state_in, messageBuffer.slice(0,positionBuffer))
-                if(resultat === false) throw new DecipherError('Erreur dechiffrage')
+                if(resultat === false) throw new DecipherError('crypto_secretstream_xchacha20poly1305_pull Erreur dechiffrage')
                 const {message} = resultat
                 decipheredMessage = message
                 tailleOutput += decipheredMessage.length
