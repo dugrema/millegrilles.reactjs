@@ -63,11 +63,12 @@ export function ListeFichiers(props) {
             const debut = Math.min(idx, idxSelectionShift),
                   fin = Math.max(idx, idxSelectionShift)
 
-            // console.debug("Ajouter range %d -> %d", debut, fin)
+            // console.debug("Ajouter range %d -> %d (liste %O)", debut, fin, rows)
             
+            const idMapperFct = colonnes.idMapper || idMapper
             const selectionMaj = [...selection]
             for(let i=debut; i<=fin; i++) {
-                const valueAdd = idMapper(rows[i])
+                const valueAdd = idMapperFct(rows[i])
                 // console.debug("Ajouter idx:%s : %s", i, valueAdd)
                 if(!selectionMaj.includes(valueAdd)) selectionMaj.push(valueAdd)
             }
@@ -113,14 +114,14 @@ export function ListeFichiers(props) {
             eventTouches = {clientX, clientY}
         }
 
-        console.debug("Set touch event item %O, event %O", item, e)
+        // console.debug("Set touch event item %O, event %O", item, e)
         setTouchEvent(item)
 
         if(!modeSelectionActif) {
             const timer = setTimeout(()=>{
                 setTouchEvent('')
                 if(onContextMenu) {
-                    console.debug("Context menu %O, %O, %O", eventTouches, e, value)
+                    // console.debug("Context menu %O, %O, %O", eventTouches, e, value)
                     onSelect([value])
                     onContextMenu(eventTouches, value)
                     window.getSelection().removeAllRanges()
