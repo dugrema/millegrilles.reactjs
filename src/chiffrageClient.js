@@ -162,9 +162,11 @@ export async function chiffrerDocument(doc, domaine, certificatsChiffragePem, op
     )
     // console.debug("resultat chiffrage : %O", resultat)
 
-    // // Signer la commande de maitre des cles
-    const commandeMaitrecles = await formatterMessage(resultat.commandeMaitrecles, 'MaitreDesCles', {action: 'sauvegarderCle', ajouterCertificat: true, DEBUG})
-    resultat.commandeMaitrecles = commandeMaitrecles
+    // Signer la commande de maitre des cles
+    if(formatteurMessage) {
+      const commandeMaitrecles = await formatterMessage(resultat.commandeMaitrecles, 'MaitreDesCles', {action: 'sauvegarderCle', ajouterCertificat: true, DEBUG})
+      resultat.commandeMaitrecles = commandeMaitrecles
+    }
 
     return resultat
 }
