@@ -22,7 +22,9 @@ var _callbackEtatUpload = null,
     _fingerprintCa = null,
     _certificats = null,
     _domaine = 'GrosFichiers',
-    _pathServeur = '/collections/fichiers'
+    _pathServeur = new URL(self.location.href)
+
+_pathServeur.pathname = '/collections/fichiers'
 
 const THRESHOLD_256kb = 5 * 1024 * 1024,
       THRESHOLD_512kb = 20 * 1024 * 1024,
@@ -51,7 +53,14 @@ const ETAT_PREPARATION = 1,
       ETAT_PRET = 2
 
 export function up_setPathServeur(pathServeur) {
-    _pathServeur = pathServeur
+    if(pathServeur.startsWith('https://')) {
+        _pathServeur = new URL(pathServeur)
+    } else {
+        const pathServeurUrl = new URL(self.location.href)
+        pathServeurUrl.pathname = pathServeur
+        _pathServeur = pathServeurUrl
+    }
+    console.debug("Path serveur : ", _pathServeur.href)
 }
     
 export function up_getEtatCourant() {
@@ -87,18 +96,12 @@ function filtrerEntreeFichier(entree) {
 }
 
 function mapAcceptedFile(file) {
-//const file = acceptedFiles[i]
-    //console.debug("Ajouter upload : %O", file)
-
     let dateFichier = null
     try {
         dateFichier = Math.floor(file.lastModified / 1000)
     } catch(err) {
         console.warn("Erreur chargement date fichier : %O", err)
     }
-
-    // const nomFichierBuffer = new Uint8Array(Buffer.from(new TextEncoder().encode(file.name)))
-    // throw new Error("Nom fichier buffer : " + nomFichierBuffer)
 
     const nom = file.name.normalize()
 
@@ -108,7 +111,6 @@ function mapAcceptedFile(file) {
         taille: file.size,
         dateFichier,
     }
-    // if(cuuid) transaction['cuuid'] = cuuid
     
     const infoUpload = {
         nom,
@@ -376,8 +378,6 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
     const fileSize = fileMappe.size
 
     const correlation = '' + uuidv4()
-    // const stream = file.stream()
-    // console.debug("File %s stream : %O", fileMappe.name, stream)
 
     const docIdb = {
         // PK
@@ -399,100 +399,15 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
     }
 
     // console.debug("Update initial docIdb ", docIdb)
-    //await uploadFichiersDao.updateFichierUpload(docIdb)
     if(updateFichier) await updateFichier(docIdb, {demarrer: false})
     
-    // const frequenceUpdate = 500
-    // let dernierUpdate = 0
-
     try {
         const paramsConserver = {...params, correlation, tailleTotale}
         const etatFinalChiffrage = await conserverFichier(file, fileMappe, paramsConserver, fcts)
-    
-        // for await (const chunk of iterReader) {
-        //     if(await signalAnnuler()) throw new Error("Cancelled")
-        //     // console.debug("Traitement chunk %d transforme taille %d", compteurChunks, chunk.length)
-
-        //     // Conserver dans idb
-        //     if(ajouterPart) await ajouterPart(correlation, compteurPosition, chunk)
-        //     compteurPosition += chunk.length
-
-        //     taillePreparee += chunk.length
-        //     const now = new Date().getTime()
-        //     if(setProgres) {
-        //         if(dernierUpdate + frequenceUpdate < now) {
-        //             dernierUpdate = now
-        //             setProgres(Math.floor(100*taillePreparee/tailleTotale))
-        //         }
-        //     }
-
-        //     compteurChunks ++
-        // }
-
-        // console.debug("Fin chunks")
-
-        // const etatFinalChiffrage = transform.etatFinal()
-        // console.debug("Etat final chiffrage : ", etatFinalChiffrage)
-
-        // const champsOptionnels = ['iv', 'nonce', 'header', 'tag']
-        // const paramsChiffrage = champsOptionnels.reduce((acc, champ)=>{
-        //     const valeur = etatFinalChiffrage[champ]
-        //     if(valeur) acc[champ] = valeur
-        //     return acc
-        // }, {})
-
-        // const hachage_bytes = etatFinalChiffrage.hachage,
-        //         secretKey = etatFinalChiffrage.key
-
-        // // Ajouter fuuid a la transaction GrosFichiers
-        // docIdb.transactionGrosfichiers.fuuid = hachage_bytes
-
-        // // Chiffrer champs de metadonnees
-        // const transactionGrosfichiers = docIdb.transactionGrosfichiers
-        // const listeChamps = ['nom', 'dateFichier']
-        // const champsAChiffrer = {}
-        // for (const champ of listeChamps) {
-        //     const value = transactionGrosfichiers[champ]
-        //     if(value) champsAChiffrer[champ] = value
-        //     delete transactionGrosfichiers[champ]
-        // }
-        // const champsChiffres = await chiffrage.updateChampsChiffres(champsAChiffrer, secretKey)
-        // transactionGrosfichiers.metadata = champsChiffres
-
-        // // console.debug("Resultat chiffrage : %O", etatFinalChiffrage)
-        // if(_fingerprintCa && transformInst.secretChiffre) {
-        //     // Creer la commande de maitre des cles, chiffrer les cles
-        //     const identificateurs_document = { fuuid: hachage_bytes }
-        //     const certificats = _certificats.map(item=>item[0])  // Conserver les certificats maitredescles (pas chaine)
-
-        //     docIdb.transactionMaitredescles = await preparerCommandeMaitrecles(
-        //         certificats, 
-        //         secretKey, 
-        //         _domaine, 
-        //         hachage_bytes, 
-        //         identificateurs_document, 
-        //         {...paramsChiffrage, DEBUG: false}
-        //     )
-        //     docIdb.transactionMaitredescles.cles[_fingerprintCa] = transformInst.secretChiffre
-        // } else {
-        //     // Conserver la cle secrete directement (attention : le contenu du message devra etre chiffre)
-        //     const informationCle = {
-        //         hachage_bytes: etatFinalChiffrage.hachage,
-        //         format: etatFinalChiffrage.format,
-        //         header: etatFinalChiffrage.header,
-        //         cleSecrete: base64.encode(secretKey),
-        //     }
-        //     docIdb.cle = informationCle
-        // }
-
-        // docIdb.etat = ETAT_PRET
-        // docIdb.taille = compteurPosition
-        // if(compteurPosition !== etatFinalChiffrage.taille) docIdb.taille_chiffree = etatFinalChiffrage.taille
         
         const docIdbMaj = await formatterDocIdb(docIdb, etatFinalChiffrage)
 
         // Dispatch pour demarrer upload
-        // console.debug("Update final docIdb ", docIdb)
         if(updateFichier) await updateFichier(docIdbMaj, {demarrer})
 
     } catch(err) {
@@ -503,6 +418,16 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
     
 }
 
+/**
+ * Upload de fichiers (v1 - obsolete).
+ * @param {*} acceptedFiles 
+ * @param {*} userId 
+ * @param {*} cuuid 
+ * @param {*} ajouterPart 
+ * @param {*} updateFichier 
+ * @param {*} setProgres 
+ * @param {*} signalAnnuler 
+ */
 export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouterPart, updateFichier, setProgres, signalAnnuler) {
     const params = { userId, cuuid }
     const fcts = { ajouterPart, updateFichier, setProgres, signalAnnuler }
@@ -512,159 +437,17 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
     for (const file of acceptedFiles) {
         tailleTotale += file.size
     }
-    // console.debug("Preparation de %d bytes", tailleTotale)
 
-    let taillePreparee = 0
+    // console.debug("Preparation de %d bytes", tailleTotale)
     for await (const file of acceptedFiles) {
         await traiterFichier(file, tailleTotale, params, fcts)
-        // if(await signalAnnuler()) throw new Error("Cancelled")
-
-        // // Preparer chiffrage
-        // const transformInst = await preparerTransform(),
-        //       transform = transformInst.cipher
-        // console.debug("traiterAcceptedFiles Transform : ", transformInst)
-        // // const { cipher: transform } = await creerCipher(workers, certificatCa)
-
-        // // Preparer fichier
-        // const fileMappe = mapAcceptedFile(file)
-        // fileMappe.transaction.cuuid = cuuid
-        // // console.debug("File mappe : ", fileMappe)
-        // const fileSize = fileMappe.size
-
-        // const correlation = '' + uuidv4()
-        // // const stream = file.stream()
-        // // console.debug("File %s stream : %O", fileMappe.name, stream)
-
-        // const batchSize = getUploadBatchSize(fileSize)
-        // const reader = getAcceptedFileReader(file)
-        // const iterReader = streamAsyncIterable(reader, {batchSize, transform})
-        // let compteurChunks = 0,
-        //     compteurPosition = 0
-
-        // const docIdb = {
-        //     // PK
-        //     correlation, userId, 
-
-        //     // Metadata recue
-        //     nom: fileMappe.nom || correlation,
-        //     taille: fileSize, //fileMappe.size,
-        //     mimetype: fileMappe.type || 'application/octet-stream',
-
-        //     // Etat initial
-        //     etat: ETAT_PREPARATION, 
-        //     positionsCompletees: [],
-        //     tailleCompletee: 0,
-        //     dateCreation: now,
-        //     retryCount: -1,  // Incremente sur chaque debut d'upload
-        //     transactionGrosfichiers: fileMappe.transaction,
-        //     transactionMaitredescles: null,
-        // }
-
-        // // console.debug("Update initial docIdb ", docIdb)
-        // //await uploadFichiersDao.updateFichierUpload(docIdb)
-        // if(updateFichier) await updateFichier(docIdb, {demarrer: false})
-        
-        // const frequenceUpdate = 500
-        // let dernierUpdate = 0
-
-        // try {
-        //     for await (const chunk of iterReader) {
-        //         if(await signalAnnuler()) throw new Error("Cancelled")
-        //         // console.debug("Traitement chunk %d transforme taille %d", compteurChunks, chunk.length)
-
-        //         // Conserver dans idb
-        //         if(ajouterPart) await ajouterPart(correlation, compteurPosition, chunk)
-        //         compteurPosition += chunk.length
-
-        //         taillePreparee += chunk.length
-        //         const now = new Date().getTime()
-        //         if(setProgres) {
-        //             if(dernierUpdate + frequenceUpdate < now) {
-        //                 dernierUpdate = now
-        //                 setProgres(Math.floor(100*taillePreparee/tailleTotale))
-        //             }
-        //         }
-
-        //         compteurChunks ++
-        //     }
-
-        //     console.debug("Fin chunks")
-
-        //     const etatFinalChiffrage = transform.etatFinal()
-        //     console.debug("Etat final chiffrage : ", etatFinalChiffrage)
-
-        //     const champsOptionnels = ['iv', 'nonce', 'header', 'tag']
-        //     const paramsChiffrage = champsOptionnels.reduce((acc, champ)=>{
-        //         const valeur = etatFinalChiffrage[champ]
-        //         if(valeur) acc[champ] = valeur
-        //         return acc
-        //     }, {})
-    
-        //     const hachage_bytes = etatFinalChiffrage.hachage,
-        //           secretKey = etatFinalChiffrage.key
-
-        //     // Ajouter fuuid a la transaction GrosFichiers
-        //     docIdb.transactionGrosfichiers.fuuid = hachage_bytes
-
-        //     // Chiffrer champs de metadonnees
-        //     const transactionGrosfichiers = docIdb.transactionGrosfichiers
-        //     const listeChamps = ['nom', 'dateFichier']
-        //     const champsAChiffrer = {}
-        //     for (const champ of listeChamps) {
-        //         const value = transactionGrosfichiers[champ]
-        //         if(value) champsAChiffrer[champ] = value
-        //         delete transactionGrosfichiers[champ]
-        //     }
-        //     const champsChiffres = await chiffrage.updateChampsChiffres(champsAChiffrer, secretKey)
-        //     transactionGrosfichiers.metadata = champsChiffres
-
-        //     // console.debug("Resultat chiffrage : %O", etatFinalChiffrage)
-        //     if(_fingerprintCa && transformInst.secretChiffre) {
-        //         // Creer la commande de maitre des cles, chiffrer les cles
-        //         const identificateurs_document = { fuuid: hachage_bytes }
-        //         const certificats = _certificats.map(item=>item[0])  // Conserver les certificats maitredescles (pas chaine)
-    
-        //         docIdb.transactionMaitredescles = await preparerCommandeMaitrecles(
-        //             certificats, 
-        //             secretKey, 
-        //             _domaine, 
-        //             hachage_bytes, 
-        //             identificateurs_document, 
-        //             {...paramsChiffrage, /*userId,*/ DEBUG: false}
-        //         )
-        //         docIdb.transactionMaitredescles.cles[_fingerprintCa] = transformInst.secretChiffre
-        //     } else {
-        //         // Conserver la cle secrete directement (attention : le contenu du message devra etre chiffre)
-        //         const informationCle = {
-        //             hachage_bytes: etatFinalChiffrage.hachage,
-        //             format: etatFinalChiffrage.format,
-        //             header: etatFinalChiffrage.header,
-        //             cleSecrete: base64.encode(secretKey),
-        //         }
-        //         docIdb.cle = informationCle
-        //     }
-    
-        //     docIdb.etat = ETAT_PRET
-        //     docIdb.taille = compteurPosition
-        //     if(compteurPosition !== etatFinalChiffrage.taille) docIdb.taille_chiffree = etatFinalChiffrage.taille
-            
-        //     // Dispatch pour demarrer upload
-        //     // console.debug("Update final docIdb ", docIdb)
-        //     if(updateFichier) await updateFichier(docIdb, {demarrer: true})
-        // } catch(err) {
-        //     if(updateFichier) await updateFichier(docIdb, {err: ''+err})
-        //     throw err
-        // }
-
-        // // Fermer affichage preparation des fichiers
-        // // if(setProgres) setProgres(false)
     }
 }
 
 /**
  * Chiffre et commence l'upload de fichiers selectionnes dans le navigateur.
  * 
- * Note : les fonctions (e.g. ajouterPart) ne peuvent pas etre combinees dans un dict a cause de comlink
+ * Note : les fonctions (e.g. ajouterPart) ne peuvent pas etre combinees dans un Object a cause de comlink
  * 
  * @param {*} params acceptedFiles, correlationSubmitId, userId, cuuid, 
  * @param {*} ajouterPart 
@@ -673,8 +456,19 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
  * @param {*} signalAnnuler 
  */
 export async function traiterAcceptedFilesV2(params, ajouterPart, updateFichier, setProgres, signalAnnuler) {
-    const { acceptedFiles, correlationSubmidId, userId, cuuid } = params
+    const { acceptedFiles } = params
     const fcts = { ajouterPart, updateFichier, setProgres, signalAnnuler}
+
+    // console.debug("Accepted files ", acceptedFiles)
+    let tailleTotale = 0
+    for (const file of acceptedFiles) {
+        tailleTotale += file.size
+    }
+
+    // console.debug("Preparation de %d bytes", tailleTotale)
+    for await (const file of acceptedFiles) {
+        await traiterFichier(file, tailleTotale, params, fcts)
+    }
 }
 
 var _cancelUploadToken = null
@@ -683,18 +477,19 @@ export function cancelUpload() {
     if(_cancelUploadToken) return _cancelUploadToken.cancel()
 }
 
-export async function partUploader(correlation, position, partContent, opts) {
+export async function partUploader(correlationSubmitId, correlation, position, partContent, opts) {
     opts = opts || {}
     const onUploadProgress = opts.onUploadProgress
 
-    const pathUpload = path.join(_pathServeur, ''+correlation, ''+position)
+    const pathUploadUrl = new URL(_pathServeur.href + path.join('/'+correlationSubmitId, ''+correlation, ''+position))
+    console.debug("partUploading pathUpload ", pathUploadUrl.href)
     const cancelTokenSource = axios.CancelToken.source()
     _cancelUploadToken = cancelTokenSource
 
     // console.debug("Cancel token source : ", cancelTokenSource)
 
     const reponse = await axios({
-        url: pathUpload,
+        url: pathUploadUrl.href,
         method: 'PUT',
         headers: { 'content-type': 'application/data' },
         data: partContent,
@@ -710,11 +505,11 @@ export async function partUploader(correlation, position, partContent, opts) {
     return reponse
 }
 
-export async function confirmerUpload(correlation, cles, transaction) {
+export async function confirmerUpload(correlationSubmitId, correlation, cles, transaction) {
     // console.debug("confirmerUpload %s cles : %O, transaction : %O", correlation, cles, transaction)
 
     const confirmationResultat = { cles, transaction, etat: {correlation, hachage: transaction.fuuid} }
-    const pathConfirmation = path.join(_pathServeur, correlation)
+    const pathConfirmation = path.join(_pathServeur.href, correlationSubmitId, correlation)
     const reponse = await axios({
         method: 'POST', 
         url: pathConfirmation, 
