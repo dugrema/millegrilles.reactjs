@@ -365,7 +365,7 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
     if(signalAnnuler && await signalAnnuler()) throw new Error("Cancelled")
 
     const now = new Date().getTime()
-    const { userId, cuuid } = params
+    const { userId, cuuid, token } = params
     const { updateFichier } = fcts
 
     let demarrer = true
@@ -381,7 +381,7 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
 
     const docIdb = {
         // PK
-        correlation, userId, 
+        correlation, userId, token,
 
         // Metadata recue
         nom: fileMappe.nom || correlation,
@@ -449,7 +449,7 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
  * 
  * Note : les fonctions (e.g. ajouterPart) ne peuvent pas etre combinees dans un Object a cause de comlink
  * 
- * @param {*} params acceptedFiles, correlationSubmitId, userId, cuuid, 
+ * @param {*} params acceptedFiles, batchId, userId, cuuid, 
  * @param {*} ajouterPart 
  * @param {*} updateFichier 
  * @param {*} setProgres 
@@ -477,11 +477,11 @@ export function cancelUpload() {
     if(_cancelUploadToken) return _cancelUploadToken.cancel()
 }
 
-export async function partUploader(correlationSubmitId, correlation, position, partContent, opts) {
+export async function partUploader(token, correlation, position, partContent, opts) {
     opts = opts || {}
     const onUploadProgress = opts.onUploadProgress
 
-    const pathUploadUrl = new URL(_pathServeur.href + path.join('/'+correlationSubmitId, ''+correlation, ''+position))
+    const pathUploadUrl = new URL(_pathServeur.href + path.join('/'+correlation, ''+position))
     console.debug("partUploading pathUpload ", pathUploadUrl.href)
     const cancelTokenSource = axios.CancelToken.source()
     _cancelUploadToken = cancelTokenSource
@@ -491,7 +491,10 @@ export async function partUploader(correlationSubmitId, correlation, position, p
     const reponse = await axios({
         url: pathUploadUrl.href,
         method: 'PUT',
-        headers: { 'content-type': 'application/data' },
+        headers: { 
+            'content-type': 'application/data', 
+            'x-token-jwt': token,
+        },
         data: partContent,
         onUploadProgress,
         cancelToken: cancelTokenSource.token,
@@ -505,15 +508,26 @@ export async function partUploader(correlationSubmitId, correlation, position, p
     return reponse
 }
 
-export async function confirmerUpload(correlationSubmitId, correlation, cles, transaction) {
+export async function confirmerUpload(token, correlation, opts) {
+    opts = opts || {}
     // console.debug("confirmerUpload %s cles : %O, transaction : %O", correlation, cles, transaction)
+    const { cles, transaction } = opts
 
-    const confirmationResultat = { cles, transaction, etat: {correlation, hachage: transaction.fuuid} }
-    const pathConfirmation = path.join(_pathServeur.href, correlationSubmitId, correlation)
+    let hachage = opts.hachage
+    if(!hachage) {
+        if(transaction) hachage = transaction.hachage
+    }
+    if(!hachage) throw new Error("Hachage fichier manquant")
+
+    const confirmationResultat = { etat: {correlation, hachage} }
+    if(transaction) confirmationResultat.transaction = transaction
+    if(cles) confirmationResultat.cles = cles
+    const pathConfirmation = _pathServeur.href + path.join('/' + correlation)
     const reponse = await axios({
         method: 'POST', 
         url: pathConfirmation, 
         data: confirmationResultat,
+        headers: {'x-token-jwt': token}
     })
 
     // console.debug("!!! Fichier verification (POST) reponse : %O", reponse)
