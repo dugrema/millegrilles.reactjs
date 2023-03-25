@@ -306,7 +306,7 @@ async function formatterDocIdb(docIdb, infoChiffrage) {
     }, {})
 
     const hachage_bytes = infoChiffrage.hachage,
-            secretKey = infoChiffrage.key
+          secretKey = infoChiffrage.key
 
     // Ajouter fuuid a la transaction GrosFichiers
     docIdb.transactionGrosfichiers.fuuid = hachage_bytes
@@ -314,16 +314,17 @@ async function formatterDocIdb(docIdb, infoChiffrage) {
     // Chiffrer champs de metadonnees
     const transactionGrosfichiers = docIdb.transactionGrosfichiers
     const listeChamps = ['nom', 'dateFichier']
-    const champsAChiffrer = {
+    const metadataDechiffre = {
         hachage_original: infoChiffrage.hachage_original,
     }
+    docIdb.metadataDechiffre = metadataDechiffre
     for (const champ of listeChamps) {
         const value = transactionGrosfichiers[champ]
-        if(value) champsAChiffrer[champ] = value
+        if(value) metadataDechiffre[champ] = value
         delete transactionGrosfichiers[champ]
     }
-    console.debug("formatterDocIdb Champs a chiffrer ", champsAChiffrer)
-    const champsChiffres = await chiffrage.updateChampsChiffres(champsAChiffrer, secretKey)
+    console.debug("formatterDocIdb Champs a chiffrer ", metadataDechiffre)
+    const champsChiffres = await chiffrage.updateChampsChiffres(metadataDechiffre, secretKey)
     transactionGrosfichiers.metadata = champsChiffres
 
     // console.debug("Resultat chiffrage : %O", etatFinalChiffrage)
