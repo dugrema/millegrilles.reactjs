@@ -512,11 +512,13 @@ export async function partUploader(token, correlation, position, partContent, op
 export async function confirmerUpload(token, correlation, opts) {
     opts = opts || {}
     // console.debug("confirmerUpload %s cles : %O, transaction : %O", correlation, cles, transaction)
-    const { cles, transaction } = opts
+    const { transaction } = opts
+    const cles = opts.cles || transaction?transaction['_cles']:null
 
     let hachage = opts.hachage
     if(!hachage) {
-        if(transaction) hachage = transaction.hachage
+        if(cles) hachage = cles.hachage
+        else if(transaction) hachage = transaction.fuuid
     }
     if(!hachage) throw new Error("Hachage fichier manquant")
 
