@@ -15,7 +15,8 @@ export function ListeFichiers(props) {
     // Intercepter onClick pour capturer la selection
     const { 
         modeView, rows, colonnes, modeSelectionActif, selection, 
-        onContextMenu, onSelect, scrollValue, onScroll, onOpen,
+        onContextMenu, onSelect, scrollValue, 
+        onScroll, onOpen, onClickEntete,
     } = props
 
     const [idxSelectionShift, setIdxSelectionShift] = useState(0)
@@ -39,8 +40,8 @@ export function ListeFichiers(props) {
     const ouvrirItemHandler = useCallback(e=>{
         const { idx, value } = e.currentTarget.dataset
         setIdxSelectionShift(idx)
-        onSelect([value])
-        onOpen(rows[idx])
+        if(onSelect) onSelect([value])
+        if(onOpen) onOpen(rows[idx])
     }, [rows, setIdxSelectionShift, onSelect, onOpen])
 
     const selectionToggleHandler = useCallback(e=>{
@@ -73,7 +74,7 @@ export function ListeFichiers(props) {
                 if(!selectionMaj.includes(valueAdd)) selectionMaj.push(valueAdd)
             }
 
-            onSelect(selectionMaj)
+            if(onSelect) onSelect(selectionMaj)
 
         } else if(modeSelection) {
             if(!shiftKey) setIdxSelectionShift(idx)
@@ -82,15 +83,15 @@ export function ListeFichiers(props) {
             if( selection.includes(value) ) {
                 // Deselectionner
                 const selectionMaj = selection.filter(item=>item!==value)
-                onSelect(selectionMaj)
+                if(onSelect) onSelect(selectionMaj)
             } else {
                 // Selectionner
-                onSelect([...selection, value])
+                if(onSelect) onSelect([...selection, value])
             }
 
         } else {
             setIdxSelectionShift(idx)
-            onSelect([value])
+            if(onSelect) onSelect([value])
         }
 
     }, [rows, selection, idxSelectionShift, modeSelectionActif, onSelect, setIdxSelectionShift])
@@ -122,7 +123,7 @@ export function ListeFichiers(props) {
                 setTouchEvent('')
                 if(onContextMenu) {
                     // console.debug("Context menu %O, %O, %O", eventTouches, e, value)
-                    onSelect([value])
+                    if(onSelect) onSelect([value])
                     onContextMenu(eventTouches, value)
                     window.getSelection().removeAllRanges()
                     setLongTouchTimer(false)  // Flag pour empecher de-select sur end touch
@@ -207,7 +208,8 @@ export function ListeFichiers(props) {
             rows={rows} 
             colonnes={colonnes}
             selection={selection}
-            eventHandlers={eventHandlers} />
+            eventHandlers={eventHandlers} 
+            onClickEntete={onClickEntete} />
         </div>
     )
 }
@@ -221,7 +223,7 @@ function ListeFichiersItems(props) {
         modeView, colonnes, rows, 
         eventHandlers, 
         isListeComplete, suivantCb,
-        // onSelectioner, onOuvrir, onContextMenu, touchEnabled, touchBegin, 
+        onClickEntete,
     } = props
 
     if(!colonnes || !rows) return ''  // Ecran n'est pas encore configure
@@ -233,7 +235,7 @@ function ListeFichiersItems(props) {
     return (
         <div className='fichierstable'>
 
-            <ListeFichiersEntete colonnes={colonnes} onClickEntete={props.onClickEntete} />
+            <ListeFichiersEntete colonnes={colonnes} onClickEntete={onClickEntete} />
 
             {rows.map((row, idx)=>{
                 const localId = idMapperFct(row, idx)
