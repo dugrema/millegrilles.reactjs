@@ -244,6 +244,7 @@ export function up_retryErreur(opts) {
 async function conserverFichier(file, fileMappe, params, fcts) {
 
     const tailleTotale = params.tailleTotale || file.size
+    const tailleCumulative = params.tailleCumulative || 0
     const { ajouterPart, setProgres, signalAnnuler } = fcts
     const { size } = fileMappe
     const { correlation } = params
@@ -271,7 +272,7 @@ async function conserverFichier(file, fileMappe, params, fcts) {
     const frequenceUpdate = 500
     let dernierUpdate = 0,
         compteurPosition = 0,
-        taillePreparee = 0
+        taillePreparee = tailleCumulative
 
     for await (const chunk of iterReader) {
         if(await signalAnnuler()) throw new Error("Cancelled")
@@ -467,8 +468,10 @@ export async function traiterAcceptedFilesV2(params, ajouterPart, updateFichier,
     }
 
     // console.debug("Preparation de %d bytes", tailleTotale)
+    let tailleCumulative = 0
     for await (const file of acceptedFiles) {
-        await traiterFichier(file, tailleTotale, params, fcts)
+        await traiterFichier(file, tailleTotale, {...params, tailleCumulative}, fcts)
+        tailleCumulative += file.size
     }
 }
 
