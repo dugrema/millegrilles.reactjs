@@ -14,9 +14,10 @@ export function ListeFichiers(props) {
 
     // Intercepter onClick pour capturer la selection
     const { 
-        modeView, rows, colonnes, modeSelectionActif, selection, 
+        modeView, rows, isListeComplete, colonnes, modeSelectionActif, selection, 
         onContextMenu, onSelect, scrollValue, 
         onScroll, onOpen, onClickEntete,
+        suivantCb,
     } = props
 
     const [idxSelectionShift, setIdxSelectionShift] = useState(0)
@@ -206,10 +207,12 @@ export function ListeFichiers(props) {
         <ListeFichiersItems 
             modeView={modeView}
             rows={rows} 
+            isListeComplete={isListeComplete}
             colonnes={colonnes}
             selection={selection}
             eventHandlers={eventHandlers} 
-            onClickEntete={onClickEntete} />
+            onClickEntete={onClickEntete}
+            suivantCb={suivantCb} />
         </div>
     )
 }
@@ -260,13 +263,16 @@ function ListeFichiersItems(props) {
                 <BoutonSuivantListe suivantCb={suivantCb} />
             }
 
+            <br/>
+            <p>{rows.length} items affiches {isListeComplete?' (liste complete)':''}</p>
+
         </div>
     )
 }
 
 function BoutonSuivantListe(props) {
 
-    const {suivantCb} = props
+    const { suivantCb } = props
 
     const visibleSuivantCb = useCallback(isVisible=>{if(suivantCb&&isVisible)suivantCb()}, [suivantCb])
 
