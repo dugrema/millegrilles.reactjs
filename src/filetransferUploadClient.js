@@ -26,15 +26,13 @@ var _callbackEtatUpload = null,
 
 _pathServeur.pathname = '/collections/fichiers'
 
-const THRESHOLD_256kb = 5 * 1024 * 1024,
-      THRESHOLD_512kb = 20 * 1024 * 1024,
-      THRESHOLD_1mb = 50 * 1024 * 1024,
-      THRESHOLD_2mb = 100 * 1024 * 1024
+const THRESHOLD_512kb = 10 * 1024 * 1024,
+      THRESHOLD_1mb = 25 * 1024 * 1024,
+      THRESHOLD_2mb = 50 * 1024 * 1024
 
 // Retourne la taille a utiliser pour les batch
 function getUploadBatchSize(fileSize) {
     if(isNaN(fileSize)) throw new Error("NaN")
-    if(fileSize < THRESHOLD_256kb) return 256 * 1024
     if(fileSize < THRESHOLD_512kb) return 512 * 1024
     if(fileSize < THRESHOLD_1mb) return 1024 * 1024
     if(fileSize < THRESHOLD_2mb) return 2 * 1024 * 1024
@@ -251,6 +249,7 @@ async function conserverFichier(file, fileMappe, params, fcts) {
 
     // Preparer chiffrage
     const hachageDechiffre = new hachage.Hacheur({hashingCode: 'blake2b-512'})
+    
     const transformInst = await preparerTransform()
     const transform = {
         update: async chunk => {
@@ -483,22 +482,30 @@ export function cancelUpload() {
 
 export async function partUploader(token, correlation, position, partContent, opts) {
     opts = opts || {}
-    const onUploadProgress = opts.onUploadProgress
+    const onUploadProgress = opts.onUploadProgress,
+    hachagePart = opts.hachagePart
 
     const pathUploadUrl = new URL(_pathServeur.href + path.join('/'+correlation, ''+position))
-    console.debug("partUploading pathUpload ", pathUploadUrl.href)
+    console.debug("partUploader pathUpload ", pathUploadUrl.href)
     const cancelTokenSource = axios.CancelToken.source()
     _cancelUploadToken = cancelTokenSource
 
     // console.debug("Cancel token source : ", cancelTokenSource)
 
+    const headers = { 
+        'content-type': 'application/data', 
+        'x-token-jwt': token,
+    }
+    if(hachagePart) {
+        headers['x-content-hash'] = hachagePart  // 'm4OQCIPFQ/07VX/RQIGDoC1LRyicc1VBRaZEPr9DPm9qrdyDE'
+    }
+
+    console.debug("partUploader Part uploader headers ", headers)
+
     const reponse = await axios({
         url: pathUploadUrl.href,
         method: 'PUT',
-        headers: { 
-            'content-type': 'application/data', 
-            'x-token-jwt': token,
-        },
+        headers,
         data: partContent,
         onUploadProgress,
         cancelToken: cancelTokenSource.token,
