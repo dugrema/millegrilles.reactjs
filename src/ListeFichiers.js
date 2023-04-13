@@ -235,6 +235,19 @@ function ListeFichiersItems(props) {
 
     const idMapperFct = colonnes.idMapper || idMapper
 
+    const labelFooter = useMemo(()=>{
+        if(!rows) return ''
+        if(rows.length === 0 && isListeComplete) return (
+            <span>Collection vide</span>
+        )
+        if(rows.length === 1) return (
+            <span>{isListeComplete?'Liste complete, ':''} 1 item affiche</span>
+        )
+        return (
+            <span>{isListeComplete?'Liste complete, ':''} {rows.length} items affiches</span>
+        )
+    }, [isListeComplete, rows])
+
     return (
         <div className='fichierstable'>
 
@@ -263,8 +276,7 @@ function ListeFichiersItems(props) {
                 <BoutonSuivantListe suivantCb={suivantCb} />
             }
 
-            <br/>
-            <p>{rows.length} items affiches {isListeComplete?' (liste complete)':''}</p>
+            <p className='listefichiers-footer'>{labelFooter}</p>
 
         </div>
     )
