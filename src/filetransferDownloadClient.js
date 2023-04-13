@@ -332,7 +332,7 @@ function _creerDownloadStream(reader, contentLength, opts) {
 }
 
 async function preparerDataProcessor(opts) {
-  console.debug("preparerDataProcessor opts : %O", opts)
+  // console.debug("preparerDataProcessor opts : %O", opts)
   opts = opts || {}
   const DEBUG = opts.DEBUG || false
   let {password, passwordChiffre} = opts
@@ -396,7 +396,7 @@ export async function downloadCacheFichier(downloadEnCours, progressCb, opts) {
   const {fuuid, url, filename, mimetype, password, passwordChiffre} = downloadEnCours
   if((password || passwordChiffre)) {
     const paramsDataProcessor = {...downloadEnCours, password, passwordChiffre}
-    console.debug("Dechifrer avec params : %O", paramsDataProcessor)
+    // console.debug("Dechifrer avec params : %O", paramsDataProcessor)
     dataProcessor = await preparerDataProcessor(paramsDataProcessor)
   }
 

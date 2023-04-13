@@ -58,7 +58,7 @@ export function up_setPathServeur(pathServeur) {
         pathServeurUrl.pathname = pathServeur
         _pathServeur = pathServeurUrl
     }
-    console.debug("Path serveur : ", _pathServeur.href)
+    console.info("Path serveur : ", _pathServeur.href)
 }
     
 export function up_getEtatCourant() {
@@ -262,7 +262,7 @@ async function conserverFichier(file, fileMappe, params, fcts) {
         etatFinal: transformInst.cipher.etatFinal,
     }
         
-    console.debug("traiterAcceptedFiles Transform : ", transformInst)
+    // console.debug("traiterAcceptedFiles Transform : ", transformInst)
 
     const batchSize = getUploadBatchSize(size)
     const reader = getAcceptedFileReader(file)
@@ -293,7 +293,7 @@ async function conserverFichier(file, fileMappe, params, fcts) {
     const etatFinalChiffrage = transform.etatFinal()
     etatFinalChiffrage.secretChiffre = transformInst.secretChiffre
     etatFinalChiffrage.hachage_original = await hachageDechiffre.finalize()
-    console.debug("Etat final chiffrage : ", etatFinalChiffrage)
+    // console.debug("Etat final chiffrage : ", etatFinalChiffrage)
     return etatFinalChiffrage
 }
 
@@ -323,7 +323,7 @@ async function formatterDocIdb(docIdb, infoChiffrage) {
         if(value) metadataDechiffre[champ] = value
         delete transactionGrosfichiers[champ]
     }
-    console.debug("formatterDocIdb Champs a chiffrer ", metadataDechiffre)
+    // console.debug("formatterDocIdb Champs a chiffrer ", metadataDechiffre)
     const champsChiffres = await chiffrage.updateChampsChiffres(metadataDechiffre, secretKey)
     transactionGrosfichiers.metadata = champsChiffres
 
@@ -486,7 +486,7 @@ export async function partUploader(token, correlation, position, partContent, op
     hachagePart = opts.hachagePart
 
     const pathUploadUrl = new URL(_pathServeur.href + path.join('/'+correlation, ''+position))
-    console.debug("partUploader pathUpload ", pathUploadUrl.href)
+    // console.debug("partUploader pathUpload ", pathUploadUrl.href)
     const cancelTokenSource = axios.CancelToken.source()
     _cancelUploadToken = cancelTokenSource
 
@@ -500,7 +500,7 @@ export async function partUploader(token, correlation, position, partContent, op
         headers['x-content-hash'] = hachagePart  // 'm4OQCIPFQ/07VX/RQIGDoC1LRyicc1VBRaZEPr9DPm9qrdyDE'
     }
 
-    console.debug("partUploader Part uploader headers ", headers)
+    // console.debug("partUploader Part uploader headers ", headers)
 
     const reponse = await axios({
         url: pathUploadUrl.href,
