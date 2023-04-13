@@ -242,6 +242,7 @@ export function up_retryErreur(opts) {
 async function conserverFichier(file, fileMappe, params, fcts) {
 
     const tailleTotale = params.tailleTotale || file.size
+    const positionFichier = params.positionFichier || -1
     const tailleCumulative = params.tailleCumulative || 0
     const { ajouterPart, setProgres, signalAnnuler } = fcts
     const { size } = fileMappe
@@ -285,7 +286,7 @@ async function conserverFichier(file, fileMappe, params, fcts) {
         if(setProgres) {
             if(dernierUpdate + frequenceUpdate < now) {
                 dernierUpdate = now
-                setProgres(Math.floor(100*taillePreparee/tailleTotale))
+                setProgres(Math.floor(100*taillePreparee/tailleTotale), {idxFichier: positionFichier})
             }
         }
     }
@@ -461,17 +462,26 @@ export async function traiterAcceptedFilesV2(params, ajouterPart, updateFichier,
     const fcts = { ajouterPart, updateFichier, setProgres, signalAnnuler}
 
     // console.debug("Accepted files ", acceptedFiles)
-    let tailleTotale = 0
-    for (const file of acceptedFiles) {
-        tailleTotale += file.size
+    const infoTaille = params.infoTaille || {}
+    let tailleTotale = infoTaille.total || 0
+    if(tailleTotale === 0) {
+        // Calculer taille a partir de la batch
+        for (const file of acceptedFiles) {
+            tailleTotale += file.size
+        }
     }
 
-    // console.debug("Preparation de %d bytes", tailleTotale)
-    let tailleCumulative = 0
+    // console.debug("InfoTaille ", infoTaille)
+    let tailleCumulative = infoTaille.positionChiffre || 0,
+        positionFichier = infoTaille.positionFichier || 0
     for await (const file of acceptedFiles) {
-        await traiterFichier(file, tailleTotale, {...params, tailleCumulative}, fcts)
+        await traiterFichier(file, tailleTotale, {...params, tailleCumulative, positionFichier}, fcts)
         tailleCumulative += file.size
+        positionFichier++
+        infoTaille.positionChiffre = tailleCumulative
+        infoTaille.positionFichier = positionFichier
     }
+    // console.debug("Fin infoTaille ", infoTaille)
 }
 
 var _cancelUploadToken = null
