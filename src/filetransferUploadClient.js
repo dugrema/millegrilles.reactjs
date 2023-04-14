@@ -26,17 +26,26 @@ var _callbackEtatUpload = null,
 
 _pathServeur.pathname = '/collections/fichiers'
 
-const THRESHOLD_512kb = 10 * 1024 * 1024,
-      THRESHOLD_1mb = 25 * 1024 * 1024,
-      THRESHOLD_2mb = 50 * 1024 * 1024
+const CONST_1MB = 1024 * 1024
+const THRESHOLD_512kb = 10 * CONST_1MB,
+      THRESHOLD_1mb = 25 * CONST_1MB,
+      THRESHOLD_2mb = 50 * CONST_1MB,
+      THRESHOLD_5mb = 100 * CONST_1MB,
+      THRESHOLD_10mb = 250 * CONST_1MB,
+      THRESHOLD_20mb = 500 * CONST_1MB,
+      THRESHOLD_50mb = 1000 * CONST_1MB
 
 // Retourne la taille a utiliser pour les batch
 function getUploadBatchSize(fileSize) {
-    if(isNaN(fileSize)) throw new Error("NaN")
+    if(!fileSize) throw new Error("NaN")
     if(fileSize < THRESHOLD_512kb) return 512 * 1024
     if(fileSize < THRESHOLD_1mb) return 1024 * 1024
-    if(fileSize < THRESHOLD_2mb) return 2 * 1024 * 1024
-    return 5 * 1024 * 1024
+    if(fileSize < THRESHOLD_2mb) return 2 * CONST_1MB
+    if(fileSize < THRESHOLD_5mb) return 5 * CONST_1MB
+    if(fileSize < THRESHOLD_10mb) return 10 * CONST_1MB
+    if(fileSize < THRESHOLD_20mb) return 20 * CONST_1MB
+    if(fileSize < THRESHOLD_50mb) return 50 * CONST_1MB
+    return 100 * CONST_1MB
 }
 
 // const UPLOAD_BATCH_SIZE = 5 * 1024 * 1024,  // 5 MB

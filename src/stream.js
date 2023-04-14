@@ -28,7 +28,7 @@ export function getAcceptedFileReader(file) {
 /** Simulacre de reader qui utilise plusieurs appels a blob.slice */
 function sliceReader(file, opts) {
   opts = opts || {}
-  const TAILLE_BUFFER = opts.tailleBuffer || (64 * 1024)  // 256 kB par defaut
+  const TAILLE_BUFFER = opts.tailleBuffer || (64 * 1024)  // 64 kB par defaut
   // const tailleFichier = file.size
 
   var position = 0
