@@ -1,7 +1,6 @@
 import {io as openSocket} from 'socket.io-client'
-import { pki } from '@dugrema/node-forge'
 import { FormatteurMessageEd25519 } from '@dugrema/millegrilles.utiljs/src/formatteurMessage'
-import { CertificateStore, extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
+import { extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
 
 import * as hachage from './hachage'  // Wiring hachage pour utiljs
 import './chiffrage'
@@ -234,13 +233,14 @@ export async function emitBlocking(event, message, opts) {
   if(!event) throw new TypeError('connexionClient.emitBlocking event null')
   // if(!message) throw new TypeError('connexionClient.emitBlocking message null')
 
-  if( message && !message['_signature'] && opts.noformat !== true ) {
+  if( message && !message['sig'] && opts.noformat !== true ) {
     // Signer le message
-    var domaine = opts.domaine
-    if(!domaine && message['en-tete']) domaine = message['en-tete'].domaine
-    if(domaine) {
+    const kind = message.kind || opts.kind
+    if(kind) {
       if(!_formatteurMessage) throw new Error("connexionClient.emitBlocking Formatteur de message non initialise")
-      message = await _formatteurMessage.formatterMessage(message, domaine, opts)
+      message = await _formatteurMessage.formatterMessage(kind, message, opts)
+    } else {
+      throw new Error('Il faut fournir opts.kind')
     }
   }
 
@@ -256,7 +256,7 @@ export async function emitBlocking(event, message, opts) {
 
       if(reponse && reponse.err) return reject(reponse.err)  // Erreur cote serveur
 
-      if(reponse['_signature'] && reponse['_certificat']) {
+      if(reponse['sig'] && reponse['certificat']) {
         x509VerifierMessage(reponse)
           .then(resultat=>{
             // console.debug("Resultat validation : %O", resultat)
@@ -286,11 +286,14 @@ export async function emit(event, message, opts) {
   /* Emet un message sans attente (fire and forget) */
   opts = opts || {}
 
-  if( message && !message['_signature'] && opts.noformat !== true ) {
+  if( message && !message['sig'] && opts.noformat !== true ) {
     // Signer le message
     // try {
-      var domaine = opts.domaine || message['en-tete'].domaine
-      message = await _formatteurMessage.formatterMessage(message, domaine, opts)
+      const kind = message.kind || opts.kind
+      if(!kind) {
+        throw new Error('Il faut fournir opts.kind')
+      }
+      message = await _formatteurMessage.formatterMessage(kind, message, opts)
     // } catch(err) {
     //   console.warn("Erreur formattage message : %O", err)
     // }
