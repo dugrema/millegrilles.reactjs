@@ -15,6 +15,7 @@ import {
   verifierCertificat,
   verifierMessage as x509VerifierMessage,
 } from './x509Client'
+import { MESSAGE_KINDS } from '@dugrema/millegrilles.utiljs/src/constantes'
 
 // Re-exporter fonctions de chiffrageClient
 export { formatterMessage, chargerCleMillegrille, signerMessageCleMillegrille, clearCleMillegrille } 
@@ -239,6 +240,7 @@ export async function emitBlocking(event, message, opts) {
     if(kind) {
       if(!_formatteurMessage) throw new Error("connexionClient.emitBlocking Formatteur de message non initialise")
       message = await _formatteurMessage.formatterMessage(kind, message, opts)
+      console.debug("connexionClient.emitBlocking Message signe ", message)
     } else {
       throw new Error('Il faut fournir opts.kind')
     }
@@ -253,6 +255,8 @@ export async function emitBlocking(event, message, opts) {
 
     const traiterReponse = reponse => {
       clearTimeout(timeout)  // Reponse recue, annuler le timeout
+
+      console.debug("traiterReponse ", reponse)
 
       if(reponse && reponse.err) return reject(reponse.err)  // Erreur cote serveur
 
@@ -316,7 +320,7 @@ export async function emit(event, message, opts) {
 export async function subscribe(nomEventSocketio, cb, params, opts) {
   params = params || {}
   opts = opts || {}
-  const resultat = await emitBlocking(nomEventSocketio, params, opts)
+  const resultat = await emitBlocking(nomEventSocketio, params, {opts, kind: MESSAGE_KINDS.KIND_COMMANDE})
   // console.debug("Resultat subscribe %s : %O", nomEventSocketio, resultat)
   if(resultat && resultat.ok === true) {
     resultat.routingKeys.forEach(item=>{
@@ -343,7 +347,7 @@ export async function unsubscribe(nomEventSocketio, cb, params, opts) {
     params = params || {}
     opts = opts || {}
     socketOff(nomEventSocketio)
-    const resultat = await emitBlocking(nomEventSocketio, params, opts)
+    const resultat = await emitBlocking(nomEventSocketio, params, {...opts, kind: MESSAGE_KINDS.KIND_COMMANDE})
     if(resultat && resultat.ok === true) {
       resultat.routingKeys.forEach(item=>{
         // socketOff(item, cb)
@@ -374,7 +378,7 @@ export function clearFormatteurMessage() {
 export async function getCertificatsMaitredescles() {
   // console.debug("getCertificatsMaitredescles local ", _certificatsMaitreDesCles)
   if(_certificatsMaitreDesCles) return _certificatsMaitreDesCles
-  const reponse = await emitBlocking('getCertificatsMaitredescles', null, {noformat: true, ajouterCertificat: true})
+  const reponse = await emitBlocking('getCertificatsMaitredescles', null, {kind: MESSAGE_KINDS.KIND_REQUETE, noformat: true, ajouterCertificat: true})
   const certificats = []
   // console.debug("getCertificatsMaitredescles Reponse : ", reponse)
   if(!reponse.err) {
@@ -431,21 +435,27 @@ export function upgradeProteger(data) {
 export async function authentifier(data, opts) {
   opts = opts || {}
 
+  console.debug("reactjs.connexionClient.Authentifier data %O, opts %O", data, opts)
+
   const noCallback = opts.noCallback === true
 
   if(data) {
+      console.debug("!!! UPGRADE ")
       const reponse = await emitBlocking('upgrade', data, {noformat: true})
-
+      console.debug("!!! Reponse upgrade ", reponse)
       if(reponse.nomUsager && _callbackSetUsager) _callbackSetUsager(reponse.nomUsager)
-
+      console.debug("!!! Callback done")
       return reponse
   } else {
       // Faire une requete pour upgrader avec le certificat
-      const reponse = await emitBlocking('genererChallengeCertificat', null)
-      
+      const reponse = await emitBlocking('genererChallengeCertificat', null, {kind: MESSAGE_KINDS.KIND_REQUETE})
+      console.debug("reactjs.connexionClient.Authentifier Challenge : ", reponse)
+
       // Repondre pour creer l'upgrade
       const data = {...reponse.challengeCertificat}
-      const reponseUpgrade = await emitBlocking('upgrade', data, {domaine: 'login', action: 'login', attacherCertificat: true})
+      console.debug("reactjs.connexionClient.Authentifier Upgrade : ", data)
+      const reponseUpgrade = await emitBlocking('upgrade', data, {kind: MESSAGE_KINDS.KIND_COMMANDE, domaine: 'login', action: 'login', attacherCertificat: true})
+      console.debug("reactjs.connexionClient.Authentifier Reponse upgrade ", reponseUpgrade)
       if(!noCallback && reponseUpgrade.nomUsager && _callbackSetUsager) _callbackSetUsager(reponseUpgrade.nomUsager)
       
       return reponseUpgrade
