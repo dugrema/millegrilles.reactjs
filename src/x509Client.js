@@ -14,9 +14,9 @@ var _certificatCaForge = null,
     _idmgLocal = ''
 
 export async function init(caPem) {
-  // console.debug("Init x509Client")
+  console.debug("Init x509Client")
   _certificatCaForge = forgePki.certificateFromPem(caPem)
-  // console.debug("Certificat Store class : %O\nCert forge : %O", CertificateStore, _certificatCaForge)
+  console.debug("Certificat Store class : %O\nCert forge : %O", CertificateStore, _certificatCaForge)
   _certificateStore = new CertificateStore(_certificatCaForge)
 
   const idmg = await getIdmg(caPem)
@@ -45,11 +45,10 @@ export async function verifierMessage(message, opts) {
   opts = opts || {}
   const support_idmg_tiers = opts.support_idmg_tiers?true:false
 
-  const certificat = message['_certificat'],
-        certMillegrille = message['_millegrille']
-  const entete = message['en-tete'] || {},
-        estampilleInt = entete.estampille,
-        idmg = entete.idmg
+  const certificat = message.certificat,
+        certMillegrille = message.millegrille
+  const estampilleInt = message.estampille,
+        idmg = null  // Obsolete
 
   const estampille = new Date(estampilleInt * 1000)
   let certValide = false
