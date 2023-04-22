@@ -328,14 +328,42 @@ export async function emit(event, message, opts) {
 export async function subscribe(nomEventSocketio, cb, params, opts) {
   params = params || {}
   opts = opts || {}
-  const resultat = await emitBlocking(nomEventSocketio, params, {opts})
+  const resultat = await emitBlocking(nomEventSocketio, params, {...opts, noformat: true})
   // console.debug("Resultat subscribe %s : %O", nomEventSocketio, resultat)
   if(resultat && resultat.ok === true) {
     resultat.routingKeys.forEach(item=>{
       // console.debug("subscribe %s Ajouter socketOn %s", nomEventSocketio, item)
       // socketOn(item, cb)  // Note : pas sur pourquoi ca ne fonctionne pas (recoit erreur value)
-      socketOn(item, message => {
-        cb(message).catch(err=>console.error("subscribe.socketOn Erreur relai message ", message))
+      socketOn(item, async event => {
+        const message = event.message
+        if(message.sig && message.certificat) {
+          const resultat = await x509VerifierMessage(message)
+          console.debug("Resultat validation : %O", resultat)
+          if(resultat === true) {
+            // Parse le contenu, conserver original
+            let contenu = message
+            if(message.contenu) {
+              // Remplacer event.message par contenu
+              contenu = JSON.parse(message.contenu)
+              contenu['__original'] = message
+              event.message = contenu
+            }
+            try {
+              return cb(event)
+            } catch(err) {
+              console.error("subscribe Erreur callback (1) : ", err)
+            }
+          } else {
+            console.error("subscribe callback Reponse invalide (hachage/signature incorrect) ", message)
+          }
+        } else {
+          console.warn("Reponse recue sans signature/cert : ", event)
+          try {
+            return await cb(event)
+          } catch(err) {
+            console.error("subscribe Erreur callback (2) : ", err)
+          }
+        }        
       })
     })
   } else {
@@ -355,7 +383,7 @@ export async function unsubscribe(nomEventSocketio, cb, params, opts) {
     params = params || {}
     opts = opts || {}
     socketOff(nomEventSocketio)
-    const resultat = await emitBlocking(nomEventSocketio, params, {...opts})
+    const resultat = await emitBlocking(nomEventSocketio, params, {...opts, noformat: true})
     if(resultat && resultat.ok === true) {
       resultat.routingKeys.forEach(item=>{
         // socketOff(item, cb)
