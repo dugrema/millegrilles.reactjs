@@ -256,15 +256,23 @@ export async function emitBlocking(event, message, opts) {
     const traiterReponse = reponse => {
       clearTimeout(timeout)  // Reponse recue, annuler le timeout
 
-      console.debug("traiterReponse ", reponse)
+      // console.debug("emitBlocking traiterReponse ", reponse)
 
       if(reponse && reponse.err) return reject(reponse.err)  // Erreur cote serveur
 
-      if(reponse['sig'] && reponse['certificat']) {
+      if(reponse.sig && reponse.certificat) {
         x509VerifierMessage(reponse)
           .then(resultat=>{
-            // console.debug("Resultat validation : %O", resultat)
-            if(resultat === true) resolve(reponse)
+            console.debug("Resultat validation : %O", resultat)
+            if(resultat === true) {
+              // Parse le contenu, conserver original
+              let contenu = reponse
+              if(reponse.contenu) {
+                contenu = JSON.parse(reponse.contenu)
+                contenu['__original'] = reponse
+              }
+              resolve(contenu)
+            }
             reject("Reponse invalide (hachage/signature incorrect)")
           })
           .catch(err=>{
@@ -320,7 +328,7 @@ export async function emit(event, message, opts) {
 export async function subscribe(nomEventSocketio, cb, params, opts) {
   params = params || {}
   opts = opts || {}
-  const resultat = await emitBlocking(nomEventSocketio, params, {opts, kind: MESSAGE_KINDS.KIND_COMMANDE})
+  const resultat = await emitBlocking(nomEventSocketio, params, {opts})
   // console.debug("Resultat subscribe %s : %O", nomEventSocketio, resultat)
   if(resultat && resultat.ok === true) {
     resultat.routingKeys.forEach(item=>{
@@ -347,7 +355,7 @@ export async function unsubscribe(nomEventSocketio, cb, params, opts) {
     params = params || {}
     opts = opts || {}
     socketOff(nomEventSocketio)
-    const resultat = await emitBlocking(nomEventSocketio, params, {...opts, kind: MESSAGE_KINDS.KIND_COMMANDE})
+    const resultat = await emitBlocking(nomEventSocketio, params, {...opts})
     if(resultat && resultat.ok === true) {
       resultat.routingKeys.forEach(item=>{
         // socketOff(item, cb)
