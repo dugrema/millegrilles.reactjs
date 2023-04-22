@@ -328,7 +328,14 @@ export async function emit(event, message, opts) {
 export async function subscribe(nomEventSocketio, cb, params, opts) {
   params = params || {}
   opts = opts || {}
-  const resultat = await emitBlocking(nomEventSocketio, params, {...opts, noformat: true})
+  try {
+    var resultat = await emitBlocking(nomEventSocketio, params, {...opts, noformat: true})
+  } catch(err) {
+    // Cas special lors de reconnexion a un serveur qui redemarre
+    console.warn("Erreur subscribe %s, attendre 5 secondes et ressayer", nomEventSocketio)
+    resultat = await emitBlocking(nomEventSocketio, params, {...opts, noformat: true})
+  }
+
   // console.debug("Resultat subscribe %s : %O", nomEventSocketio, resultat)
   if(resultat && resultat.ok === true) {
     resultat.routingKeys.forEach(item=>{
