@@ -229,7 +229,8 @@ export async function verifierMessage(message) {
 export async function emitBlocking(event, message, opts) {
   /* Emet un message et attend la reponse. */
   opts = opts || {}
-  const timeoutDelay = opts.timeout || 9000
+  const timeoutDelay = opts.timeout || 9000,
+        attachments = opts.attachments
 
   if(!event) throw new TypeError('connexionClient.emitBlocking event null')
   // if(!message) throw new TypeError('connexionClient.emitBlocking message null')
@@ -286,6 +287,9 @@ export async function emitBlocking(event, message, opts) {
     }
 
     if(message) {
+      // Injecter attachments si applicable
+      if(attachments) message = {...message, ...attachments}
+      // Emettre message
       _socket.emit(event, message, traiterReponse)
     } else {
       _socket.emit(event, traiterReponse)
