@@ -67,7 +67,7 @@ export async function verifierMessage(message, opts) {
   if(!certValide) {
     var err = new Error("Certificat invalide")
     err.code = 1
-    err.fields = ['_certificat']
+    err.fields = ['certificat']
     throw err
   }
 
