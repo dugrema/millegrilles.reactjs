@@ -6,6 +6,7 @@ import { FormatteurMessageEd25519, SignateurMessageEd25519 } from '@dugrema/mill
 import * as hachage from './hachage'
 import { chiffrage } from './chiffrage'
 import * as ed25519Utils from '@dugrema/millegrilles.utiljs/src/chiffrage.ed25519'
+import { MESSAGE_KINDS } from '@dugrema/millegrilles.utiljs/src/constantes'
 
 export {chiffrage}
 
@@ -75,11 +76,12 @@ export function verifierCertificat(certificat, opts) {
 export function formatterMessage(message, domaineAction, opts) {
   opts = opts || {}
   opts.attacherCertificat = true  // Toujours attacher le certificat
+  const kind = opts.kind
 
   /* Expose formatterMessage du formatteur de messages */
-  if(opts.DEBUG) console.debug("Formatter domaine=%s, message : %O", domaineAction, message)
+  if(opts.DEBUG) console.debug("Formatter domaine=%s, message : %O (opts: %O)", domaineAction, message, opts)
 
-  return formatteurMessage.formatterMessage(message, domaineAction, opts)
+  return formatteurMessage.formatterMessage(kind, message, {...opts, domaine: domaineAction})
 }
 
 export function signerMessageCleMillegrille(message, opts) {
@@ -160,11 +162,17 @@ export async function chiffrerDocument(doc, domaine, certificatsChiffragePem, op
       doc, domaine, certificatMillegrille.pem, identificateurs_document, 
       {...opts, certificats: certificatsListeChiffrage}
     )
-    // console.debug("resultat chiffrage : %O", resultat)
+    console.debug("resultat chiffrage : %O", resultat)
 
     // Signer la commande de maitre des cles
     if(formatteurMessage) {
-      const commandeMaitrecles = await formatterMessage(resultat.commandeMaitrecles, 'MaitreDesCles', {action: 'sauvegarderCle', ajouterCertificat: true, DEBUG})
+      const partition = resultat.commandeMaitrecles['_partition']
+      const commandeCle = {...resultat.commandeMaitrecles, '_partition': undefined}
+      const commandeMaitrecles = await formatterMessage(
+        commandeCle, 'MaitreDesCles', 
+        {kind: MESSAGE_KINDS.KIND_COMMANDE, action: 'sauvegarderCle', ajouterCertificat: true, DEBUG}
+      )
+      commandeMaitrecles['attachements'] = {partition}
       resultat.commandeMaitrecles = commandeMaitrecles
     }
 
