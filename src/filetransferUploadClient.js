@@ -540,20 +540,26 @@ export async function partUploader(token, correlation, position, partContent, op
 
 export async function confirmerUpload(token, correlation, opts) {
     opts = opts || {}
-    // console.debug("confirmerUpload %s cles : %O, transaction : %O", correlation, cles, transaction)
     const { transaction } = opts
-    const cles = opts.cles || transaction?transaction['_cles']:null
+    const attachements = transaction.attachements || {},
+          cle = attachements.cle
+    // const cles = opts.cles || transaction?transaction['_cles']:null
+    console.debug("confirmerUpload %s cle : %O, transaction : %O", correlation, cle, transaction)
 
     let hachage = opts.hachage
     if(!hachage) {
-        if(cles) hachage = cles.hachage
-        else if(transaction) hachage = transaction.fuuid
+        // if(cle) hachage = cle.hachage
+        // else 
+        if(transaction) {
+            const contenu = JSON.parse(transaction.contenu)
+            hachage = contenu.fuuid
+        }
     }
     if(!hachage) throw new Error("Hachage fichier manquant")
 
     const confirmationResultat = { etat: {correlation, hachage} }
     if(transaction) confirmationResultat.transaction = transaction
-    if(cles) confirmationResultat.cles = cles
+    // if(cle) confirmationResultat.cle = cle
     const pathConfirmation = _pathServeur.href + path.join('/' + correlation)
     const reponse = await axios({
         method: 'POST', 
