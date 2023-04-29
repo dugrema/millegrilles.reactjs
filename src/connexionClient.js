@@ -128,9 +128,9 @@ export async function onConnect(infoPromise) {
     if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(_connecte, {reconnecte: true})
   }
 
-  console.debug("connexionClient.onConnect %O", info)
+  // console.debug("connexionClient.onConnect %O", info)
   if(_callbackSetUsager && info.nomUsager) {
-    console.debug("connexionClient.onConnect setUsager %s", info.nomUsager)
+    // console.debug("connexionClient.onConnect setUsager %s", info.nomUsager)
     _callbackSetUsager(info.nomUsager)
       .catch(err=>{
         console.error("connexionClient.onConnect Erreur _callbackSetUsager : %O", err)
@@ -241,7 +241,7 @@ export async function emitBlocking(event, message, opts) {
     if(kind) {
       if(!_formatteurMessage) throw new Error("connexionClient.emitBlocking Formatteur de message non initialise")
       message = await _formatteurMessage.formatterMessage(kind, message, opts)
-      console.debug("connexionClient.emitBlocking Message signe ", message)
+      // console.debug("connexionClient.emitBlocking Message signe ", message)
     } else {
       throw new Error('Il faut fournir opts.kind')
     }
@@ -264,7 +264,7 @@ export async function emitBlocking(event, message, opts) {
       if(reponse.sig && reponse.certificat) {
         x509VerifierMessage(reponse)
           .then(resultat=>{
-            console.debug("Resultat validation : %O", resultat)
+            // console.debug("Resultat validation : %O", resultat)
             if(resultat === true) {
               // Parse le contenu, conserver original
               let contenu = reponse
@@ -349,7 +349,7 @@ export async function subscribe(nomEventSocketio, cb, params, opts) {
         const message = event.message
         if(message.sig && message.certificat) {
           const resultat = await x509VerifierMessage(message)
-          console.debug("Resultat validation : %O", resultat)
+          // console.debug("Resultat validation : %O", resultat)
           if(resultat === true) {
             // Parse le contenu, conserver original
             let contenu = message
@@ -482,27 +482,24 @@ export function upgradeProteger(data) {
 export async function authentifier(data, opts) {
   opts = opts || {}
 
-  console.debug("reactjs.connexionClient.Authentifier data %O, opts %O", data, opts)
+  // console.debug("reactjs.connexionClient.Authentifier data %O, opts %O", data, opts)
 
   const noCallback = opts.noCallback === true
 
   if(data) {
-      console.debug("!!! UPGRADE ")
       const reponse = await emitBlocking('upgrade', data, {noformat: true})
-      console.debug("!!! Reponse upgrade ", reponse)
       if(reponse.nomUsager && _callbackSetUsager) _callbackSetUsager(reponse.nomUsager)
-      console.debug("!!! Callback done")
       return reponse
   } else {
       // Faire une requete pour upgrader avec le certificat
       const reponse = await emitBlocking('genererChallengeCertificat', null, {kind: MESSAGE_KINDS.KIND_REQUETE})
-      console.debug("reactjs.connexionClient.Authentifier Challenge : ", reponse)
+      // console.debug("reactjs.connexionClient.Authentifier Challenge : ", reponse)
 
       // Repondre pour creer l'upgrade
       const data = {...reponse.challengeCertificat}
-      console.debug("reactjs.connexionClient.Authentifier Upgrade : ", data)
+      // console.debug("reactjs.connexionClient.Authentifier Upgrade : ", data)
       const reponseUpgrade = await emitBlocking('upgrade', data, {kind: MESSAGE_KINDS.KIND_COMMANDE, domaine: 'login', action: 'login', attacherCertificat: true})
-      console.debug("reactjs.connexionClient.Authentifier Reponse upgrade ", reponseUpgrade)
+      // console.debug("reactjs.connexionClient.Authentifier Reponse upgrade ", reponseUpgrade)
       if(!noCallback && reponseUpgrade.nomUsager && _callbackSetUsager) _callbackSetUsager(reponseUpgrade.nomUsager)
       
       return reponseUpgrade
