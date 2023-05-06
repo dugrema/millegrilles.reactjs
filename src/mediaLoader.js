@@ -164,7 +164,7 @@ function thumbnailLoader(processeur, images, opts) {
 function imageLoader(processeur, images, opts) {
 
     const { anime, fuuid, mimetype } = opts
-    console.debug("imageLoader opts", opts)
+    // console.debug("imageLoader opts", opts)
 
     const thumbLoader = thumbnailLoader(processeur, images, opts)
 
@@ -191,7 +191,7 @@ function imageLoader(processeur, images, opts) {
         load: async (optsLoad) => {
             try {
                 optsLoad = optsLoad || {}
-                console.debug("!!! Opts %O, OptsLoad %O", opts, optsLoad)
+                // console.debug("!!! Opts %O, OptsLoad %O", opts, optsLoad)
 
                 const imagePromise = imageLoader.load(optsLoad)
 
@@ -200,7 +200,7 @@ function imageLoader(processeur, images, opts) {
                     const thumbnailPromise = thumbLoader.load(optsLoad)
                     const promises = [thumbnailPromise, imagePromise]
                     const blobFirst = await Promise.any(promises)
-                    console.debug("setterRace set ", blobFirst)
+                    // console.debug("setterRace set ", blobFirst)
                     setterRace(blobFirst)
                 }
 
@@ -218,10 +218,18 @@ function imageLoader(processeur, images, opts) {
 }
 
 /** Prepare un fichier audio pour le streaming. */
-function audioLoader(fuuid) {
+function audioLoader(getUrl, creerTokenJwt, fuuid, mimetype, opts) {
+    opts = opts || {}
+
     return {
-        load: (opts) => {
-            return Promise.resolve()
+        load: async (optsLoader) => {
+            optsLoader = optsLoader || {}
+            const jwt = await creerToken(creerTokenJwt, fuuid, fuuid, mimetype)
+            console.debug("Token cree : ", jwt)
+            const srcAudio = getUrl(fuuid, {jwt})
+            console.debug("URL Audio : ", srcAudio)
+            const url = [{src: srcAudio, mimetype}]
+            return url
         },
         unload: () => {
             return Promise.resolve()
@@ -242,9 +250,22 @@ function videoLoader(fuuid) {
     }
 }
 
+async function creerToken(creerTokenJwt, fuuidFichier, fuuidStream, mimetype) {
+    const fuuids = [fuuidFichier]
+    const commande = {
+        fuuids,
+        fuuidMedia: fuuidStream,
+        mimetype,
+    }
+    const reponse = await creerTokenJwt(commande)
+    
+    console.debug("Reponse tokens JWTs : ", reponse)
+    return reponse.jwts[fuuidStream]
+}
+
 class MediaLoader {
 
-    constructor(urlMapper, getCleSecrete) {
+    constructor(urlMapper, getCleSecrete, creerTokenJwt) {
         // Methode avec parametres (fuuid)
         this.urlMapper = urlMapper
         
@@ -253,6 +274,8 @@ class MediaLoader {
 
         // Methode avec parametres (cle_id)
         this.getCleSecrete = getCleSecrete
+
+        this.creerTokenJwt = creerTokenJwt
     }
 
     async downloader(fuuid, opts) {
@@ -379,6 +402,14 @@ class MediaLoader {
 
         const processeur = optsProcesseur => this.processeur(optsProcesseur)  // Bind this pour le processeur 
         return imageLoader(processeur, images, opts)
+    }
+
+    audioLoader(fuuid, mimetype, opts) {
+        opts = opts || {}
+        if(!fuuid || !mimetype) throw new Error('Fuuid ou mimetype manquant')
+        const getUrl = (fuuid, opts) => this.urlMapper(fuuid, opts)
+        const creerTokenJwt = (...params) => this.creerTokenJwt(...params)
+        return audioLoader(getUrl, creerTokenJwt, fuuid, mimetype, {...opts, cle_id: fuuid})
     }
 
 }
