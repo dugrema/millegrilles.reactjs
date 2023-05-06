@@ -154,20 +154,65 @@ function thumbnailLoader(processeur, images, opts) {
         },
         unload: async () => {
             if(thumbLoader) thumbLoader.unload().catch(err=>console.warn("thumbnailLoader Erreur unload thumbnail ", err))
-            if(smallLoader) smallLoader.unload().catch(err=>console.warn("thumbnailLoader Erreur unload thumbnail ", err))
+            if(smallLoader) smallLoader.unload().catch(err=>console.warn("thumbnailLoader Erreur unload small ", err))
         }
     }
 
 }
 
 /** Download une image chiffree. */
-function imageLoader(fuuid) {
+function imageLoader(processeur, images, opts) {
+
+    const { anime, fuuid, mimetype } = opts
+    console.debug("imageLoader opts", opts)
+
+    const thumbLoader = thumbnailLoader(processeur, images, opts)
+
+    let imageLoader = null
+    if(anime === true && fuuid && mimetype) {
+        const parametres = {...opts, mimetype}
+        imageLoader = fichierDownloader(processeur, fuuid, parametres)
+    } else {
+        // console.debug("Images ", images)
+        const imageMax = Object.values(images).reduce((acc, item)=>{
+            if(!acc.resolution || acc.resolution < item.resolution) return item
+            return acc
+        }, {})
+        
+        // console.debug("Image max : %O", imageMax)
+        if(imageMax) {
+            const { hachage: fuuid, header, mimetype } = imageMax
+            const parametres = {...opts, header, mimetype}
+            imageLoader = fichierDownloader(processeur, fuuid, parametres)
+        }
+    }
+
     return {
-        load: (opts) => {
-            return Promise.resolve()
+        load: async (optsLoad) => {
+            try {
+                optsLoad = optsLoad || {}
+                console.debug("!!! Opts %O, OptsLoad %O", opts, optsLoad)
+
+                const imagePromise = imageLoader.load(optsLoad)
+
+                const setterRace = optsLoad.setFirst || optsLoad.setThumbnail
+                if(setterRace) {
+                    const thumbnailPromise = thumbLoader.load(optsLoad)
+                    const promises = [thumbnailPromise, imagePromise]
+                    const blobFirst = await Promise.any(promises)
+                    console.debug("setterRace set ", blobFirst)
+                    setterRace(blobFirst)
+                }
+
+                return await imagePromise
+            } catch(err) {
+                if(optsLoad.erreurCb) erreurCb(err)
+                else throw err
+            }
         },
-        unload: () => {
-            return Promise.resolve()
+        unload: async () => {
+            thumbLoader.unload().catch(err=>console.error("imageLoader unload thumbnail Erreur : ", err))
+            imageLoader.unload().catch(err=>console.error("imageLoader unload image Erreur : ", err))
         }
     }
 }

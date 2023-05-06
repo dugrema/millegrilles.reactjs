@@ -332,7 +332,8 @@ function PreviewImage(props) {
         const label = anime?'original':null
         if(loadImage) {
             // console.debug("!!! load image anime: %s, imageLoader: %O, loadImage: %s", anime, imageLoader, loadImage)
-            imageLoader.load(label, setSrcImage, {erreurCb: setErr})
+            // imageLoader.load(label, setSrcImage, {erreurCb: setErr})
+            imageLoader.load({setFirst: setSrcImage, erreurCb: setErr})
                 .then(src=>{
                     setSrcLocal(src)
                     if(!anime) {
