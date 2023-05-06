@@ -68,6 +68,7 @@ function fichierDownloader(processeur, fuuid, opts) {
 
         },
         unload: async () => {
+            // console.trace("Unload ", opts)
             if(controller) {
                 controller.abort()
                 controller = null
@@ -90,6 +91,73 @@ function fichierDownloader(processeur, fuuid, opts) {
             }
         }
     }
+}
+
+/** Charger des thumbnails avec fallbacks. */
+function thumbnailLoader(processeur, images, opts) {
+    opts = opts || {}
+
+    // Charger thumb et small si disponible.
+    const { thumb, small } = images
+
+    // console.debug("ThumthumbnailLoader preparer loaders images:%O, opts:%O", images, opts)
+
+    // Preparer loaders en reutilisant fichierDownloader -> {load, unload}
+    let thumbLoader = null, smallLoader = null
+    if(thumb) {
+        const { data, data_chiffre, header, mimetype } = thumb
+        const parametres = {...opts, data, data_chiffre, header, mimetype}
+        // console.debug("thumbnailLoader Parametres thumb ", parametres)
+        thumbLoader = fichierDownloader(processeur, null, parametres)
+    }
+    if(small) {
+        const { hachage: fuuid, header, mimetype } = small
+        const parametres = {...opts, header, mimetype}
+        // console.debug("thumbnailLoader Parametres small %s : %O ", fuuid, parametres)
+        smallLoader = fichierDownloader(processeur, fuuid, parametres)
+    }
+
+    return {
+        load: async (optsLoad) => {
+            optsLoad = optsLoad || {}
+
+            const { thumb_only } = optsLoad
+
+            const promises = []
+            let thumbPromise = null,
+                smallPromise = null
+            if(thumbLoader) {
+                thumbPromise = thumbLoader.load(optsLoad)
+                promises.push(thumbPromise)
+            }
+            if(smallLoader && !thumb_only) {
+                smallPromise = smallLoader.load(optsLoad)
+                promises.push(smallPromise)
+            }
+
+            try {
+                // Attendre le premier blob qui est pret
+                const blobPret = await Promise.any(promises)
+                if(optsLoad.setFirst) optsLoad.setFirst(blobPret)
+            } catch(err) {
+                console.warn("thumbnailLoader Erreur chargement images ", err)
+            }
+
+            try {
+                if(smallPromise) return await smallPromise
+            } catch(err) {
+                console.warn("thumbnailLoader Erreur chargement small ", err)
+            }
+
+            // Fallback sur thumbnail
+            return await thumbPromise
+        },
+        unload: async () => {
+            if(thumbLoader) thumbLoader.unload().catch(err=>console.warn("thumbnailLoader Erreur unload thumbnail ", err))
+            if(smallLoader) smallLoader.unload().catch(err=>console.warn("thumbnailLoader Erreur unload thumbnail ", err))
+        }
+    }
+
 }
 
 /** Download une image chiffree. */
@@ -158,7 +226,7 @@ class MediaLoader {
             responseType: 'arraybuffer',
             timeout: CONST_TIMEOUT_DOWNLOAD,
             progress,
-            // signal,  // Bug sur iOS
+            // signal,  // Bug sur dev - react useEffect() calle 2 fois
         })
 
         return Buffer.from(reponse.data)
@@ -183,10 +251,15 @@ class MediaLoader {
         opts = opts || {}
         const { fuuid, data_chiffre, mimetype } = opts
 
-        let data = null,
+        let data = opts.data,
             header = opts.header
 
-        if(data_chiffre) {
+        if(data) {
+            // On a le data direct (e.g. thumbnail)
+            const dataAb = base64.decode(data)
+            const blob = new Blob([dataAb], {type: mimetype})
+            return URL.createObjectURL(blob)
+        } else if(data_chiffre) {
             if(typeof(data_chiffre) !== 'string') throw new Error('data_chiffre - doit etre string multibase en base64')
             data = base64.decode(data_chiffre)
         } else if(fuuid) {
@@ -211,6 +284,8 @@ class MediaLoader {
             throw new Error("MediaLoader.processeur Il faut fournir cle_secrete/header, cle_id ou fuuid")
         }
 
+        // console.debug("processeur Dechiffrer data %O, cle_secrete: %O, header: %O, mimetype: %O", data, cle_secrete, header, mimetype)
+
         return this.dechiffrer(data, cle_secrete, header, mimetype)
     }
 
@@ -221,9 +296,46 @@ class MediaLoader {
      */
     fichierLoader(fuuid, opts) {
         opts = opts || {}
-        const processeur = optsProcesseur => this.processeur(optsProcesseur)
+        const processeur = optsProcesseur => this.processeur(optsProcesseur)  // Bind this pour le processeur 
         return fichierDownloader(processeur, fuuid, opts)
     }
+
+    thumbnailLoader(images, opts) {
+        opts = opts || {}
+        if(!images) throw new Error("MediaLoader.thumbnailLoader Aucunes images fournies")
+
+        if(opts.cle_secrete) {
+            // OK
+        } else if(opts.cle_id) {
+            // OK
+        } else {
+            throw new Error("MediaLoader.thumbnailLoader Il faut fournir cle_secrete ou cle_id")
+        }
+
+        if(Object.keys(images) === 0) throw new Error('MediaLoader.thumbnailLoader Dict images est vide')
+
+        const processeur = optsProcesseur => this.processeur(optsProcesseur)  // Bind this pour le processeur 
+        return thumbnailLoader(processeur, images, opts)
+    }
+
+    imageLoader(images, opts) {
+        opts = opts || {}
+        if(!images) throw new Error("MediaLoader.imageLoader Aucunes images fournies")
+
+        if(opts.cle_secrete) {
+            // OK
+        } else if(opts.cle_id) {
+            // OK
+        } else {
+            throw new Error("MediaLoader.imageLoader Il faut fournir cle_secrete ou cle_id")
+        }
+
+        if(Object.keys(images) === 0) throw new Error('MediaLoader.imageLoader Dict images est vide')
+
+        const processeur = optsProcesseur => this.processeur(optsProcesseur)  // Bind this pour le processeur 
+        return imageLoader(processeur, images, opts)
+    }
+
 }
 
 export default MediaLoader

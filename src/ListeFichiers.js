@@ -542,7 +542,7 @@ function ListeFichiersRow(props) {
     // Thumbnails
     const thumbnail = data.thumbnail || {},
           {thumbnailIcon, thumbnailSrc} = thumbnail
-    const thumbnailLoader = data.imageLoader
+    const thumbnailLoader = data.thumbnailLoader
 
     return (
         <Row 
@@ -666,9 +666,10 @@ function FichierThumbnail(props) {
     const thumbnail = data.thumbnail || {},
           { thumbnailIcon, thumbnailSrc, thumbnailCaption } = thumbnail
 
-    const imageLoader = useMemo(()=>{
+    const thumbnailLoader = useMemo(()=>{
         if(!data) return
-        return data.imageLoader
+        // return data.imageLoader
+        return data.thumbnailLoader
     }, [data])
 
     const className = useMemo( () => {
@@ -735,7 +736,7 @@ function FichierThumbnail(props) {
             // onTouchEnd={onTouchEndAction}
             // onContextMenu={onContextMenuAction}
             src={thumbnailSrc}
-            loader={imageLoader}
+            loader={thumbnailLoader}
             placeholder={thumbnailIcon}
             className={className}
             small={small}
