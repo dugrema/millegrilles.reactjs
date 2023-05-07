@@ -210,7 +210,7 @@ function imageLoader(processeur, images, opts) {
 
                 return await imagePromise
             } catch(err) {
-                if(optsLoad.erreurCb) erreurCb(err)
+                if(optsLoad.erreurCb) optsLoad.erreurCb(err)
                 else throw err
             }
         },
