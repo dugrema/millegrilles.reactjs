@@ -169,7 +169,7 @@ function imageLoader(processeur, images, opts) {
     const thumbLoader = thumbnailLoader(processeur, images, opts)
 
     let imageLoader = null
-    if(anime === true && fuuid && mimetype) {
+    if(anime === true && fuuid && mimetype && !mimetype.startsWith('video/')) {
         const parametres = {...opts, mimetype}
         imageLoader = fichierDownloader(processeur, fuuid, parametres)
     } else {
@@ -231,31 +231,110 @@ function audioLoader(getUrl, creerTokenJwt, fuuid, mimetype, opts) {
             const url = [{src: srcAudio, mimetype}]
             return url
         },
-        unload: () => {
-            return Promise.resolve()
-        }
+        unload: async () => { }
     }
 }
 
 /** Prepare un video pour streaming et son poster (image). 
  *  Combine le comportement image (download blob) et audio (streaming). */
-function videoLoader(fuuid) {
+function videoLoader(getUrl, creerTokenJwt, videos, opts) {
+
+    const { fuuid, cle_id, mimetype } = opts
+    const supportMedia = opts.supportMedia || []
+
+    const fuuidOriginal = fuuid || cle_id
+    // let fuuidStreamSelectionne = null,
+    //     videoSelectionne = null
+
+    // Determiner video a charger
+    // if(videos && (fuuid || cle_id) && fuuidStream) {
+    //     // Ok, video selectionne
+    //     fuuidStreamSelectionne = fuuidMedia
+    //     videoSelectionne = Object.values(item=>item.hachage === fuuidStream).pop()
+    // } else 
+    if(fuuid && mimetype) {
+        // Ok, original
+        // fuuidStreamSelectionne = fuuid
+        // videoSelectionne = {
+        //     mimetype: mimetype,
+        // }
+    } else {
+        throw new Error('MediaLoader.videoLoader Il faut fournir opts.fuuid/opts.cle_id et opts.mimetype')
+    }
+
+    const selecteursVideo = determinerSelecteursVideos(videos, {fuuid: fuuidOriginal, mimetype, supportMedia})
+    console.debug("Selecteurs video : %O (videos %O)", selecteursVideo, videos)
+
     return {
-        load: (opts) => {
-            return Promise.resolve()
+        load: async (optsLoader) => {
+            optsLoader = optsLoader || {}
+            console.debug("Video load opts %O optsLoader %O", opts, optsLoader)
+            const { selecteur } = optsLoader
+            // let fuuidStreamSelectionne = fuuid,
+            //     mimetypeSelectionne = mimetype
+
+            let selection = null
+            let videoSelectionne = null
+            // Choisir avec selecteur si possible
+            if(selecteur) {
+                selection = selecteursVideo[selecteur]
+                console.debug("Selecteur %s => %O", selecteur, selection)
+                if(selection) {
+                    // Filtrer la selection par type de media
+                    // Selectionner webp de preference, hvc1 si supporte sinon h264
+                    if(selecteur === 'original') {
+                        videoSelectionne = selection.pop()
+                    } else {
+                        if(supportMedia.includes('webm')) {
+                            videoSelectionne = selection.filter(item=>item.codec === 'webm').pop()
+                        }
+                        if(!videoSelectionne && supportMedia.includes('hvc1')) {
+                            videoSelectionne = selection.filter(item=>item.codec === 'hvc1').pop()
+                        }
+                        if(!videoSelectionne) {
+                            videoSelectionne = selection.filter(item=>item.codec === 'h264').pop()
+                        }
+                    }
+                    if(!videoSelectionne) console.warn('Aucun format video disponible pour selecteur ', selecteur)
+                }
+            } 
+            if(!videoSelectionne) {
+                // Utiliser fallback, et si absent utiliser original
+                if(!selection) selection = selecteursVideo.fallback
+                if(!selection) selection = selecteursVideo.original
+                videoSelectionne = selection[0]
+            }
+
+            console.debug("Video selectionne ", videoSelectionne)
+
+            // Creer token JWT et url d'acces
+            const fuuidStream = videoSelectionne.fuuid_video,
+                  mimetypeStream = videoSelectionne.mimetype || mimetype,
+                  codec = videoSelectionne.codec,
+                  dechiffrage = {header: videoSelectionne.header, format: videoSelectionne.format}
+            const jwt = await creerToken(creerTokenJwt, fuuidOriginal, fuuidStream, mimetypeStream, {dechiffrage})
+            console.debug("Token cree : ", jwt)
+            const srcVideo = getUrl(fuuidStream, {jwt})
+            console.debug("URL Video : ", srcVideo)
+            const url = {src: srcVideo, mimetype: mimetypeStream, codec}
+
+            return url
         },
-        unload: () => {
-            return Promise.resolve()
-        }
+        unload: async () => { },
+        getSelecteurs: () => selecteursVideo,
     }
 }
 
-async function creerToken(creerTokenJwt, fuuidFichier, fuuidStream, mimetype) {
+async function creerToken(creerTokenJwt, fuuidFichier, fuuidStream, mimetype, opts) {
+    opts = opts ||{}
+    const dechiffrageVideo = opts.dechiffrage
+
     const fuuids = [fuuidFichier]
     const commande = {
         fuuids,
-        fuuidMedia: fuuidStream,
+        fuuidStream,
         mimetype,
+        dechiffrageVideo,
     }
     const reponse = await creerTokenJwt(commande)
     
@@ -263,18 +342,81 @@ async function creerToken(creerTokenJwt, fuuidFichier, fuuidStream, mimetype) {
     return reponse.jwts[fuuidStream]
 }
 
+/** Genere la liste de selecteurs pour les videos */
+export function determinerSelecteursVideos(videos, opts) {
+    opts = opts || {}
+
+    // Information original (optionnel)
+    const { fuuid, mimetype, height, width, codec } = opts
+
+    const buckets = {}
+    if(fuuid && mimetype) {
+        buckets.original = [{fuuid, fuuid_video: fuuid, width, height, codec}]
+    }
+
+    for(const key of Object.keys(videos)) {
+        const video = videos[key]
+        const { codec, fuuid_video, width, height, mimetype, quality } = video
+        let resolution = video.resolution || Math.min(width, height)
+
+        const infoVideo = {
+            fuuid,
+            fuuid_video,
+            width,
+            height,
+            mimetype,
+            resolution,
+            codec,
+            header: video.header,
+            format: video.format,
+        }
+        console.debug("InfoVideo %O (video elem %O)", infoVideo, key)
+
+        // Ajouter key original pour selection individuelle
+        const cle = `${resolution};${mimetype};${codec};${quality}`
+        buckets[cle] = [infoVideo]
+
+        // Calculer bucket resolution
+        let resolutionTag = null
+        if(resolution >= 1080) resolutionTag = '1080'
+        else if(resolution < 1080 && resolution >= 720) resolutionTag = '0720'
+        else if(resolution < 720 && resolution >= 480) resolutionTag = '0480'
+        else if(resolution < 480 && resolution >= 360) resolutionTag = '0360'
+        else if(resolution < 360) resolutionTag = '0270'
+        
+        // Inserer label (selecteur) pour le tag
+        if(resolutionTag) {
+            let liste = buckets[resolutionTag]
+            if(!liste) {
+                liste = []
+                buckets[resolutionTag] = liste
+            }
+            liste.push(infoVideo)
+        }
+
+        if(codec === 'h264' && resolution <= 360) {
+            let liste = buckets['fallback']
+            if(!liste) {
+                liste = []
+                buckets['fallback'] = liste
+            }
+            liste.push(infoVideo)
+        }
+    }
+
+    return buckets
+}
+
 class MediaLoader {
 
     constructor(urlMapper, getCleSecrete, creerTokenJwt) {
-        // Methode avec parametres (fuuid)
+        // Methode avec parametre (fuuid: str, {jwt: str})
         this.urlMapper = urlMapper
         
-        // Methode avec parametres (data, opts: {mimetype, cle_id, header, cle_secrete}) -> Promise(Blob)
-        // Data peut etre string (multibase), Buffer, ArrayBuffer/View, Blob
-
-        // Methode avec parametres (cle_id)
+        // Methode avec parametre (cle_id: str)
         this.getCleSecrete = getCleSecrete
 
+        // Methode avec parametre ({fuuids: [str], fuuidMedia: str, mimetype: str})
         this.creerTokenJwt = creerTokenJwt
     }
 
@@ -407,9 +549,27 @@ class MediaLoader {
     audioLoader(fuuid, mimetype, opts) {
         opts = opts || {}
         if(!fuuid || !mimetype) throw new Error('Fuuid ou mimetype manquant')
-        const getUrl = (fuuid, opts) => this.urlMapper(fuuid, opts)
+        const getUrl = (...params) => this.urlMapper(...params)
         const creerTokenJwt = (...params) => this.creerTokenJwt(...params)
         return audioLoader(getUrl, creerTokenJwt, fuuid, mimetype, {...opts, cle_id: fuuid})
+    }
+
+    videoLoader(videos, opts) {
+        opts = opts || {}
+        const { fuuid, cle_id, mimetype } = opts
+
+        // if(videos && (fuuid || cle_id) && fuuidMedia) {
+        //     // Ok, video selectionne
+        // } else 
+        if(fuuid && mimetype) {
+            // Ok, original
+        } else {
+            throw new Error("MediaLoader.videoLoader Il faut fournir cle_id/videos/fuuidMedia ou fuuid/mimetype")
+        }
+
+        const getUrl = (...params) => this.urlMapper(...params)
+        const creerTokenJwt = (...params) => this.creerTokenJwt(...params)
+        return videoLoader(getUrl, creerTokenJwt, videos, opts)
     }
 
 }

@@ -3,64 +3,71 @@ import React, {useEffect, useState, useMemo, useCallback} from 'react'
 
 function VideoViewer(props) {
     const {
-        src, 
+        // src, 
         poster,
-        videos,
+        // videos,
+        // selecteur,
+        // selecteurs,
+        srcVideo,
         className,
-        selecteur,
         timeStamp,
         // Evenements
         onTimeUpdate, onProgress, onPlay, onError, onWaiting, onCanPlay, onAbort, onEmptied,
     } = props
 
     const width = props.width || '100%',
-          height = props.height || '100%',
-          codecVideo = props.codecVideo || '',
-          mimetype = props.mimetype || ''
+          height = props.height || '100%'  //,
+          // codecVideo = props.codecVideo || '',
+          // mimetype = props.mimetype || ''
           
     const [timeStampEffectif, setTimeStampEffectif] = useState(0)
     const [actif, setActif] = useState(true)
     const [playbackCommence, setPlaybackCommence] = useState(false)
 
     let sources = useMemo(()=>{
-        if(!videos) return []
+        if(!srcVideo) return []
 
+        console.debug("srcVideo ", srcVideo)
+
+        const mimetype = srcVideo.mimetype
         let mimetypeCodec = mimetype
-        if(codecVideo) {
-            mimetypeCodec = mimetype + `;codecs="${codecVideo}"`
+        if(srcVideo.codec) {
+            mimetypeCodec = mapperCodec(mimetype, srcVideo.codec)
         }
+
+        let srcHref = srcVideo.src
+        if(timeStampEffectif) {
+            srcHref = srcHref + '#t=' + timeStampEffectif
+            setPlaybackCommence(true)
+        }
+        return [<source key={mimetypeCodec} src={srcHref} type={mimetypeCodec} />]
+
+        // let mimetypeCodec = mimetype
+        // if(codecVideo) {
+        //     mimetypeCodec = mimetype + `;codecs="${codecVideo}"`
+        // }
     
-        const sources = videos.map(item=>{
-            const {src, mimetype, codecVideo} = item
-            let mimetypeCodec = mapperCodec(mimetype, codecVideo)
-            let srcHref = src
+        // const sources = videos.map(item=>{
+        //     const {src, mimetype, codecVideo} = item
+        //     let mimetypeCodec = mapperCodec(mimetype, codecVideo)
+        //     let srcHref = src
 
-            if(timeStampEffectif) {
-                srcHref = srcHref + '#t=' + timeStampEffectif
-                // console.debug("Href video avec ts : %s", srcHref)
-                setPlaybackCommence(true)
-            }
+        //     if(timeStampEffectif) {
+        //         srcHref = srcHref + '#t=' + timeStampEffectif
+        //         // console.debug("Href video avec ts : %s", srcHref)
+        //         setPlaybackCommence(true)
+        //     }
 
-            return <source key={src} src={srcHref} type={mimetypeCodec} />
-        })
+        //     return <source key={src} src={srcHref} type={mimetypeCodec} />
+        // })
 
-        if(src) {
-            let mimetypeCodec = mapperCodec(mimetype, codecVideo)
-            sources.push(<source key="base" src={src} type={mimetypeCodec} />)
-        }
+        // if(src) {
+        //     let mimetypeCodec = mapperCodec(mimetype, codecVideo)
+        //     sources.push(<source key="base" src={src} type={mimetypeCodec} />)
+        // }
 
-        return sources
-    }, [src, timeStampEffectif, videos, codecVideo, mimetype, setPlaybackCommence])
-
-    // return (
-    //     <ReactPlayer 
-    //         className={className}
-    //         url={src} 
-    //         width={width} 
-    //         height={height} 
-    //         controls={true} 
-    //         />
-    // )
+        // return sources
+    }, [/*src, videos, codecVideo, mimetype, */ srcVideo, timeStampEffectif, setPlaybackCommence])
 
     const playbackCommenceHandler = useCallback(event=>{
         setPlaybackCommence(true)
@@ -72,7 +79,7 @@ function VideoViewer(props) {
         setPlaybackCommence(false)
         setActif(false)
         setTimeStampEffectif(0)
-    }, [selecteur, setActif, setPlaybackCommence])
+    }, [/*selecteur, */ srcVideo, setActif, setPlaybackCommence])
 
     useEffect(()=>{
         if(playbackCommence) return  // Ignorer changements au video si le playback est commence
@@ -81,7 +88,7 @@ function VideoViewer(props) {
         // console.debug("Changement videos : src : %O, videos : %O", src, videos)
         setActif(false)
         setTimeStampEffectif(timeStamp)
-    }, [src, timeStamp, playbackCommence, videos, sources, setActif])
+    }, [/* src, videos, sources, */ timeStamp, playbackCommence, setActif])
 
     useEffect(()=>{
         if(!actif) setActif(true)
