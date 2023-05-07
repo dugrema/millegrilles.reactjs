@@ -242,6 +242,8 @@ function audioLoader(getUrl, creerTokenJwt, fuuid, mimetype, opts) {
 /** Prepare un video pour streaming et son poster (image). 
  *  Combine le comportement image (download blob) et audio (streaming). */
 function videoLoader(getUrl, creerTokenJwt, videos, opts) {
+    if(!getUrl) throw new Error('videoLoader Erreur - getUrl est null')
+    if(!creerTokenJwt) throw new Error('videoLoader Erreur - creerTokenJwt est null')
 
     const { fuuid, cle_id, mimetype } = opts
 
@@ -301,7 +303,8 @@ function videoLoader(getUrl, creerTokenJwt, videos, opts) {
                     }
                 }
                 if(!videoSelectionne) console.warn('Aucun format video disponible pour selecteur ', selecteur)
-            } 
+            }
+
             if(!videoSelectionne) {
                 // Utiliser fallback, et si absent utiliser original
                 if(!selection) selection = selecteursVideo.fallback
@@ -309,20 +312,31 @@ function videoLoader(getUrl, creerTokenJwt, videos, opts) {
                 videoSelectionne = selection[0]
             }
 
-            // console.debug("Video selectionne ", videoSelectionne)
+            console.debug("videoLoader Video selectionne ", videoSelectionne)
 
             // Creer token JWT et url d'acces
             const fuuidStream = videoSelectionne.fuuid_video,
                   mimetypeStream = videoSelectionne.mimetype || mimetype,
                   codec = videoSelectionne.codec,
                   dechiffrage = {header: videoSelectionne.header, format: videoSelectionne.format}
-            const jwt = await creerToken(creerTokenJwt, fuuidOriginal, fuuidStream, mimetypeStream, {dechiffrage})
-            // console.debug("Token cree : ", jwt)
-            const srcVideo = getUrl(fuuidStream, {jwt})
-            console.debug("URL Video : ", srcVideo)
-            const url = {src: srcVideo, mimetype: mimetypeStream, codec}
 
-            return url
+            // console.debug("videoLoader Creer token : fuuidStream %O, mimetypeStream : %O, codec : %O, dechiffrage : %O", 
+            //     fuuidStream, mimetypeStream, codec, dechiffrage)
+
+            try {
+                const jwt = await creerToken(creerTokenJwt, fuuidOriginal, fuuidStream, mimetypeStream, {dechiffrage})
+                // console.debug("videoLoader Token cree : ", jwt)
+
+                const srcVideo = getUrl(fuuidStream, {jwt})
+                // console.debug("videoLoader URL Video : ", srcVideo)
+
+                const url = {src: srcVideo, mimetype: mimetypeStream, codec}
+
+                return url
+            } catch(err) {
+                console.error("MediaLoader.videoLoader Erreur creerToken/getUrl : ", err)
+                throw err
+            }
         },
         unload: async () => { },
         getSelecteurs: () => selecteursVideo,
@@ -340,10 +354,15 @@ async function creerToken(creerTokenJwt, fuuidFichier, fuuidStream, mimetype, op
         mimetype,
         dechiffrageVideo,
     }
-    const reponse = await creerTokenJwt(commande)
-    
-    console.debug("Reponse tokens JWTs : ", reponse)
-    return reponse.jwts[fuuidStream]
+
+    try {
+        const reponse = await creerTokenJwt(commande)
+        // console.debug("Reponse tokens JWTs : ", reponse)
+        return reponse.jwts[fuuidStream]
+    } catch(err) {
+        console.error("mediaLoader.creerToken Erreur ", err)
+        throw err
+    }
 }
 
 /** Genere la liste de selecteurs pour les videos */
