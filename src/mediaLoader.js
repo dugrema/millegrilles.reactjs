@@ -3,8 +3,12 @@ import { base64 } from 'multiformats/bases/base64'
 import axios from 'axios'
 import { chiffrage } from './chiffrage'
 
+import { detecterFormatsVideos } from './detecterAppareils'
+
 const CONST_TIMEOUT_THUMBNAIL_BLOB = 90_000,
       CONST_TIMEOUT_DOWNLOAD = 300_000
+
+const FORMATS_VIDEOS = detecterFormatsVideos()
 
 /** Loader/unloader pour blob encode en multibase base64*/
 function blobPromiseLoader(data, mimetype) {
@@ -225,9 +229,9 @@ function audioLoader(getUrl, creerTokenJwt, fuuid, mimetype, opts) {
         load: async (optsLoader) => {
             optsLoader = optsLoader || {}
             const jwt = await creerToken(creerTokenJwt, fuuid, fuuid, mimetype)
-            console.debug("Token cree : ", jwt)
+            // console.debug("Token cree : ", jwt)
             const srcAudio = getUrl(fuuid, {jwt})
-            console.debug("URL Audio : ", srcAudio)
+            // console.debug("URL Audio : ", srcAudio)
             const url = [{src: srcAudio, mimetype}]
             return url
         },
@@ -240,7 +244,9 @@ function audioLoader(getUrl, creerTokenJwt, fuuid, mimetype, opts) {
 function videoLoader(getUrl, creerTokenJwt, videos, opts) {
 
     const { fuuid, cle_id, mimetype } = opts
-    const supportMedia = opts.supportMedia || []
+
+    const supportMedia = opts.supportMedia || FORMATS_VIDEOS
+    console.debug("Formats videos supportes : ", supportMedia)
 
     const fuuidOriginal = fuuid || cle_id
     // let fuuidStreamSelectionne = null,
@@ -268,35 +274,33 @@ function videoLoader(getUrl, creerTokenJwt, videos, opts) {
     return {
         load: async (optsLoader) => {
             optsLoader = optsLoader || {}
-            console.debug("Video load opts %O optsLoader %O", opts, optsLoader)
+            // console.debug("Video load opts %O optsLoader %O, supportMedia %O", opts, optsLoader, supportMedia)
             const { selecteur } = optsLoader
-            // let fuuidStreamSelectionne = fuuid,
-            //     mimetypeSelectionne = mimetype
 
             let selection = null
             let videoSelectionne = null
             // Choisir avec selecteur si possible
             if(selecteur) {
                 selection = selecteursVideo[selecteur]
-                console.debug("Selecteur %s => %O", selecteur, selection)
-                if(selection) {
-                    // Filtrer la selection par type de media
-                    // Selectionner webp de preference, hvc1 si supporte sinon h264
-                    if(selecteur === 'original') {
-                        videoSelectionne = selection.pop()
-                    } else {
-                        if(supportMedia.includes('webm')) {
-                            videoSelectionne = selection.filter(item=>item.codec === 'webm').pop()
-                        }
-                        if(!videoSelectionne && supportMedia.includes('hvc1')) {
-                            videoSelectionne = selection.filter(item=>item.codec === 'hvc1').pop()
-                        }
-                        if(!videoSelectionne) {
-                            videoSelectionne = selection.filter(item=>item.codec === 'h264').pop()
-                        }
+                // console.debug("Selecteur %s => %O", selecteur, selection)
+
+                // Filtrer la selection par type de media
+                // Selectionner webp de preference, hvc1 si supporte sinon h264
+                if(selecteur === 'original') {
+                    videoSelectionne = selection.pop()
+                } else {
+                    if(!videoSelectionne && supportMedia.hvc1 === true) {
+                        // Note : iOS nomme le codec hvc1, ffmpeg (convertisseur) utilise hevc comme terme
+                        videoSelectionne = selection.filter(item=>item.codec === 'hevc').pop()
                     }
-                    if(!videoSelectionne) console.warn('Aucun format video disponible pour selecteur ', selecteur)
+                    if(!videoSelectionne && supportMedia.webm === true && supportMedia.vp9 === true) {
+                        videoSelectionne = selection.filter(item=>item.codec === 'vp9').pop()
+                    }
+                    if(!videoSelectionne) {
+                        videoSelectionne = selection.filter(item=>item.codec === 'h264').pop()
+                    }
                 }
+                if(!videoSelectionne) console.warn('Aucun format video disponible pour selecteur ', selecteur)
             } 
             if(!videoSelectionne) {
                 // Utiliser fallback, et si absent utiliser original
@@ -305,7 +309,7 @@ function videoLoader(getUrl, creerTokenJwt, videos, opts) {
                 videoSelectionne = selection[0]
             }
 
-            console.debug("Video selectionne ", videoSelectionne)
+            // console.debug("Video selectionne ", videoSelectionne)
 
             // Creer token JWT et url d'acces
             const fuuidStream = videoSelectionne.fuuid_video,
@@ -313,7 +317,7 @@ function videoLoader(getUrl, creerTokenJwt, videos, opts) {
                   codec = videoSelectionne.codec,
                   dechiffrage = {header: videoSelectionne.header, format: videoSelectionne.format}
             const jwt = await creerToken(creerTokenJwt, fuuidOriginal, fuuidStream, mimetypeStream, {dechiffrage})
-            console.debug("Token cree : ", jwt)
+            // console.debug("Token cree : ", jwt)
             const srcVideo = getUrl(fuuidStream, {jwt})
             console.debug("URL Video : ", srcVideo)
             const url = {src: srcVideo, mimetype: mimetypeStream, codec}

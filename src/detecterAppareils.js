@@ -90,6 +90,27 @@ export function supporteFormatWebm() {
   return canPlayType==='probably'?true:false
 }
 
+// Source : https://davidwalsh.name/detect-supported-video-formats-javascript
+const VIDEO_FORMATS = {
+  // ogg: 'video/ogg; codecs="theora"',
+  h264: 'video/mp4; codecs="avc1.42E01E"',
+  webm: 'video/webm; codecs="vp8, vorbis"',
+  vp9: 'video/webm; codecs="vp9"',
+  // hls: 'application/x-mpegURL; codecs="avc1.42E01E"',
+  // hevc: 'video/mp4; codecs="hevc"',
+  hvc1: 'video/mp4; codecs="hvc1"'
+}
+
+export function detecterFormatsVideos() {
+  const video = document.createElement('video');
+  const formatsSupportes = Object.keys(VIDEO_FORMATS).reduce((acc, type)=>{
+    const supporte = video.canPlayType(VIDEO_FORMATS[type])
+    acc[type] = supporte==='probably'?true:false
+    return acc
+  }, {})
+  return formatsSupportes
+}
+
 export function supporteFileStream() {
   /* Detecte si file.stream() et blob.stream() fonctionnent */
   const blobStream = Blob.prototype.stream?true:false
