@@ -324,6 +324,11 @@ function PreviewImage(props) {
         }
     }, [show, srcLocal, anime, setDownloadSrc, setSrcImage])
 
+    const erreurCb = useCallback(err=>{
+        console.error("ModalViewer Erreur ", err)
+        setErr(err)
+    }, [setErr])
+
     // Load / unload
     useEffect(()=>{
         // console.debug("!!!PreviewImage loadImage : %O", loadImage)
@@ -333,7 +338,7 @@ function PreviewImage(props) {
         if(loadImage) {
             // console.debug("!!! load image anime: %s, imageLoader: %O, loadImage: %s", anime, imageLoader, loadImage)
             // imageLoader.load(label, setSrcImage, {erreurCb: setErr})
-            imageLoader.load({setFirst: setSrcImage, erreurCb: setErr})
+            imageLoader.load({setFirst: setSrcImage, erreurCb})
                 .then(src=>{
                     setSrcLocal(src)
                     if(!anime) {
