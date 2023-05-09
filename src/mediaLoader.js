@@ -248,7 +248,7 @@ function videoLoader(getUrl, creerTokenJwt, videos, opts) {
     const { fuuid, cle_id, mimetype } = opts
 
     const supportMedia = opts.supportMedia || FORMATS_VIDEOS
-    console.debug("Formats videos supportes : ", supportMedia)
+    // console.debug("Formats videos supportes : ", supportMedia)
 
     const fuuidOriginal = fuuid || cle_id
     // let fuuidStreamSelectionne = null,
@@ -271,7 +271,7 @@ function videoLoader(getUrl, creerTokenJwt, videos, opts) {
     }
 
     const selecteursVideo = determinerSelecteursVideos(videos, {fuuid: fuuidOriginal, mimetype, supportMedia})
-    console.debug("Selecteurs video : %O (videos %O)", selecteursVideo, videos)
+    // console.debug("Selecteurs video : %O (videos %O)", selecteursVideo, videos)
 
     return {
         load: async (optsLoader) => {
@@ -312,7 +312,7 @@ function videoLoader(getUrl, creerTokenJwt, videos, opts) {
                 videoSelectionne = selection[0]
             }
 
-            console.debug("videoLoader Video selectionne ", videoSelectionne)
+            // console.debug("videoLoader Video selectionne ", videoSelectionne)
 
             // Creer token JWT et url d'acces
             const fuuidStream = videoSelectionne.fuuid_video,
@@ -393,7 +393,7 @@ export function determinerSelecteursVideos(videos, opts) {
             header: video.header,
             format: video.format,
         }
-        console.debug("InfoVideo %O (video elem %O)", infoVideo, key)
+        // console.debug("InfoVideo %O (video elem %O)", infoVideo, key)
 
         // Ajouter key original pour selection individuelle
         const cle = `${resolution};${mimetype};${codec};${quality}`
