@@ -380,8 +380,17 @@ export async function chiffrerSecret(secrets, pemRechiffrage, opts) {
   return {cles: secretsRechiffres, partition}
 }
 
-export function dechiffrerCleSecrete(cleSecreteChiffree) {
-  return ed25519Utils.dechiffrerCle(cleSecreteChiffree, _clePrivee)
+export function dechiffrerCleSecrete(cleSecreteChiffree, opts) {
+  opts = opts || {}
+  let cle = _clePrivee
+  if(opts.cleMillegrille) cle = _cleMillegrille
+  if(!cle) throw new Error("Cle privee n'est pas chargee")
+  return ed25519Utils.dechiffrerCle(cleSecreteChiffree, cle)
+}
+
+export function chiffrerCleSecrete(cleSecrete, clePublique, opts) {
+  opts = opts || {}
+  return ed25519Utils.chiffrerCle(cleSecrete, clePublique, opts)
 }
 
 export function hacherCertificat(pem) {
