@@ -226,22 +226,34 @@ export async function rechiffrerAvecCleMillegrille(
     throw new Error("Cle de MilleGrille non chargee")
   }
 
-  const fingerprintsClepub = []
-  for await (const pemChain of pemRechiffrage) {
-    const forgeCert = forgePki.certificateFromPem(pemChain)
-    const publicKey = forgeCert.publicKey.publicKeyBytes
-    const fingerprintMaitredescles = await _hacherCertificat(forgeCert)
-    fingerprintsClepub.push({
-      partition: fingerprintMaitredescles,
-      publicKey,
-    })
-  }
+  // const fingerprintsClepub = []
+  // let cleSecreteSymmetrique = null
+  // for await (const pemChain of pemRechiffrage) {
+  //   const forgeCert = forgePki.certificateFromPem(pemChain)
+  //   const publicKey = forgeCert.publicKey.publicKeyBytes
+  //   const fingerprintMaitredescles = await _hacherCertificat(forgeCert)
 
-  // const certificat = forgePki.certificateFromPem(pemRechiffrage),
-  //       publicKey = certificat.publicKey.publicKeyBytes,
-  //       fingerprintMaitredescles = await _hacherCertificat(certificat)
+  //   let cleChiffree = null
+  //   if(!cleSecreteSymmetrique) {
+  //     // Generer une nouvelle cle secrete
+  //     const cleGeneree = await ed25519Utils.genererCleSecrete(publicKey)
+  //     cleSecreteSymmetrique = cleGeneree.cle
+  //     cleChiffree = cleGeneree.peer
+  //   } else {
+  //     const cleGeneree = await ed25519Utils.chiffrerCle(cleSecreteSymmetrique, publicKey)
+  //     cleChiffree = cleGeneree
+  //   }
 
-  if(DEBUG) console.debug("Rechiffrer cles avec certs %O", fingerprintsClepub)
+  //   fingerprintsClepub.push({
+  //     partition: fingerprintMaitredescles,
+  //     publicKey,
+  //     cleSymmetrique: cleChiffree,
+  //   })
+  // }
+
+  // // console.debug("CleSecrete : %O, cleSecreteSymmetrique)
+
+  // if(DEBUG) console.debug("Rechiffrer cles avec certs %O (%O)", fingerprintsClepub, pemRechiffrage)
 
   let nombreClesRechiffrees = 0,
       nombreErreurs = 0,
@@ -274,32 +286,28 @@ export async function rechiffrerAvecCleMillegrille(
       for await (const cle of cles) {
         try { 
           const cleDechiffree = await ed25519Utils.dechiffrerCle(cle.cle, _cleMillegrille)
-          //.then(async cleDechiffree=>{
-            if(DEBUG) console.debug("Cle dechiffree : %O", cleDechiffree)
-            if(Array.isArray(cleDechiffree)) {
-              // Convertir en uint8array
-              const cleDechiffreeUintArray = new Uint16Array(32)
-              cleDechiffreeUintArray.set(cleDechiffree)
-              cleDechiffree = cleDechiffreeUintArray
-            }
+          if(DEBUG) console.debug("Cle dechiffree : %O", cleDechiffree)
 
-            const fingerprintClesRechiffrees = {}
-            for await (const clePub of fingerprintsClepub) {
-              const cleRechiffree = await ed25519Utils.chiffrerCle(cleDechiffree, clePub.publicKey)
-              fingerprintClesRechiffrees[clePub.partition] = cleRechiffree
-            }
+          const cleDechiffreeBase64 = base64.encode(cleDechiffree)
 
-            const cleComplete = {...cle, cles: fingerprintClesRechiffrees}
-            delete cleComplete.cle  // Cleanup
+          // if(Array.isArray(cleDechiffree)) {
+          //   // Convertir en uint8array
+          //   const cleDechiffreeUintArray = new Uint16Array(32)
+          //   cleDechiffreeUintArray.set(cleDechiffree)
+          //   cleDechiffree = cleDechiffreeUintArray
+          // }
 
-            //return cleComplete
-            clesRechiffrees.push(cleComplete)
-          // })
-          // .catch(err=>{
-          //   console.error("Erreur dechiffrage cle : %O", err)
-          //   nombreErreurs++
-          //   return {ok: false, err: err}
-          // })
+          // const fingerprintClesRechiffrees = {}
+          // for await (const clePub of fingerprintsClepub) {
+          //   const cleRechiffree = await ed25519Utils.chiffrerCle(cleDechiffree, clePub.publicKey)
+          //   fingerprintClesRechiffrees[clePub.partition] = cleRechiffree
+          // }
+
+          //const cleComplete = {...cle, cles: fingerprintClesRechiffrees}
+          const cleComplete = {...cle, cleSecrete: cleDechiffreeBase64}
+          delete cleComplete.cle  // Cleanup
+
+          clesRechiffrees.push(cleComplete)
         } catch(err) {
             console.error("Erreur dechiffrage cle : %O", err)
             nombreErreurs++
@@ -313,8 +321,53 @@ export async function rechiffrerAvecCleMillegrille(
       if(DEBUG) console.debug("Cles rechiffrees : %O", clesRechiffrees)
 
       const clesPretes = clesRechiffrees.filter(cle=>cle.ok!==false)
-      const commande = { cles: clesPretes }
-      dernierePromise = connexion.rechiffrerClesBatch(commande)
+      const contenuDict = { 
+        cles: clesPretes
+      }
+
+      console.debug("Contenu dict a chiffrer : ", contenuDict)
+
+      const documentChiffre = await chiffrerDocument(contenuDict, 'MaitreDesCles', pemRechiffrage, {retourSecret: true})
+      console.debug("Contenu chiffre : ", documentChiffre)
+
+      const contenu = documentChiffre.doc.data_chiffre,
+            dechiffrage = { header: documentChiffre.doc.header, format: documentChiffre.doc.format, cles: {}},
+            cleSecrete = documentChiffre.cleSecrete
+
+      // Rechiffrer cle secrete pour tous les maitres des cles
+      // const fingerprintsClepub = []
+      // let cleSecreteSymmetrique = null
+      for await (const pemChain of pemRechiffrage) {
+        const forgeCert = forgePki.certificateFromPem(pemChain)
+        const publicKey = forgeCert.publicKey.publicKeyBytes
+        const fingerprintMaitredescles = await _hacherCertificat(forgeCert)
+    
+        const cleChiffree = await ed25519Utils.chiffrerCle(cleSecrete, publicKey)
+        // let cleChiffree = null
+        // if(!cleSecreteSymmetrique) {
+        //   // Generer une nouvelle cle secrete
+        //   const cleGeneree = await ed25519Utils.genererCleSecrete(publicKey)
+        //   cleSecreteSymmetrique = cleGeneree.cle
+        //   cleChiffree = cleGeneree.peer
+        // } else {
+        //   const cleGeneree = await ed25519Utils.chiffrerCle(cleSecreteSymmetrique, publicKey)
+        //   cleChiffree = cleGeneree
+        // }
+    
+        dechiffrage.cles[fingerprintMaitredescles] = cleChiffree
+
+        // fingerprintsClepub.push({
+        //   partition: fingerprintMaitredescles,
+        //   publicKey,
+        //   cleSymmetrique: cleChiffree,
+        // })
+      }
+    
+      // console.debug("CleSecrete : %O, cleSecreteSymmetrique)
+    
+      if(DEBUG) console.debug("Cle rechiffree %d bytes dechiffrage: %O", contenu.length, dechiffrage)
+
+      dernierePromise = connexion.rechiffrerClesBatch(contenu, dechiffrage)
         .then(reponse=>{
           if(DEBUG) console.debug("Reponse rechiffrerClesBatch : %O", reponse)
           nombreClesRechiffrees += cles.length
