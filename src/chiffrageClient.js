@@ -257,26 +257,27 @@ export async function rechiffrerAvecCleMillegrille(
   // if(DEBUG) console.debug("Rechiffrer cles avec certs %O (%O)", fingerprintsClepub, pemRechiffrage)
 
   let nombreClesRechiffrees = 0,
-      nombreErreurs = 0,
-      plusRecenteCle = 0,
-      excludeHachageBytes = null
+      nombreErreurs = 0 //,
+      // plusRecenteCle = 0,
+      //excludeHachageBytes = null
 
   let dernierePromise = null
 
   while(true) {
-    const clesNonDechiffrables = await connexion.requeteClesNonDechiffrables(batchSize, plusRecenteCle, excludeHachageBytes)
+    // const clesNonDechiffrables = await connexion.requeteClesNonDechiffrables(batchSize, plusRecenteCle, excludeHachageBytes)
+    const clesNonDechiffrables = await connexion.requeteClesNonDechiffrables(batchSize, nombreClesRechiffrees)
 
-    const {date_creation_max, cles} = clesNonDechiffrables
+    const {/*date_creation_max,*/ cles} = clesNonDechiffrables
     if(!cles || cles.length == 0) break
 
-    if(clesNonDechiffrables.date_creation_max) {
-      if(plusRecenteCle === date_creation_max) {
-        console.warn("2 batch rechiffrage avec meme date max, on incremente pour sortir d'une boucle infinie")
-        plusRecenteCle = date_creation_max + 1
-      } else {
-        plusRecenteCle = date_creation_max
-      }
-    }
+    // if(clesNonDechiffrables.date_creation_max) {
+    //   if(plusRecenteCle === date_creation_max) {
+    //     console.warn("2 batch rechiffrage avec meme date max, on incremente pour sortir d'une boucle infinie")
+    //     plusRecenteCle = date_creation_max + 1
+    //   } else {
+    //     plusRecenteCle = date_creation_max
+    //   }
+    // }
     if(DEBUG) console.debug("Cles non dechiffrables : %O", clesNonDechiffrables)
     // excludeHachageBytes = cles.map(item=>item.hachage_bytes)
 
