@@ -7,6 +7,7 @@ import * as hachage from './hachage'
 import { chiffrage } from './chiffrage'
 import * as ed25519Utils from '@dugrema/millegrilles.utiljs/src/chiffrage.ed25519'
 import { MESSAGE_KINDS } from '@dugrema/millegrilles.utiljs/src/constantes'
+import pako from 'pako'
 
 export {chiffrage}
 
@@ -328,10 +329,14 @@ export async function rechiffrerAvecCleMillegrille(
       console.debug("Contenu dict a chiffrer : ", contenuDict)
 
       let messageBytes = JSON.stringify(contenuDict)
-      // console.debug("Message signe taille %d\n%s", messageBytes.length, messageBytes)
-      messageBytes = pako.deflate(new TextEncoder().encode(messageBytes))
+      console.debug("Message JSON taille %d\n%s", messageBytes.length, messageBytes)
+      messageBytes = pako.deflate(new TextEncoder().encode(messageBytes), {gzip: true})
+      console.debug("Message gzip taille %d", messageBytes.length)
 
-      const documentChiffre = await chiffrerDocument(messageBytes, 'MaitreDesCles', pemRechiffrage, {retourSecret: true})
+      const documentChiffre = await chiffrerDocument(
+        messageBytes, 'MaitreDesCles', pemRechiffrage, 
+        {retourSecret: true, nojson: true, type: 'binary'}
+      )
       console.debug("Contenu chiffre : ", documentChiffre)
 
       const contenu = documentChiffre.doc.data_chiffre.slice(1),
