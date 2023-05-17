@@ -330,7 +330,7 @@ export async function rechiffrerAvecCleMillegrille(
       const documentChiffre = await chiffrerDocument(contenuDict, 'MaitreDesCles', pemRechiffrage, {retourSecret: true})
       console.debug("Contenu chiffre : ", documentChiffre)
 
-      const contenu = documentChiffre.doc.data_chiffre,
+      const contenu = documentChiffre.doc.data_chiffre.slice(1),
             dechiffrage = { header: documentChiffre.doc.header, format: documentChiffre.doc.format, cles: {}},
             cleSecrete = documentChiffre.cleSecrete
 
