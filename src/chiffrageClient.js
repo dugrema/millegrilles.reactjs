@@ -327,7 +327,11 @@ export async function rechiffrerAvecCleMillegrille(
 
       console.debug("Contenu dict a chiffrer : ", contenuDict)
 
-      const documentChiffre = await chiffrerDocument(contenuDict, 'MaitreDesCles', pemRechiffrage, {retourSecret: true})
+      let messageBytes = JSON.stringify(contenuDict)
+      // console.debug("Message signe taille %d\n%s", messageBytes.length, messageBytes)
+      messageBytes = pako.deflate(new TextEncoder().encode(messageBytes))
+
+      const documentChiffre = await chiffrerDocument(messageBytes, 'MaitreDesCles', pemRechiffrage, {retourSecret: true})
       console.debug("Contenu chiffre : ", documentChiffre)
 
       const contenu = documentChiffre.doc.data_chiffre.slice(1),
