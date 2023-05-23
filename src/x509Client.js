@@ -47,21 +47,19 @@ export async function verifierMessage(message, opts) {
 
   const certificat = message.certificat,
         certMillegrille = message.millegrille
-  const estampilleInt = message.estampille,
-        idmg = null  // Obsolete
+  const estampilleInt = message.estampille
+
+  // console.debug("verifierMessage message %O, opts %O", message, opts)
 
   const estampille = new Date(estampilleInt * 1000)
   let certValide = false
-  if(!idmg || idmg === _idmgLocal) {
-    // Utiliser store avec CA local
-    certValide = verifierCertificat(certificat, estampille)
-  } else if(support_idmg_tiers && certMillegrille) {
+  if(support_idmg_tiers && certMillegrille) {
     const certCaForge = forgePki.certificateFromPem(certMillegrille)
     const certificatStore = new CertificateStore(certCaForge)
     certValide = certificatStore.verifierChaine(certificat, {validityCheckDate: estampille})
   } else {
-    console.warn("Erreur validation, aucun match : idmg message '%s', idmg local '%s'", idmg, _idmgLocal)
-    throw new Error(`x509Client.verifierMessage idmg tiers non supporte ou sans certificat _millegrille : idmg message ${idmg}`)
+    // Utiliser store avec CA local
+    certValide = verifierCertificat(certificat, estampille)
   }
 
   if(!certValide) {
