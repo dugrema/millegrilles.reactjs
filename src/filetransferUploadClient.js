@@ -376,7 +376,7 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
     if(signalAnnuler && await signalAnnuler()) throw new Error("Cancelled")
 
     const now = new Date().getTime()
-    const { userId, cuuid, token } = params
+    const { userId, cuuid, token, skipTransactions } = params
     const { updateFichier } = fcts
 
     let demarrer = true
@@ -541,15 +541,16 @@ export async function partUploader(token, correlation, position, partContent, op
 export async function confirmerUpload(token, correlation, opts) {
     opts = opts || {}
     const { transaction } = opts
-    const attachements = transaction.attachements || {},
-          cle = attachements.cle
-    // const cles = opts.cles || transaction?transaction['_cles']:null
+    if(transaction) {
+        var attachements = transaction.attachements || {},
+            cle = opts.cle || attachements.cle
+    } else {
+        var attachements = null, cle = null
+    }
     console.debug("confirmerUpload %s cle : %O, transaction : %O", correlation, cle, transaction)
 
     let hachage = opts.hachage
     if(!hachage) {
-        // if(cle) hachage = cle.hachage
-        // else 
         if(transaction) {
             const contenu = JSON.parse(transaction.contenu)
             hachage = contenu.fuuid
@@ -567,8 +568,6 @@ export async function confirmerUpload(token, correlation, opts) {
         data: confirmationResultat,
         headers: {'x-token-jwt': token}
     })
-
-    // console.debug("!!! Fichier verification (POST) reponse : %O", reponse)
 
     if(reponse.data.ok === false) {
         const data = reponse.data
