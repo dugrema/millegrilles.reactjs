@@ -284,7 +284,7 @@ async function conserverFichier(file, fileMappe, params, fcts) {
         taillePreparee = tailleCumulative
 
     for await (const chunk of iterReader) {
-        if(await signalAnnuler()) throw new Error("Cancelled")
+        if(signalAnnuler && await signalAnnuler()) throw new Error("Cancelled")
 
         // Conserver dans idb
         if(ajouterPart) await ajouterPart(correlation, compteurPosition, chunk)
@@ -373,6 +373,7 @@ async function formatterDocIdb(docIdb, infoChiffrage) {
 async function traiterFichier(file, tailleTotale, params, fcts) {
     fcts = fcts || {}
     const { signalAnnuler } = fcts    
+    console.debug("Signal annuler : ", signalAnnuler)
     if(signalAnnuler && await signalAnnuler()) throw new Error("Cancelled")
 
     const now = new Date().getTime()
@@ -470,7 +471,7 @@ export async function traiterAcceptedFilesV2(params, ajouterPart, updateFichier,
     const { acceptedFiles } = params
     const fcts = { ajouterPart, updateFichier, setProgres, signalAnnuler}
 
-    // console.debug("Accepted files ", acceptedFiles)
+    console.debug("Accepted files ", acceptedFiles)
     const infoTaille = params.infoTaille || {}
     let tailleTotale = infoTaille.total || 0
     if(tailleTotale === 0) {

@@ -39,6 +39,7 @@ import TransfertModal from './TransfertModal'
 export { TransfertModal }
 
 import LayoutApplication, { HeaderApplication, FooterApplication, IconeConnexion } from './LayoutApplication'
+import ErrorBoundary from './ErrorBoundary'
 export { LayoutApplication, HeaderApplication, FooterApplication, IconeConnexion }
 
 export { repondreRegistrationChallenge } from './webauthn'
@@ -61,7 +62,9 @@ export * from './AffichageNotices'
 
 export * from './BoutonsActifs'
 
-export * as landingReact from './landingReact'
+export * as landingReact from './landing/landingReact'
+
+export { default as ErrorBoundary } from './ErrorBoundary'
 
 // import * as ChiffrageClient from './chiffrageClient.js'
 // export { ChiffrageClient }
