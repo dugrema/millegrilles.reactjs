@@ -61,6 +61,8 @@ export * from './AffichageNotices'
 
 export * from './BoutonsActifs'
 
+export * as landingReact from './landingReact'
+
 // import * as ChiffrageClient from './chiffrageClient.js'
 // export { ChiffrageClient }
 
