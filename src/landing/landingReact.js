@@ -95,7 +95,7 @@ export function BoutonUpload(props) {
 
 export function ProgresUpload(props) {
 
-    const { dispatch, progres, preparation } = props
+    const { dispatch, actif, progres, preparation } = props
 
     const variant = props.variant || 'info'
 
@@ -106,8 +106,11 @@ export function ProgresUpload(props) {
 
     useEffect(()=>{
         if(!dispatch || progres !== 100) return
-        setTimeout(()=>dispatch(clearUploadsState()), 300)
-    }, [progres, dispatch, clearUploadsState])
+        if(actif) return
+        setTimeout(()=>{
+            dispatch(clearUploadsState())
+        }, 300)
+    }, [progres, dispatch, actif, clearUploadsState])
     
     const child = useMemo(()=>{
         if(preparation) {

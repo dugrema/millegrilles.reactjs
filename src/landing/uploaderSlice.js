@@ -15,6 +15,7 @@ const initialState = {
     progres: null,              // Pourcentage de progres en int
     completesCycle: [],         // Conserve la liste des uploads completes qui restent dans le total de progres
     listeBatch: [],             // Liste des fichiers dans la batch courante
+    uploadActif: false,
 }
 
 function setTokenAction(state, action) {
@@ -75,7 +76,6 @@ function updateUploadAction(state, action) {
 
     // Trouver objet existant
     const infoUpload = state.liste.filter(item=>item.correlation === correlation).pop()
-
     // Detecter changement etat a confirme
     if(infoUpload.etat === ETAT_COMPLETE && docUpload.etat === ETAT_CONFIRME) {
         state.completesCycle.push(correlation)
@@ -140,6 +140,10 @@ function arretUploadAction(state, action) {
     // Middleware trigger seulement
 }
 
+function setUploadActifAction(state, action) {
+    state.uploadActif = action.payload
+}
+
 const uploadSlice = createSlice({
     name: 'uploader',
     initialState,
@@ -155,13 +159,14 @@ const uploadSlice = createSlice({
         majContinuerUpload: continuerUploadAction,
         arretUpload: arretUploadAction,
         clearCycleUpload: clearCycleUploadAction,
+        setUploadActif: setUploadActifAction,
     }
 })
 
 export const { 
     setToken, clearToken, ajouterUpload, updateUpload, retirerUpload, setUploads, 
     clearUploadsState, supprimerUploadsParEtat, majContinuerUpload,
-    arretUpload, clearCycleUpload,
+    arretUpload, clearCycleUpload, setUploadActif,
 } = uploadSlice.actions
 export default uploadSlice.reducer
 
@@ -335,6 +340,8 @@ async function tacheUpload(workers, listenerApi, forkApi) {
 
     if(!nextUpload) return  // Rien a faire
 
+    dispatch(setUploadActif(true))
+
     // Commencer boucle d'upload
     while(nextUpload) {
         console.debug("Next upload : %O", nextUpload)
@@ -358,6 +365,8 @@ async function tacheUpload(workers, listenerApi, forkApi) {
             throw err
         }
     }
+
+    dispatch(setUploadActif(false))
 }
 
 async function uploadFichier(workers, dispatch, fichier, cancelToken) {
