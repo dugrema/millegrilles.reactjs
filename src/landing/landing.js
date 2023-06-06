@@ -205,26 +205,30 @@ export async function preparerFichiersBatch(uploads) {
   const mapping = []
   for await (let item of uploads) {
     console.debug("preparerFichiersBatch Mapper ", item)
-    const transaction = item.transactionGrosfichiers
-    const mimetype = transaction.mimetype,
-          fuuid = transaction.fuuid,
-          cle = item.cle
+    try {
+      const transaction = item.transactionGrosfichiers
+      const mimetype = transaction.mimetype,
+            fuuid = transaction.fuuid,
+            cle = item.cle
 
-    const fichier = {
-      name: item.nom,
-      date: nowEpoch,
-      size: item.taille,
-      digest: fuuid,
-      file: fuuid,
-      encrypted_size: item.taille_chiffree,
-      mimetype,
-      decryption: {
-        key: cle.cleSecrete,
-        header: cle.header, 
-        format: cle.format,
+      const fichier = {
+        name: item.nom,
+        date: nowEpoch,
+        size: item.taille,
+        digest: fuuid,
+        file: fuuid,
+        encrypted_size: item.taille_chiffree,
+        mimetype,
+        decryption: {
+          key: cle.cleSecrete,
+          header: cle.header, 
+          format: cle.format,
+        }
       }
+      mapping.push(fichier)
+    } catch(err) {
+      console.warn("Erreur preparation fichier %O, skip : %O", item, err)
     }
-    mapping.push(fichier)
   }
 
   return mapping

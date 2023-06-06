@@ -115,7 +115,7 @@ function retirerUploadAction(state, action) {
 }
 
 function clearUploadsAction(state, action) {
-    state.listeBatch = [...state.listeBatch, ...state.liste]  // Concatener nouveaux uploads reussis
+    state.listeBatch = []
     state.liste = []
     state.progres = null
     state.completesCycle = []
@@ -142,6 +142,23 @@ function arretUploadAction(state, action) {
 
 function setUploadActifAction(state, action) {
     state.uploadActif = action.payload
+    if(action.payload === false) {
+        // Clear progres
+        state.progres = null
+    }
+}
+
+function pushBatchCompleteeAction(state, action) {
+    const correlation = action.payload
+    const upload = state.liste.filter(item=>item.correlation = correlation).pop()
+    if(upload) {
+        // Concatener nouvel upload reussi
+        state.listeBatch = [...state.listeBatch, upload]
+    }
+}
+
+function setBatchUploadAction(state, action) {
+    state.listeBatch = action.payload
 }
 
 const uploadSlice = createSlice({
@@ -160,13 +177,15 @@ const uploadSlice = createSlice({
         arretUpload: arretUploadAction,
         clearCycleUpload: clearCycleUploadAction,
         setUploadActif: setUploadActifAction,
+        pushBatchCompletee: pushBatchCompleteeAction,
+        setBatchUpload: setBatchUploadAction
     }
 })
 
 export const { 
     setToken, clearToken, ajouterUpload, updateUpload, retirerUpload, setUploads, 
     clearUploadsState, supprimerUploadsParEtat, majContinuerUpload,
-    arretUpload, clearCycleUpload, setUploadActif,
+    arretUpload, clearCycleUpload, setUploadActif, pushBatchCompletee, setBatchUpload,
 } = uploadSlice.actions
 export default uploadSlice.reducer
 
@@ -281,7 +300,8 @@ async function traiterConfirmerUpload(workers, correlation, dispatch, getState) 
         await uploadFichiersDao.updateFichierUpload(uploadCopie)
 
         // Maj redux state
-        return dispatch(updateUpload(uploadCopie))
+        await dispatch(updateUpload(uploadCopie))
+        await dispatch(pushBatchCompletee(correlation))
     }
 }
 
@@ -343,30 +363,32 @@ async function tacheUpload(workers, listenerApi, forkApi) {
     dispatch(setUploadActif(true))
 
     // Commencer boucle d'upload
-    while(nextUpload) {
-        console.debug("Next upload : %O", nextUpload)
-        const { batchId, correlation } = nextUpload
-        try {
-            await uploadFichier(workers, dispatch, nextUpload, cancelToken)
+    try {
+        while(nextUpload) {
+            console.debug("Next upload : %O", nextUpload)
+            const { batchId, correlation } = nextUpload
+            try {
+                await uploadFichier(workers, dispatch, nextUpload, cancelToken)
 
-            // Trouver prochain upload
-            if (forkApi.signal.aborted) {
-                // console.debug("tacheUpload annulee")
-                marquerUploadEtat(workers, dispatch, batchId, correlation, {etat: ETAT_UPLOAD_INCOMPLET})
+                // Trouver prochain upload
+                if (forkApi.signal.aborted) {
+                    // console.debug("tacheUpload annulee")
+                    marquerUploadEtat(workers, dispatch, batchId, correlation, {etat: ETAT_UPLOAD_INCOMPLET})
+                        .catch(err=>console.error("Erreur marquer upload echec %s : %O", correlation, err))
+                    return
+                }
+                nextUpload = getProchainUpload(listenerApi.getState().uploader.liste)
+
+            } catch (err) {
+                console.error("Erreur tache upload correlation %s: %O", correlation, err)
+                marquerUploadEtat(workers, dispatch, batchId, correlation, {etat: ETAT_ECHEC})
                     .catch(err=>console.error("Erreur marquer upload echec %s : %O", correlation, err))
-                return
+                throw err
             }
-            nextUpload = getProchainUpload(listenerApi.getState().uploader.liste)
-
-        } catch (err) {
-            console.error("Erreur tache upload correlation %s: %O", correlation, err)
-            marquerUploadEtat(workers, dispatch, batchId, correlation, {etat: ETAT_ECHEC})
-                .catch(err=>console.error("Erreur marquer upload echec %s : %O", correlation, err))
-            throw err
         }
+    } finally {
+        dispatch(setUploadActif(false))
     }
-
-    dispatch(setUploadActif(false))
 }
 
 async function uploadFichier(workers, dispatch, fichier, cancelToken) {

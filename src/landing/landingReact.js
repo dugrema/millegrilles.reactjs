@@ -95,47 +95,30 @@ export function BoutonUpload(props) {
 
 export function ProgresUpload(props) {
 
-    const { dispatch, actif, progres, preparation } = props
+    const { actif, progres, preparation } = props
 
     const variant = props.variant || 'info'
 
     const show = useMemo(()=>{
-        if(progres || preparation) return true
+        if(preparation || actif) return true
         return false
-    })
-
-    useEffect(()=>{
-        if(!dispatch || progres !== 100) return
-        if(actif) return
-        setTimeout(()=>{
-            dispatch(clearUploadsState())
-        }, 300)
-    }, [progres, dispatch, actif, clearUploadsState])
+    }, [preparation, actif])
     
     const child = useMemo(()=>{
+
+        const etat = []
+
         if(preparation) {
-            return (
-                <div>
-                  <p>Preparation upload : {preparation}%</p>
-                </div>
-            )
+            etat.push(<p key={'preparation'}>Preparation upload : {Math.floor(preparation/10)}%</p>)
         }
     
         if(progres === 100) {
-            return (
-                <div>
-                    <p>Upload termine</p>
-                </div>
-            )
+            etat.push(<p key={'upload'}>Upload termine</p>)
         } else if(progres) {
-            return (
-                <div>
-                    <p>Progres upload : {progres}%</p>
-                </div>
-            )   
+            etat.push(<p key={'progres'}>Upload en cours : {Math.floor(9*progres/10+10)}%</p>)
         }
 
-        return ''
+        return etat
     }, [preparation, progres])
 
     return (
