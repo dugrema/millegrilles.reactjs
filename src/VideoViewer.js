@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useMemo, useCallback} from 'react'
+import React, {useEffect, useState, useMemo, useCallback, useRef} from 'react'
 // import ReactPlayer from 'react-player/file'
 
 function VideoViewer(props) {
@@ -11,6 +11,7 @@ function VideoViewer(props) {
         srcVideo,
         className,
         timeStamp,
+        jumpToTimeStamp,
         // Evenements
         onTimeUpdate, onProgress, onPlay, onError, onWaiting, onCanPlay, onAbort, onEmptied,
     } = props
@@ -23,6 +24,8 @@ function VideoViewer(props) {
     const [timeStampEffectif, setTimeStampEffectif] = useState(0)
     const [actif, setActif] = useState(true)
     const [playbackCommence, setPlaybackCommence] = useState(false)
+
+    const refVideo = useRef()
 
     let sources = useMemo(()=>{
         if(!srcVideo) return []
@@ -91,13 +94,20 @@ function VideoViewer(props) {
     }, [/* src, videos, sources, */ timeStamp, playbackCommence, setActif])
 
     useEffect(()=>{
+        if(jumpToTimeStamp === -1) return
+        if(refVideo.current && refVideo.current.currentTime !== undefined) {
+            refVideo.current.currentTime = jumpToTimeStamp
+        }
+    }, [jumpToTimeStamp, refVideo])
+
+    useEffect(()=>{
         if(!actif) setActif(true)
     }, [actif, setActif])
 
     if(!actif) return ''
 
     return (
-        <video width={width} height={height} className={className} poster={poster} controls
+        <video ref={refVideo} width={width} height={height} className={className} poster={poster} controls
             onPlay={playbackCommenceHandler}
             onTimeUpdate={onTimeUpdate}
             onProgress={onProgress}
