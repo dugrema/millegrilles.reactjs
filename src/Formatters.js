@@ -14,6 +14,20 @@ const CONST_DATE_DEFAULT = 'YYYY/MM/DD',
       CONST_DATEMONTHHOUR_DEFAULT = 'MMM-DD HH:mm:ss',
       CONST_TIMEZONE_DEFAULT  = 'America/Toronto'
 
+export function FormatteurNombre(props) {
+    const value = props.value
+    const precision = props.precision || 3
+    
+    if(!value) return ''
+
+    let result = ''
+    if(value >= 1000) result = Math.floor(value)
+    else result = value.toPrecision(precision)
+    const label = result
+
+    return <span>{label}</span>
+}
+
 export function FormatteurTaille(props) {
     const value = props.value
     const precision = props.precision || 3

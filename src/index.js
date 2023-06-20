@@ -18,9 +18,9 @@ import { Thumbnail,  ThumbnailFooter, ThumbnailHeader, ThumbnailBoutonContexte }
     from './Thumbnail'
 export { Thumbnail,  ThumbnailFooter, ThumbnailHeader, ThumbnailBoutonContexte }
 
-import { FormatteurTaille, FormatterDate, FormatterDuree } 
+import { FormatteurTaille, FormatterDate, FormatterDuree, FormatteurNombre } 
     from './Formatters'
-export { FormatteurTaille, FormatterDate, FormatterDuree }
+export { FormatteurTaille, FormatterDate, FormatterDuree, FormatteurNombre }
 
 import { ListeFichiers, MenuContextuel } 
     from './ListeFichiers'
