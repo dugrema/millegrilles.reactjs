@@ -44,7 +44,7 @@
     "react-redux": "^8.0.5",
     "react-visibility-sensor": "^5.1.1",
     "socket.io-client": "^4.6.0",
-    "webpack": "5.75.0"
+    "webpack": "5.88.1"
   },
   "peerDependencies": {
     "@babel/plugin-syntax-object-rest-spread": "^7.8.3",
