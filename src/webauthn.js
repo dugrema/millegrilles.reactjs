@@ -1,21 +1,21 @@
 import multibase from 'multibase'
 import base64url from 'base64url'
 
-export async function repondreRegistrationChallenge(nomUsager, attestationChallenge, opts) {
+export async function repondreRegistrationChallenge(nomUsager, challengeWebauthn, opts) {
   opts = opts || {}
   const DEBUG = opts.DEBUG
 
-  if(DEBUG) console.debug('repondreRegistrationChallenge nomUsager: %s, attestation: %O', nomUsager, attestationChallenge)
+  if(DEBUG) console.debug('repondreRegistrationChallenge nomUsager: %s, attestation: %O', nomUsager, challengeWebauthn)
   // Parse options, remplacer base64 par buffer
-  const challenge = multibase.decode(attestationChallenge.challenge)
-  const attestation = attestationChallenge.attestation
-  const userId = multibase.decode(attestationChallenge.user.id)
+  const challenge = Buffer.from(challengeWebauthn.challenge, 'base64')  // multibase.decode(publicKey.challenge)
+  const attestation = challengeWebauthn.attestation
+  const userId = Buffer.from(challengeWebauthn.user.id, 'base64')  // multibase.decode(publicKey.user.id)
 
   const publicKey = {
-    ...attestationChallenge,
+    ...challengeWebauthn,
     challenge,
     user: {
-      ...attestationChallenge.user,
+      ...challengeWebauthn.user,
       id: userId,
       name: nomUsager,
       displayName: nomUsager,
@@ -36,7 +36,8 @@ export async function repondreRegistrationChallenge(nomUsager, attestationChalle
     response: {
       attestationObject,
       clientDataJSON: jsonData,
-    }
+    },
+    type: newCredential.type,
   }
 
   return data
