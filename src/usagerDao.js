@@ -89,3 +89,9 @@ export async function entretienCache(...args) {
     await _ready
     return _dao.entretienCache(...args)
 }
+
+export async function clearClesDechiffrees(...args) {
+    if(_ready === false) throw new Error("usagerDao pas initialise")
+    await _ready
+    return _dao.clearClesDechiffrees(...args)
+}

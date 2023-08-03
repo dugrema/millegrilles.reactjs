@@ -201,3 +201,11 @@ async function entretienCacheFichiersDechiffres(tempsExpiration, opts) {
     }
   }
 }
+
+export async function clearClesDechiffrees(opts) {
+  opts = opts || {}
+  const db = await ouvrirDB()
+
+  const store = db.transaction(STORE_CLES_DECHIFFREES, 'readwrite').store
+  await store.clear()
+}
