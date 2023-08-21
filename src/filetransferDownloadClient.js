@@ -249,6 +249,9 @@ function _creerDownloadStream(reader, contentLength, opts) {
       let prochainProgressTs = 0  // Limiter le nombre d'updates pour eviter overflow react
 
       while(!done) {
+        // console.debug("Desired stream Q size : ", controller.desiredSize)
+        if(controller.desiredSize < 0) return // Back pressure, on arrete 
+
         if(downloadEnCours && downloadEnCours.annuler) {
           throw new Error("Usager a annule le transfert")
         }
