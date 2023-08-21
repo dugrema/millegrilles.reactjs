@@ -191,6 +191,7 @@ async function fetchAvecProgress(url, opts) {
 
   // if(DEBUG) console.debug("Reponse object : %O", reponse)
   const reader = reponse.body.getReader()
+  console.debug("Reader : %O", reader)
   const contentLength = Number(reponse.headers.get('Content-Length'))
 
   progressCb(0, contentLength, {})
@@ -250,7 +251,7 @@ function _creerDownloadStream(reader, contentLength, opts) {
 
       while(!done) {
         // console.debug("Desired stream Q size : ", controller.desiredSize)
-        if(controller.desiredSize < 0) return // Back pressure, on arrete 
+        if(controller.desiredSize < 1) return // Back pressure, on arrete
 
         if(downloadEnCours && downloadEnCours.annuler) {
           throw new Error("Usager a annule le transfert")
