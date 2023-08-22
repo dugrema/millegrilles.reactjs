@@ -360,7 +360,7 @@ async function creerToken(creerTokenJwt, fuuidFichier, fuuidStream, mimetype, op
         // console.debug("Reponse tokens JWTs : ", reponse)
         return reponse.jwts[fuuidStream]
     } catch(err) {
-        console.error("mediaLoader.creerToken Erreur ", err)
+        console.error("mediaLoader.creerToken commande %O, Erreur ", commande, err)
         throw err
     }
 }
