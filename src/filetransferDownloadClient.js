@@ -19,7 +19,8 @@ const CACHE_TEMP_NAME = 'fichiersDechiffresTmp',
       EXPIRATION_CACHE_MS = 24 * 60 * 60 * 1000,
       CONST_PROGRESS_UPDATE_THRESHOLD = 10 * CONST_1MB,
       CONST_PROGRESS_UPDATE_INTERVAL = 1000,
-      CONST_BLOB_DOWNLOAD_CHUNKSIZE = 100 * CONST_1MB
+      CONST_BLOB_DOWNLOAD_CHUNKSIZE = 20 * CONST_1MB,
+      CONST_HIGH_WATERMARK_DECHIFFRAGE = 10
 
 // Globals
 var _chiffrage = null
@@ -193,8 +194,8 @@ async function fetchAvecProgress(url, opts) {
   const reponse = await fetch(url)
 
   // if(DEBUG) console.debug("Reponse object : %O", reponse)
-  const reader = reponse.body.getReader()
-  console.debug("Reader : %O", reader)
+  // const reader = reponse.body.getReader()
+  // console.debug("Reader : %O", reader)
   const contentLength = Number(reponse.headers.get('Content-Length'))
 
   progressCb(0, contentLength, {})
@@ -212,12 +213,17 @@ async function fetchAvecProgress(url, opts) {
     DEBUG,
   }
 
-  const downloadStream = _creerDownloadStream(reader, contentLength, downloadEnvironment)
+  // const downloadStream = _creerDownloadStream(reader, contentLength, downloadEnvironment)
+
+  console.debug("fetchAvecProgress createWriteStreamDechiffrage")
+  const { writable, readable } = createTransformStreamDechiffrage(downloadEnCours, progressCb, {...opts, dataProcessor, contentLength})
+  const promisePipe = reponse.body.pipeTo(writable)
 
   return {
-    reader: downloadStream,
+    reader: readable,
     headers: reponse.headers,
     status: reponse.status,
+    done: promisePipe
   }
 
 }
@@ -390,6 +396,122 @@ async function preparerDataProcessor(opts) {
   return dataProcessor
 }
 
+function createTransformStreamDechiffrage(downloadEnCours, progressCb, opts) {
+  console.debug("createTransformStreamDechiffrage downloadEnCours: %O, progressCb: %O, opts: %O", downloadEnCours, progressCb, opts)
+  opts = opts || {}
+  const dataProcessor = opts.dataProcessor
+  const contentLength = opts.contentLength || 0
+  const DEBUG = opts.DEBUG
+
+  const queuingStrategy = new ByteLengthQueuingStrategy({ highWaterMark: 1024 * 64 * 10 });
+
+  let prochainProgressTs = 0, receivedLength = 0
+
+  return new TransformStream({
+    async transform(chunk, controller) {
+      // console.debug("createTransformStreamDechiffrage Write %s bytes", chunk.length)
+      if(downloadEnCours && downloadEnCours.annuler === true) {
+        throw new Error('download annule')
+      }
+
+      if(dataProcessor) {
+        if(DEBUG) console.debug("Dechiffrer")
+        let positionTraitee = 0, positionOutput = 0
+        while(positionTraitee < chunk.length) {
+          const positionFin = Math.min(positionTraitee + DECHIFFRAGE_TAILLE_BLOCK, chunk.length)
+          try {
+            const sousBlock = chunk.slice(positionTraitee, positionFin)
+            const sousBlockOutput = await dataProcessor.update(sousBlock)
+            if(sousBlockOutput) {
+              controller.enqueue(sousBlockOutput)
+              positionOutput += sousBlockOutput.length
+            }
+            positionTraitee += sousBlock.length
+          } catch(err) {
+            if(DEBUG) console.error("Erreur dechiffrage, %O", err)
+            throw err
+          }
+
+          const now = new Date().getTime()
+          if(now > prochainProgressTs) {
+            prochainProgressTs = now + CONST_PROGRESS_UPDATE_INTERVAL
+            progressCb(receivedLength+positionTraitee, contentLength, {flag: 'dechiffrage'})
+          }
+        }
+        if(DEBUG) console.debug("Value dechiffree : %O", chunk)
+      } else {
+        controller.enqueue(chunk)
+      }      
+    },
+    async flush(controller) {
+      console.debug("createTransformStreamDechiffrage Close stream")
+      if(dataProcessor) {
+        const value = await dataProcessor.finish()
+        const {message: chunk} = value
+        if(chunk && chunk.length > 0) {
+          controller.enqueue(chunk)
+        }
+      }
+      return controller.terminate()
+    }
+  }, queuingStrategy)
+
+  // return new WritableStream(
+  //   {
+  //     // Implement the sink
+  //     async write(chunk) {
+  //       console.debug("createWriteStreamDechiffrage Write %s bytes", chunk.length)
+  //       if(downloadEnCours && downloadEnCours.annuler === true) {
+  //         throw new Error('download annule')
+  //       }
+
+  //       if(dataProcessor) {
+  //         if(DEBUG) console.debug("Dechiffrer")
+  //         let positionTraitee = 0, positionOutput = 0
+  //         while(positionTraitee < chunk.length) {
+  //           const positionFin = Math.min(positionTraitee + DECHIFFRAGE_TAILLE_BLOCK, chunk.length)
+  //           try {
+  //             const sousBlock = chunk.slice(positionTraitee, positionFin)
+  //             const sousBlockOutput = await dataProcessor.update(sousBlock)
+  //             if(sousBlockOutput) {
+  //               enqueue(sousBlockOutput)
+  //               positionOutput += sousBlockOutput.length
+  //             }
+  //             positionTraitee += sousBlock.length
+  //           } catch(err) {
+  //             if(DEBUG) console.error("Erreur dechiffrage, %O", err)
+  //             throw err
+  //           }
+
+  //           const now = new Date().getTime()
+  //           if(now > prochainProgressTs) {
+  //             prochainProgressTs = now + CONST_PROGRESS_UPDATE_INTERVAL
+  //             progressCb(receivedLength+positionTraitee, contentLength, {flag: 'dechiffrage'})
+  //           }
+  //         }
+  //         if(DEBUG) console.debug("Value dechiffree : %O", chunk)
+  //       } else {
+  //         enqueue(chunk)
+  //       }
+  //     },
+  //     async close() {
+  //       console.debug("createWriteStreamDechiffrage Close stream")
+  //       if(dataProcessor) {
+  //         const value = await dataProcessor.finish()
+  //         const {message: chunk} = value
+  //         if(chunk && chunk.length > 0) {
+  //           enqueue(chunk)
+  //         }
+  //       }
+  //     },
+  //     abort(err) {
+  //       console.error("createWriteStreamDechiffrage Sink error:", err);
+  //     },
+  //   },
+  //   queuingStrategy,
+  // );
+}
+
 /** Download un fichier, effectue les transformations (e.g. dechiffrage) et
  *  conserve le resultat dans cache storage */
 export async function downloadCacheFichier(downloadEnCours, progressCb, opts) {
@@ -419,7 +541,12 @@ export async function downloadCacheFichier(downloadEnCours, progressCb, opts) {
 
   let pathname
   try {
-    const {reader: stream, headers, status} = await fetchAvecProgress(
+    const {
+      reader: stream, 
+      headers, 
+      status,
+      done
+    } = await fetchAvecProgress(
       urlDownload,
       {progressCb, dataProcessor, DEBUG}
     )
@@ -431,83 +558,94 @@ export async function downloadCacheFichier(downloadEnCours, progressCb, opts) {
       throw err
     }
 
-    const size = Number(headers.get('content-length'))
-    const headerList = await Promise.all(headers.entries())
-    const headersModifies = new Headers()
-    if(DEBUG) console.debug("Headers originaux avant dechiffrage : %O", headerList)
-    for(let idx in headerList) {
-      const header = headerList[idx]
-      headersModifies.set(header[0], header[1])
-    }
-    if(mimetype) {
-      headersModifies.set('content-type', mimetype)
-    }
-    if(filename) {
-      headersModifies.set('content-disposition', `attachment; filename="${encodeURIComponent(filename)}"`)
-    }
+    // await done
+    // throw new Error("TADA")
 
-    let blockCipher = dataProcessor && dataProcessor.estActif()
+    // const size = Number(headers.get('content-length'))
+    // const headerList = await Promise.all(headers.entries())
+    // const headersModifies = new Headers()
+    // if(DEBUG) console.debug("Headers originaux avant dechiffrage : %O", headerList)
+    // for(let idx in headerList) {
+    //   const header = headerList[idx]
+    //   headersModifies.set(header[0], header[1])
+    // }
+    // if(mimetype) {
+    //   headersModifies.set('content-type', mimetype)
+    // }
+    // if(filename) {
+    //   headersModifies.set('content-disposition', `attachment; filename="${encodeURIComponent(filename)}"`)
+    // }
 
-    var response = null
-    if(blockCipher) {  // size > TAILLE_LIMITE_BLOCKCIPHER) {
-      // Download et dechiffrage en stream
-      if(DEBUG) console.debug("Dechiffrage mode stream")
-      response = new Response(stream, {headers: headersModifies, status})
-    } else {
-      if(DEBUG) console.debug("Creation buffer %d bytes pour cipher/subtle", size)
-      var buffer = new Uint8Array(size)
-      var position = 0
-      const reader = stream.getReader()
-      while(downloadEnCours.annuler !== true) {
-        const {done, value} = await reader.read()
-        if(DEBUG) console.debug("TransfertFichiers.worker reader : done=%s, value=%O", done, value)
-        if(done) break
-        buffer.set(value, position)
-        position += value.length
-      }
+    // let blockCipher = dataProcessor && dataProcessor.estActif()
 
-      if(dataProcessor && dataProcessor.password) {
-        // On avait un processor, finir le dechiffrage
-        if(DEBUG) console.debug("Dechiffrer apres buffering")
-        progressCb(size-1, size, {flag: 'Dechiffrage en cours'})
-        buffer = await dechiffrer(dataProcessor.password, buffer, {...downloadEnCours})
-        progressCb(size, size, {flag: 'Mise en cache'})
-      }
-      response = new Response(buffer, {headers: headersModifies, status})
-    }
+    // var response = null
+    // if(blockCipher) {  // size > TAILLE_LIMITE_BLOCKCIPHER) {
+    //   // Download et dechiffrage en stream
+    //   if(DEBUG) console.debug("Dechiffrage mode stream")
+    //   response = new Response(stream, {headers: headersModifies, status})
+    //   await stream.pipeTo(writer)
+    // } else {
+    //   if(DEBUG) console.debug("Creation buffer %d bytes pour cipher/subtle", size)
+    //   throw new Error("fix me ou obsolete?")
 
-    if(downloadEnCours.annuler) throw new Error("Download annule")
+    //   // var buffer = new Uint8Array(size)
+    //   // var position = 0
+      
+    //   // const reader = stream.getReader()
+    //   // while(downloadEnCours.annuler !== true) {
+    //   //   const {done, value} = await reader.read()
+    //   //   if(DEBUG) console.debug("TransfertFichiers.worker reader : done=%s, value=%O", done, value)
+    //   //   if(done) break
+    //   //   buffer.set(value, position)
+    //   //   position += value.length
+    //   // }
 
-    if(DEBUG) console.debug("Conserver %s dans cache", url)
-    if(fuuid) {
-      pathname = '/' + fuuid
-    } else if(!pathname) {
-      pathname = url
-      try { pathname = new URL(url).pathname } catch(err) {
-        if(DEBUG) console.debug("Pathname a utiliser pour le cache : %s", pathname)
-      }
-    }
-    if(DEBUG) console.debug("Fuuid a mettre dans le cache : %s", pathname)
+    //   // if(dataProcessor && dataProcessor.password) {
+    //   //   // On avait un processor, finir le dechiffrage
+    //   //   if(DEBUG) console.debug("Dechiffrer apres buffering")
+    //   //   progressCb(size-1, size, {flag: 'Dechiffrage en cours'})
+    //   //   buffer = await dechiffrer(dataProcessor.password, buffer, {...downloadEnCours})
+    //   //   progressCb(size, size, {flag: 'Mise en cache'})
+    //   // }
+
+    //   // response = new Response(buffer, {headers: headersModifies, status})
+    // }
+
+    // if(downloadEnCours.annuler) throw new Error("Download annule")
+
+    // if(DEBUG) console.debug("Conserver %s dans cache", url)
+    // if(fuuid) {
+    //   pathname = '/' + fuuid
+    // } else if(!pathname) {
+    //   pathname = url
+    //   try { pathname = new URL(url).pathname } catch(err) {
+    //     if(DEBUG) console.debug("Pathname a utiliser pour le cache : %s", pathname)
+    //   }
+    // }
+    // if(DEBUG) console.debug("Fuuid a mettre dans le cache : %s", pathname)
 
     let promiseCache = null
     if(_callbackAjouterChunkIdb) {
       // Utiliser stockage via callback (generalement pour stocker sous IDB)
       console.debug("downloadCacheFichier Conserver fichier download via IDB")
-      promiseCache = streamToDownloadIDB(fuuid, response.body, _callbackAjouterChunkIdb)
+      promiseCache = streamToDownloadIDB(fuuid, stream, _callbackAjouterChunkIdb)
     } else {
       // Utiliser le cache storage
+      throw new Error('cache storage fix me')
       console.debug("downloadCacheFichier Conserver fichier download via Caches")
       const cache = await caches.open(CACHE_TEMP_NAME)
       if(DEBUG) console.debug("Cache instance : %O", cache)
       promiseCache = cache.put(pathname, response)
     }
 
-    // Attendre que le download soit termine
-    if(DEBUG) console.debug("Attendre que le download soit termine, response : %O", response)
+    await Promise.all([done, promiseCache])
 
-    await promiseCache
-    progressCb(size, size, {})
-    if(DEBUG) console.debug("Caching complete")
+    // // Attendre que le download soit termine
+    // if(DEBUG) console.debug("Attendre que le download soit termine, response : %O", response)
+
+    // await promiseCache
+    // progressCb(size, size, {})
+    // if(DEBUG) console.debug("Caching complete")
   } catch(err) {
     console.error("Erreur download/processing : %O", err)
     if(progressCb) progressCb(-1, -1, {flag: 'Erreur', err: ''+err, stack: err.stack})
@@ -730,7 +868,9 @@ async function streamToDownloadIDB(fuuid, stream, conserverChunkCb) {
   const reader = stream.getReader()
   while(true) {
       const val = await reader.read()
-      console.debug("genererFichierZip Stream read %O", val)
+      // console.debug("genererFichierZip Stream read %O", val)
+      if(val.done) break  // Termine
+
       const data = val.value
       if(data) {
           arrayBuffers.push(data)
@@ -742,23 +882,24 @@ async function streamToDownloadIDB(fuuid, stream, conserverChunkCb) {
           // Split chunks
           const blob = new Blob(arrayBuffers)
           const positionBlob = position - blob.size
-          console.debug("Blob cree position %d : ", positionBlob, blob)
-          // await downloadFichiersDao.ajouterFichierDownloadFile(fuuid, positionBlob, blob)
-          conserverChunkCb(fuuid, positionBlob, blob)
           arrayBuffers = []
           tailleChunks = 0
+          console.debug("Blob cree position %s : ", positionBlob, blob)
+          // await downloadFichiersDao.ajouterFichierDownloadFile(fuuid, positionBlob, blob)
+          await conserverChunkCb(fuuid, positionBlob, blob)
       }
 
-      if(val.done) break  // Termine
       if(val.done === undefined) throw new Error('Erreur lecture stream, undefined')
   }
 
   if(arrayBuffers.length > 0) {
       const blob = new Blob(arrayBuffers)
       const positionBlob = position - blob.size
-      console.debug("Dernier blob position %d : ", positionBlob, blob)
+      arrayBuffers = []
+      tailleChunks = 0
+      console.debug("Dernier blob position %s : ", positionBlob, blob)
       // await downloadFichiersDao.ajouterFichierDownloadFile(fuuid, positionBlob, blob)
-      conserverChunkCb(fuuid, positionBlob, blob)
+      await conserverChunkCb(fuuid, positionBlob, blob)
   }
 }
 
