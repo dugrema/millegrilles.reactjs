@@ -12,19 +12,22 @@ var _urlDownload = '/collections/fichiers',
     _nomIdb = 'collections'
 
 const CACHE_TEMP_NAME = 'fichiersDechiffresTmp',
-      TAILLE_LIMITE_BLOCKCIPHER = 50 * 1024 * 1024,  // La limite de dechiffrage sans stream pour ciphers sans streaming comme mgs3
+      CONST_1MB = 1024 * 1024,
+      TAILLE_LIMITE_BLOCKCIPHER = 50 * CONST_1MB,  // La limite de dechiffrage sans stream pour ciphers sans streaming comme mgs3
       DECHIFFRAGE_TAILLE_BLOCK = 64 * 1024,
       STORE_DOWNLOADS = 'downloads',
       EXPIRATION_CACHE_MS = 24 * 60 * 60 * 1000,
-      CONST_PROGRESS_UPDATE_THRESHOLD = 10 * 1024 * 1024,
-      CONST_PROGRESS_UPDATE_INTERVAL = 1000
+      CONST_PROGRESS_UPDATE_THRESHOLD = 10 * CONST_1MB,
+      CONST_PROGRESS_UPDATE_INTERVAL = 1000,
+      CONST_BLOB_DOWNLOAD_CHUNKSIZE = 100 * CONST_1MB
 
 // Globals
 var _chiffrage = null
 
 // Structure downloads : {}
 var _downloadEnCours = null,
-    _callbackEtatDownload = null
+    _callbackEtatDownload = null,
+    _callbackAjouterChunkIdb = null
 
 const STATUS_NOUVEAU = 1,
   STATUS_ENCOURS = 2,
@@ -486,10 +489,18 @@ export async function downloadCacheFichier(downloadEnCours, progressCb, opts) {
     }
     if(DEBUG) console.debug("Fuuid a mettre dans le cache : %s", pathname)
 
-    // console.debug("Caches : %O, CacheStorage: %O", caches, CacheStorage)
-    const cache = await caches.open(CACHE_TEMP_NAME)
-    if(DEBUG) console.debug("Cache instance : %O", cache)
-    const promiseCache = cache.put(pathname, response)
+    let promiseCache = null
+    if(_callbackAjouterChunkIdb) {
+      // Utiliser stockage via callback (generalement pour stocker sous IDB)
+      console.debug("downloadCacheFichier Conserver fichier download via IDB")
+      promiseCache = streamToDownloadIDB(fuuid, response.body, _callbackAjouterChunkIdb)
+    } else {
+      // Utiliser le cache storage
+      console.debug("downloadCacheFichier Conserver fichier download via Caches")
+      const cache = await caches.open(CACHE_TEMP_NAME)
+      if(DEBUG) console.debug("Cache instance : %O", cache)
+      promiseCache = cache.put(pathname, response)
+    }
 
     // Attendre que le download soit termine
     if(DEBUG) console.debug("Attendre que le download soit termine, response : %O", response)
@@ -597,6 +608,10 @@ export function down_setChiffrage(chiffrage) {
 
 export function down_setCallbackDownload(cb) {
   _callbackEtatDownload = cb
+}
+
+export function down_setCallbackAjouterChunkIdb(cb) {
+  _callbackAjouterChunkIdb = cb
 }
 
 export function down_setUrlDownload(urlDownload) {
@@ -707,6 +722,44 @@ export async function down_entretienCache() {
   
   // Cleanup entrees de download cache inutilisees
   await cleanupCacheOrphelin()
+}
+
+async function streamToDownloadIDB(fuuid, stream, conserverChunkCb) {
+  // const {downloadFichiersDao} = workers
+  let arrayBuffers = [], tailleChunks = 0, position = 0
+  const reader = stream.getReader()
+  while(true) {
+      const val = await reader.read()
+      console.debug("genererFichierZip Stream read %O", val)
+      const data = val.value
+      if(data) {
+          arrayBuffers.push(data)
+          tailleChunks += data.length
+          position += data.length
+      }
+
+      if(tailleChunks > CONST_BLOB_DOWNLOAD_CHUNKSIZE) {
+          // Split chunks
+          const blob = new Blob(arrayBuffers)
+          const positionBlob = position - blob.size
+          console.debug("Blob cree position %d : ", positionBlob, blob)
+          // await downloadFichiersDao.ajouterFichierDownloadFile(fuuid, positionBlob, blob)
+          conserverChunkCb(fuuid, positionBlob, blob)
+          arrayBuffers = []
+          tailleChunks = 0
+      }
+
+      if(val.done) break  // Termine
+      if(val.done === undefined) throw new Error('Erreur lecture stream, undefined')
+  }
+
+  if(arrayBuffers.length > 0) {
+      const blob = new Blob(arrayBuffers)
+      const positionBlob = position - blob.size
+      console.debug("Dernier blob position %d : ", positionBlob, blob)
+      // await downloadFichiersDao.ajouterFichierDownloadFile(fuuid, positionBlob, blob)
+      conserverChunkCb(fuuid, positionBlob, blob)
+  }
 }
 
 // comlinkExpose({
