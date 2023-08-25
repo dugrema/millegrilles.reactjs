@@ -192,10 +192,6 @@ async function fetchAvecProgress(url, opts) {
   var dataProcessor = opts.dataProcessor
 
   const reponse = await fetch(url)
-
-  // if(DEBUG) console.debug("Reponse object : %O", reponse)
-  // const reader = reponse.body.getReader()
-  // console.debug("Reader : %O", reader)
   const contentLength = Number(reponse.headers.get('Content-Length'))
 
   progressCb(0, contentLength, {})
@@ -206,143 +202,142 @@ async function fetchAvecProgress(url, opts) {
     if(!actif) dataProcessor = null
   }
 
-  const downloadEnvironment = {
-    dataProcessor,  // Si present, permet d'appliquer un traitement sur les donnes au vol
-    downloadEnCours,  // .annuler === true indique que le client veut annuler le download
-    progressCb,
-    DEBUG,
+  // Creer un transform stream pour dechiffrer le fichier
+  const { writable, readable } = createTransformStreamDechiffrage(
+    dataProcessor, {...opts, contentLength})
+
+  // Pipe la reponse pour la dechiffrer au passage
+  let stream = reponse.body
+  if(progressCb) {
+    const progresStream = creerProgresTransformStream(progressCb, contentLength, {downloadEnCours})
+    stream = reponse.body.pipeThrough(progresStream)
   }
-
-  // const downloadStream = _creerDownloadStream(reader, contentLength, downloadEnvironment)
-
-  console.debug("fetchAvecProgress createWriteStreamDechiffrage")
-  const { writable, readable } = createTransformStreamDechiffrage(downloadEnCours, progressCb, {...opts, dataProcessor, contentLength})
-  const promisePipe = reponse.body.pipeTo(writable)
+  const promisePipe = stream.pipeTo(writable)
 
   return {
-    reader: readable,
+    reader: readable,           // Stream dechiffre
     headers: reponse.headers,
     status: reponse.status,
-    done: promisePipe
+    done: promisePipe           // Faire un await pour obtenir resultat download
   }
 
 }
 
-function _creerDownloadStream(reader, contentLength, opts) {
-  opts = opts || {}
+// function _creerDownloadStream(reader, contentLength, opts) {
+//   opts = opts || {}
 
-  const downloadEnCours = opts.downloadEnCours || {},
-        dataProcessor = opts.dataProcessor,
-        DEBUG = opts.DEBUG
+//   const downloadEnCours = opts.downloadEnCours || {},
+//         dataProcessor = opts.dataProcessor,
+//         DEBUG = opts.DEBUG
 
-  // const {fuuid, filename} = downloadEnCours
+//   // const {fuuid, filename} = downloadEnCours
 
-  const progressCb = opts.progressCb || function(){}  // Default fonction sans effet
+//   const progressCb = opts.progressCb || function(){}  // Default fonction sans effet
 
-  if(typeof(contentLength) === 'string') contentLength = Number(contentLength)
+//   if(typeof(contentLength) === 'string') contentLength = Number(contentLength)
 
-  var receivedLength = 0
-  var done = false
+//   var receivedLength = 0
+//   var done = false
 
-  return new ReadableStream({
-    start: controller => {
-      if(DEBUG) console.debug("start _creerDownloadStream")
-    },
-    pull: async controller => {
-      if(done) {
-        if(DEBUG) console.debug("_creerDownloadStream - done deja sette, termine")
-        controller.close()
-        progressCb(contentLength, contentLength, {})  // Complet
-        return
-      }
+//   return new ReadableStream({
+//     start: controller => {
+//       if(DEBUG) console.debug("start _creerDownloadStream")
+//     },
+//     pull: async controller => {
+//       if(done) {
+//         if(DEBUG) console.debug("_creerDownloadStream - done deja sette, termine")
+//         controller.close()
+//         progressCb(contentLength, contentLength, {})  // Complet
+//         return
+//       }
 
-      let prochainProgressTs = 0  // Limiter le nombre d'updates pour eviter overflow react
+//       let prochainProgressTs = 0  // Limiter le nombre d'updates pour eviter overflow react
 
-      while(!done) {
-        // console.debug("Desired stream Q size : ", controller.desiredSize)
-        if(controller.desiredSize < 1) return // Back pressure, on arrete
+//       while(!done) {
+//         // console.debug("Desired stream Q size : ", controller.desiredSize)
+//         if(controller.desiredSize < 1) return // Back pressure, on arrete
 
-        if(downloadEnCours && downloadEnCours.annuler) {
-          throw new Error("Usager a annule le transfert")
-        }
-        const nowInit = new Date().getTime()
-        if(nowInit > prochainProgressTs) {
-          prochainProgressTs = nowInit + CONST_PROGRESS_UPDATE_INTERVAL
-          progressCb(receivedLength, contentLength, {flag: 'lecture'})  // Complet
-        }
-        let {done: _done, value} = await reader.read(DECHIFFRAGE_TAILLE_BLOCK)
-        progressCb(receivedLength, contentLength, {flag: '', message: value?`Lu ${value.length}`:'Lecture null'})  // Complet
+//         if(downloadEnCours && downloadEnCours.annuler) {
+//           throw new Error("Usager a annule le transfert")
+//         }
+//         const nowInit = new Date().getTime()
+//         if(nowInit > prochainProgressTs) {
+//           prochainProgressTs = nowInit + CONST_PROGRESS_UPDATE_INTERVAL
+//           progressCb(receivedLength, contentLength, {flag: 'lecture'})  // Complet
+//         }
+//         let {done: _done, value} = await reader.read(DECHIFFRAGE_TAILLE_BLOCK)
+//         progressCb(receivedLength, contentLength, {flag: '', message: value?`Lu ${value.length}`:'Lecture null'})  // Complet
 
-        if(DEBUG) console.debug("_creerDownloadStream pull (done: %s) value = %O", _done, value)
-        if(_done) {
-          done = true
-          if(dataProcessor) {
-            if(DEBUG) console.debug("_creerDownloadProcess termine, on fait dataProcessor.finish()")
-            const value = await dataProcessor.finish()
-            const {message} = value
-            if(message && message.length > 0) {
-              controller.enqueue(message)
-            }
-          } 
+//         if(DEBUG) console.debug("_creerDownloadStream pull (done: %s) value = %O", _done, value)
+//         if(_done) {
+//           done = true
+//           if(dataProcessor) {
+//             if(DEBUG) console.debug("_creerDownloadProcess termine, on fait dataProcessor.finish()")
+//             const value = await dataProcessor.finish()
+//             const {message} = value
+//             if(message && message.length > 0) {
+//               controller.enqueue(message)
+//             }
+//           } 
 
-          // Complet
-          controller.close()
-          progressCb(contentLength, contentLength, {})
+//           // Complet
+//           controller.close()
+//           progressCb(contentLength, contentLength, {})
 
-          return
-        }
+//           return
+//         }
 
-        if(downloadEnCours) {
-          // Donner une chance d'intercepter l'evenement
-          await new Promise(resolve=>setTimeout(resolve, 1))
-          if(downloadEnCours.annuler) {
-            throw new Error("Usager a annule le transfert")
-          }
-        }
+//         if(downloadEnCours) {
+//           // Donner une chance d'intercepter l'evenement
+//           await new Promise(resolve=>setTimeout(resolve, 1))
+//           if(downloadEnCours.annuler) {
+//             throw new Error("Usager a annule le transfert")
+//           }
+//         }
 
-        // Utiliser des buffers de 64kb, plus rapide pour traitement WASM
-        if(dataProcessor) {
-          let positionTraitee = 0, positionOutput = 0
-          if(DEBUG) console.debug("Dechiffrer")
-          while(positionTraitee < value.length) {
-            const positionFin = Math.min(positionTraitee + DECHIFFRAGE_TAILLE_BLOCK, value.length)
-            try {
-              const sousBlock = value.slice(positionTraitee, positionFin)
-              const sousBlockOutput = await dataProcessor.update(sousBlock)
-              if(sousBlockOutput) {
-                // bufferOutput.set(sousBlockOutput, positionOutput)
-                controller.enqueue(sousBlockOutput)
-                positionOutput += sousBlockOutput.length
-              }
-              positionTraitee += sousBlock.length
-            } catch(err) {
-              if(DEBUG) console.error("Erreur dechiffrage, %O", err)
-              throw err
-            }
+//         // Utiliser des buffers de 64kb, plus rapide pour traitement WASM
+//         if(dataProcessor) {
+//           let positionTraitee = 0, positionOutput = 0
+//           if(DEBUG) console.debug("Dechiffrer")
+//           while(positionTraitee < value.length) {
+//             const positionFin = Math.min(positionTraitee + DECHIFFRAGE_TAILLE_BLOCK, value.length)
+//             try {
+//               const sousBlock = value.slice(positionTraitee, positionFin)
+//               const sousBlockOutput = await dataProcessor.update(sousBlock)
+//               if(sousBlockOutput) {
+//                 // bufferOutput.set(sousBlockOutput, positionOutput)
+//                 controller.enqueue(sousBlockOutput)
+//                 positionOutput += sousBlockOutput.length
+//               }
+//               positionTraitee += sousBlock.length
+//             } catch(err) {
+//               if(DEBUG) console.error("Erreur dechiffrage, %O", err)
+//               throw err
+//             }
 
-            const now = new Date().getTime()
-            if(now > prochainProgressTs) {
-              prochainProgressTs = now + CONST_PROGRESS_UPDATE_INTERVAL
-              progressCb(receivedLength+positionTraitee, contentLength, {flag: 'dechiffrage'})
-            }
-          }
-          if(DEBUG) console.debug("Value dechiffree : %O", value)
-        } else {
-          controller.enqueue(value)
-        }
-        receivedLength += value.length
+//             const now = new Date().getTime()
+//             if(now > prochainProgressTs) {
+//               prochainProgressTs = now + CONST_PROGRESS_UPDATE_INTERVAL
+//               progressCb(receivedLength+positionTraitee, contentLength, {flag: 'dechiffrage'})
+//             }
+//           }
+//           if(DEBUG) console.debug("Value dechiffree : %O", value)
+//         } else {
+//           controller.enqueue(value)
+//         }
+//         receivedLength += value.length
 
-        if(DEBUG) console.debug(`Recu ${receivedLength} / ${contentLength}`)
-        const now = new Date().getTime()
-        if(now > prochainProgressTs) {
-          prochainProgressTs = now + CONST_PROGRESS_UPDATE_INTERVAL
-          progressCb(receivedLength, contentLength, {})
-        }
-      }
-    }
-  })
+//         if(DEBUG) console.debug(`Recu ${receivedLength} / ${contentLength}`)
+//         const now = new Date().getTime()
+//         if(now > prochainProgressTs) {
+//           prochainProgressTs = now + CONST_PROGRESS_UPDATE_INTERVAL
+//           progressCb(receivedLength, contentLength, {})
+//         }
+//       }
+//     }
+//   })
 
-}
+// }
 
 async function preparerDataProcessor(opts) {
   // console.debug("preparerDataProcessor opts : %O", opts)
@@ -396,52 +391,22 @@ async function preparerDataProcessor(opts) {
   return dataProcessor
 }
 
-function createTransformStreamDechiffrage(downloadEnCours, progressCb, opts) {
-  console.debug("createTransformStreamDechiffrage downloadEnCours: %O, progressCb: %O, opts: %O", downloadEnCours, progressCb, opts)
-  opts = opts || {}
-  const dataProcessor = opts.dataProcessor
-  const contentLength = opts.contentLength || 0
-  const DEBUG = opts.DEBUG
-
+function createTransformStreamDechiffrage(dataProcessor) {
+  // Demander un high watermark de 10 buffers de 64kb (64kb est la taille du buffer de dechiffrage)
   const queuingStrategy = new ByteLengthQueuingStrategy({ highWaterMark: 1024 * 64 * 10 });
-
-  let prochainProgressTs = 0, receivedLength = 0
 
   return new TransformStream({
     async transform(chunk, controller) {
-      // console.debug("createTransformStreamDechiffrage Write %s bytes", chunk.length)
-      if(downloadEnCours && downloadEnCours.annuler === true) {
-        throw new Error('download annule')
+      try {
+        if(dataProcessor) {
+          const sousBlockOutput = await dataProcessor.update(chunk)
+          if(sousBlockOutput) controller.enqueue(sousBlockOutput)
+        } else {
+          controller.enqueue(chunk)
+        }      
+      } catch(err) {
+        controller.error(err)
       }
-
-      if(dataProcessor) {
-        if(DEBUG) console.debug("Dechiffrer")
-        let positionTraitee = 0, positionOutput = 0
-        while(positionTraitee < chunk.length) {
-          const positionFin = Math.min(positionTraitee + DECHIFFRAGE_TAILLE_BLOCK, chunk.length)
-          try {
-            const sousBlock = chunk.slice(positionTraitee, positionFin)
-            const sousBlockOutput = await dataProcessor.update(sousBlock)
-            if(sousBlockOutput) {
-              controller.enqueue(sousBlockOutput)
-              positionOutput += sousBlockOutput.length
-            }
-            positionTraitee += sousBlock.length
-          } catch(err) {
-            if(DEBUG) console.error("Erreur dechiffrage, %O", err)
-            throw err
-          }
-
-          const now = new Date().getTime()
-          if(now > prochainProgressTs) {
-            prochainProgressTs = now + CONST_PROGRESS_UPDATE_INTERVAL
-            progressCb(receivedLength+positionTraitee, contentLength, {flag: 'dechiffrage'})
-          }
-        }
-        if(DEBUG) console.debug("Value dechiffree : %O", chunk)
-      } else {
-        controller.enqueue(chunk)
-      }      
     },
     async flush(controller) {
       console.debug("createTransformStreamDechiffrage Close stream")
@@ -455,62 +420,43 @@ function createTransformStreamDechiffrage(downloadEnCours, progressCb, opts) {
       return controller.terminate()
     }
   }, queuingStrategy)
-
-  // return new WritableStream(
-  //   {
-  //     // Implement the sink
-  //     async write(chunk) {
-  //       console.debug("createWriteStreamDechiffrage Write %s bytes", chunk.length)
-  //       if(downloadEnCours && downloadEnCours.annuler === true) {
-  //         throw new Error('download annule')
-  //       }
-
-  //       if(dataProcessor) {
-  //         if(DEBUG) console.debug("Dechiffrer")
-  //         let positionTraitee = 0, positionOutput = 0
-  //         while(positionTraitee < chunk.length) {
-  //           const positionFin = Math.min(positionTraitee + DECHIFFRAGE_TAILLE_BLOCK, chunk.length)
-  //           try {
-  //             const sousBlock = chunk.slice(positionTraitee, positionFin)
-  //             const sousBlockOutput = await dataProcessor.update(sousBlock)
-  //             if(sousBlockOutput) {
-  //               enqueue(sousBlockOutput)
-  //               positionOutput += sousBlockOutput.length
-  //             }
-  //             positionTraitee += sousBlock.length
-  //           } catch(err) {
-  //             if(DEBUG) console.error("Erreur dechiffrage, %O", err)
-  //             throw err
-  //           }
-
-  //           const now = new Date().getTime()
-  //           if(now > prochainProgressTs) {
-  //             prochainProgressTs = now + CONST_PROGRESS_UPDATE_INTERVAL
-  //             progressCb(receivedLength+positionTraitee, contentLength, {flag: 'dechiffrage'})
-  //           }
-  //         }
-  //         if(DEBUG) console.debug("Value dechiffree : %O", chunk)
-  //       } else {
-  //         enqueue(chunk)
-  //       }
-  //     },
-  //     async close() {
-  //       console.debug("createWriteStreamDechiffrage Close stream")
-  //       if(dataProcessor) {
-  //         const value = await dataProcessor.finish()
-  //         const {message: chunk} = value
-  //         if(chunk && chunk.length > 0) {
-  //           enqueue(chunk)
-  //         }
-  //       }
-  //     },
-  //     abort(err) {
-  //       console.error("createWriteStreamDechiffrage Sink error:", err);
-  //     },
-  //   },
-  //   queuingStrategy,
-  // );
 }
+
+function creerProgresTransformStream(progressCb, size, opts) {
+    opts = opts || {}
+    console.debug("creerProgresTransformStream size: %s", size)
+
+    const downloadEnCours = opts.downloadEnCours
+
+    let position = 0
+    let afficherProgres = true
+
+    const setAfficherProgres = () => { afficherProgres = true }
+
+    // Demander un high watermark de 10 buffers de 64kb (64kb est la taille du buffer de dechiffrage)
+    const queuingStrategy = new ByteLengthQueuingStrategy({ highWaterMark: 1024 * 64 * 10 });
+
+    return new TransformStream({
+      async transform(chunk, controller) {
+        if(downloadEnCours && downloadEnCours.annuler === true) {
+          return controller.error(new Error('download annule'))
+        }
+        try{
+          position += chunk.length
+          if(afficherProgres) {
+            const positionPonderee = position  // Math.floor(0.95 * position)
+            afficherProgres = false
+            await progressCb(positionPonderee, size, {flag: 'Dechiffrage en cours'})
+            setTimeout(setAfficherProgres, 500)
+          }
+          controller.enqueue(chunk)
+        } catch(err) {
+          controller.error(err)
+        }
+      },
+      flush(controller) { return controller.terminate() }
+    }, queuingStrategy, queuingStrategy)
+  }
 
 /** Download un fichier, effectue les transformations (e.g. dechiffrage) et
  *  conserve le resultat dans cache storage */
@@ -548,7 +494,7 @@ export async function downloadCacheFichier(downloadEnCours, progressCb, opts) {
       done
     } = await fetchAvecProgress(
       urlDownload,
-      {progressCb, dataProcessor, DEBUG}
+      {progressCb, dataProcessor, downloadEnCours, DEBUG}
     )
 
     if(DEBUG) console.debug("Stream url %s recu (status: %d): %O", url, status, stream)
@@ -558,10 +504,7 @@ export async function downloadCacheFichier(downloadEnCours, progressCb, opts) {
       throw err
     }
 
-    // await done
-    // throw new Error("TADA")
-
-    // const size = Number(headers.get('content-length'))
+    const size = Number(headers.get('content-length'))
     // const headerList = await Promise.all(headers.entries())
     // const headersModifies = new Headers()
     // if(DEBUG) console.debug("Headers originaux avant dechiffrage : %O", headerList)
@@ -644,7 +587,7 @@ export async function downloadCacheFichier(downloadEnCours, progressCb, opts) {
     // if(DEBUG) console.debug("Attendre que le download soit termine, response : %O", response)
 
     // await promiseCache
-    // progressCb(size, size, {})
+    progressCb(size, size, {})
     // if(DEBUG) console.debug("Caching complete")
   } catch(err) {
     console.error("Erreur download/processing : %O", err)
