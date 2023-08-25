@@ -331,7 +331,7 @@ function EtatDownload(props) {
 
             <DownloadsSucces 
                 downloadsCompletes={downloadsCompletes} 
-                supprimerDownloadAction={supprimerDownloadsSuccesAction} 
+                supprimerDownloadAction={supprimerDownloadAction} 
                 supprimerTousDownloadsAction={supprimerDownloadsSuccesAction} 
                 downloadClick={downloadClick} />
         </div>

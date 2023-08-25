@@ -827,7 +827,7 @@ async function streamToDownloadIDB(fuuid, stream, conserverChunkCb) {
           const positionBlob = position - blob.size
           arrayBuffers = []
           tailleChunks = 0
-          console.debug("Blob cree position %s : ", positionBlob, blob)
+          // console.debug("Blob cree position %s : ", positionBlob, blob)
           // await downloadFichiersDao.ajouterFichierDownloadFile(fuuid, positionBlob, blob)
           await conserverChunkCb(fuuid, positionBlob, blob)
       }
