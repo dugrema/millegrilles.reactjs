@@ -73,6 +73,11 @@ export async function down_ajouterDownload(fuuid, opts) {
 
   // console.debug("ajouterDownload %s, %O", fuuid, opts)
 
+  if(_fuuidsAnnulerDownload) {
+    // S'assurer que le download ajoute n'est pas dans la liste des downloads annules
+    _fuuidsAnnulerDownload = _fuuidsAnnulerDownload.filter(item=>item !== fuuid)
+  }
+
   const infoDownload = {
     url,
     taille: '',
