@@ -458,11 +458,12 @@ function creerProgresTransformStream(progressCb, size, opts) {
     // let termine = false
 
     // Demander un high watermark de 10 buffers de 64kb (64kb est la taille du buffer de dechiffrage)
-    const queuingStrategy = new ByteLengthQueuingStrategy({ highWaterMark: 1024 * 64 * 10 });
+    // const queuingStrategy = new ByteLengthQueuingStrategy({ highWaterMark: 1024 * 64 * 10 });
 
     return new TransformStream({
       async transform(chunk, controller) {
         if(!chunk || chunk.length === 0) return controller.error("Aucun contenu")
+        // console.trace("creerProgresTransformStream Chunk size %s", chunk.length)
         // if(termine) {
         //   console.warn("creerProgresTransformStream Appele apres fin")
         //   return controller.error("Termine")
@@ -497,7 +498,8 @@ function creerProgresTransformStream(progressCb, size, opts) {
         // termine = true
         return controller.terminate() 
       }
-    }, queuingStrategy, queuingStrategy)
+    })
+    // }, queuingStrategy, queuingStrategy)
   }
 
 /** Download un fichier, effectue les transformations (e.g. dechiffrage) et
