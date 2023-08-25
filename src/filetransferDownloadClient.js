@@ -28,7 +28,8 @@ var _chiffrage = null
 // Structure downloads : {}
 var _downloadEnCours = null,
     _callbackEtatDownload = null,
-    _callbackAjouterChunkIdb = null
+    _callbackAjouterChunkIdb = null,
+    _fuuidsAnnulerDownload = null  // Array de fuuids pour annuler le download en cours - doit matcher le fuuid courant
 
 const STATUS_NOUVEAU = 1,
   STATUS_ENCOURS = 2,
@@ -166,6 +167,13 @@ async function getDownloadsPending() {
   // Trier par dateQueining
   downloadsPending.sort(trierPending)
   return downloadsPending
+}
+
+/** Permet d'annuler le download en cours - doit matcher le fuuid dans la boucle de download */
+export async function annulerDownload(fuuids) {
+  if(typeof(fuuids) === 'string') fuuids = [fuuids]
+  if(!_fuuidsAnnulerDownload) _fuuidsAnnulerDownload = fuuids
+  else _fuuidsAnnulerDownload = [..._fuuidsAnnulerDownload, ...fuuids]
 }
 
 function trierPending(a, b) {
@@ -438,8 +446,12 @@ function creerProgresTransformStream(progressCb, size, opts) {
 
     return new TransformStream({
       async transform(chunk, controller) {
-        if(downloadEnCours && downloadEnCours.annuler === true) {
-          return controller.error(new Error('download annule'))
+        if(_fuuidsAnnulerDownload) {
+          const fuuidAnnuler = _fuuidsAnnulerDownload
+          _fuuidsAnnulerDownload = null  // Vider le signal - doit matcher le fuuid courant
+          if(fuuidAnnuler.includes(downloadEnCours.fuuid)) {
+            return controller.error(new Error('download annule'))
+          }
         }
         try{
           position += chunk.length
@@ -765,6 +777,7 @@ export async function down_supprimerDownloads(params) {
 }
 
 export async function down_supprimerDownloadsCache(fuuid) {
+    await annulerDownload(fuuid)  // Ajouter le fuuid a la liste des downloads a annuler
     const cache = await caches.open(CACHE_TEMP_NAME)
     await cache.delete('/' + fuuid)
 }
