@@ -123,6 +123,9 @@ async function traiterDownloads() {
       emettreEtat({complete}).catch(err=>(console.warn("Erreur maj etat : %O", err)))
       
       try {
+          // Reset downloads annules
+          _fuuidsAnnulerDownload = null
+
           // Download le fichier.
           await downloadCacheFichier(_downloadEnCours, {progressCb})
           emettreEtat({fuuidReady: _downloadEnCours.fuuid}).catch(err=>(console.warn("Erreur maj etat apres download complet : %O", err)))
@@ -204,7 +207,10 @@ async function fetchAvecProgress(url, opts) {
 
   var dataProcessor = opts.dataProcessor
 
-  const reponse = await fetch(url)
+  const abortController = new AbortController()
+  const signal = abortController.signal
+  // Note : cache no-store evite des problemes de memoire sur Firefox
+  const reponse = await fetch(url, {signal, cache: 'no-store', keepalive: false})
   const contentLength = Number(reponse.headers.get('Content-Length'))
 
   progressCb(0, contentLength, {})
@@ -222,7 +228,7 @@ async function fetchAvecProgress(url, opts) {
   // Pipe la reponse pour la dechiffrer au passage
   let stream = reponse.body
   if(progressCb) {
-    const progresStream = creerProgresTransformStream(progressCb, contentLength, {downloadEnCours})
+    const progresStream = creerProgresTransformStream(progressCb, contentLength, {downloadEnCours, abortController})
     stream = reponse.body.pipeThrough(progresStream)
   }
   const promisePipe = stream.pipeTo(writable)
@@ -231,7 +237,8 @@ async function fetchAvecProgress(url, opts) {
     reader: readable,           // Stream dechiffre
     headers: reponse.headers,
     status: reponse.status,
-    done: promisePipe           // Faire un await pour obtenir resultat download
+    done: promisePipe,           // Faire un await pour obtenir resultat download
+    abortController,
   }
 
 }
@@ -410,6 +417,7 @@ function createTransformStreamDechiffrage(dataProcessor) {
 
   return new TransformStream({
     async transform(chunk, controller) {
+      if(!chunk || chunk.length === 0) return controller.error("Aucun contenu")
       try {
         if(dataProcessor) {
           const sousBlockOutput = await dataProcessor.update(chunk)
@@ -439,23 +447,37 @@ function creerProgresTransformStream(progressCb, size, opts) {
     opts = opts || {}
     console.debug("creerProgresTransformStream size: %s", size)
 
-    const downloadEnCours = opts.downloadEnCours
+    const downloadEnCours = opts.downloadEnCours,
+          abortController = opts.abortController
 
     let position = 0
     let afficherProgres = true
 
     const setAfficherProgres = () => { afficherProgres = true }
 
+    // let termine = false
+
     // Demander un high watermark de 10 buffers de 64kb (64kb est la taille du buffer de dechiffrage)
     const queuingStrategy = new ByteLengthQueuingStrategy({ highWaterMark: 1024 * 64 * 10 });
 
     return new TransformStream({
       async transform(chunk, controller) {
+        if(!chunk || chunk.length === 0) return controller.error("Aucun contenu")
+        // if(termine) {
+        //   console.warn("creerProgresTransformStream Appele apres fin")
+        //   return controller.error("Termine")
+        // }
         if(_fuuidsAnnulerDownload) {
           const fuuidAnnuler = _fuuidsAnnulerDownload
           _fuuidsAnnulerDownload = null  // Vider le signal - doit matcher le fuuid courant
           if(fuuidAnnuler.includes(downloadEnCours.fuuid)) {
-            return controller.error(new Error('download annule'))
+            if(abortController) {
+              abortController.abort()
+              console.debug("creerProgresTransformStream AbortController.abort")
+            } else {
+            // termine = true
+              return controller.error(new Error('download annule'))
+            }
           }
         }
         try{
@@ -471,7 +493,10 @@ function creerProgresTransformStream(progressCb, size, opts) {
           controller.error(err)
         }
       },
-      flush(controller) { return controller.terminate() }
+      flush(controller) { 
+        // termine = true
+        return controller.terminate() 
+      }
     }, queuingStrategy, queuingStrategy)
   }
 
@@ -508,7 +533,8 @@ export async function downloadCacheFichier(downloadEnCours, progressCb, opts) {
       reader: stream, 
       headers, 
       status,
-      done
+      done,
+      abortController
     } = await fetchAvecProgress(
       urlDownload,
       {progressCb, dataProcessor, downloadEnCours, DEBUG}
