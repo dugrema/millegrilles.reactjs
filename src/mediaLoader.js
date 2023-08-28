@@ -357,8 +357,10 @@ async function creerToken(creerTokenJwt, fuuidFichier, fuuidStream, mimetype, op
 
     try {
         const reponse = await creerTokenJwt(commande)
-        // console.debug("Reponse tokens JWTs : ", reponse)
-        return reponse.jwts[fuuidStream]
+        console.debug("Reponse tokens JWTs : ", reponse)
+        if(reponse.ok === false) throw new Error(`Erreur creation token JWT : ${reponse.err}`)
+        if(!reponse.jwt_token) throw new Error("Token JWT absent de la reponse")
+        return reponse.jwt_token
     } catch(err) {
         console.error("mediaLoader.creerToken commande %O, Erreur ", commande, err)
         throw err
