@@ -169,6 +169,10 @@ export async function creerStreamDecipherXChacha20Poly1305(key, header) {
         update: async data => {
             data = Uint8Array.from(data)
             let message = null
+            
+            // Creer un buffer d'output qui permet de recevoir jusqu'a un block de plus que l'input
+            const output = new Uint8Array(data.length + DECIPHER_MESSAGE_SIZE)
+            let positionOuputMessage = 0
 
             // Chiffrer tant qu'on peut remplir le buffer
             while (positionBuffer + data.length >= DECIPHER_MESSAGE_SIZE) {
@@ -181,8 +185,10 @@ export async function creerStreamDecipherXChacha20Poly1305(key, header) {
                 const resultatDechiffrage = sodium.crypto_secretstream_xchacha20poly1305_pull(state_in, messageBuffer)
                 if(resultatDechiffrage === false) throw new DecipherError('Erreur dechiffrage')
 
-                if(!message) message = resultatDechiffrage.message
-                else message = new Uint8Array([...message, ...resultatDechiffrage.message])
+                // if(!message) message = resultatDechiffrage.message
+                // else message = new Uint8Array([...message, ...resultatDechiffrage.message])
+                output.set(resultatDechiffrage.message, positionOuputMessage)
+                positionOuputMessage += resultatDechiffrage.message.length
 
                 positionBuffer = 0  // Reset position
             }
@@ -193,11 +199,9 @@ export async function creerStreamDecipherXChacha20Poly1305(key, header) {
                 positionBuffer += data.length
             }
             
-            if(message) {
-                tailleOutput += message.length
-            }
+            tailleOutput += positionOuputMessage
 
-            return message
+            return output.slice(0, positionOuputMessage)
         },
         finalize: async () => {
             let decipheredMessage
@@ -337,6 +341,73 @@ const chacha20poly1305Algorithm = {
     stream: false,
 }
 
+const dummy = {
+    encrypt: (data, opts) => { return data },
+    decrypt: (key, data, opts) => { return data },
+    getCipher: () => {
+        return {
+            update: data => data,
+            finalize: () => { return {} },
+            header: () => header,
+            hachage: () => hachage,
+            key: () => key,
+            format: () => 'dummy',
+            etatFinal: () => etatFinal,
+        }
+    },
+    getDecipher: () => {
+        const messageBuffer = new Uint8Array(DECIPHER_MESSAGE_SIZE)
+        let positionBuffer = 0,
+            tailleOutput = 0
+
+        return {
+            update: data => {
+                data = Uint8Array.from(data)
+
+                // Creer un buffer d'output qui permet de recevoir jusqu'a un block de plus que l'input
+                const output = new Uint8Array(data.length + DECIPHER_MESSAGE_SIZE)
+                let positionOuputMessage = 0
+    
+                // Chiffrer tant qu'on peut remplir le buffer
+                while (positionBuffer + data.length >= DECIPHER_MESSAGE_SIZE) {
+                    // Slice data
+                    let endPos = DECIPHER_MESSAGE_SIZE - positionBuffer
+                    messageBuffer.set(data.slice(0, endPos), positionBuffer)
+                    data = data.slice(endPos)
+    
+                    // Dechiffrer
+                    // const resultatDechiffrage = sodium.crypto_secretstream_xchacha20poly1305_pull(state_in, messageBuffer)
+                    // if(resultatDechiffrage === false) throw new DecipherError('Erreur dechiffrage')
+                    // if(!message) message = data
+                    // else message = new Uint8Array([...message, ...data])
+                    output.set(messageBuffer, positionOuputMessage)
+                    positionOuputMessage += messageBuffer.length
+    
+                    positionBuffer = 0  // Reset position
+                }
+    
+                // Inserer data restant dans le buffer
+                if(positionBuffer + data.length <= DECIPHER_MESSAGE_SIZE) {
+                    messageBuffer.set(data, positionBuffer)
+                    positionBuffer += data.length
+                }
+                
+                // if(message) {
+                //     tailleOutput += message.length
+                // }
+                if(positionOuputMessage) {
+                    tailleOutput += positionOuputMessage
+                }
+    
+                return output.slice(0, positionOuputMessage)
+            },
+            finalize: () => { return {} },
+        }
+    },
+    messageSize: MESSAGE_SIZE,
+    stream: true,
+}
+
 function nonSupporte() {
     throw new NonSupporteError("cipher/decipher non supporte")
 }
@@ -346,6 +417,7 @@ const ciphers = {
     'stream-xchacha20poly1305': streamXchacha20poly1305Algorithm,
     'mgs3': chacha20poly1305Algorithm,
     'mgs4': streamXchacha20poly1305Algorithm,
+    'dummy': dummy,
 }
 
 setCiphers(ciphers)

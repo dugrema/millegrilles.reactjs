@@ -2,8 +2,6 @@ import path from 'path'
 import { openDB } from 'idb'
 import { base64 } from "multiformats/bases/base64"
 
-// import { dechiffrer } from '@dugrema/millegrilles.utiljs/src/chiffrage'
-
 import { chiffrage } from './chiffrage'
 
 const { dechiffrer, preparerDecipher } = chiffrage
@@ -398,10 +396,11 @@ async function preparerDataProcessor(opts) {
     },
     update: data => {
       if(!blockCipher) throw new Error("Data processor est inactif")
+      // return data
       return blockCipher.update(data)
     },
     finish: () => {
-      if(!blockCipher) throw new Error("Data processor est inactif")
+      // if(!blockCipher) throw new Error("Data processor est inactif")
       return blockCipher.finalize()
     },
     password,
@@ -550,67 +549,6 @@ export async function downloadCacheFichier(downloadEnCours, progressCb, opts) {
     }
 
     const size = Number(headers.get('content-length'))
-    // const headerList = await Promise.all(headers.entries())
-    // const headersModifies = new Headers()
-    // if(DEBUG) console.debug("Headers originaux avant dechiffrage : %O", headerList)
-    // for(let idx in headerList) {
-    //   const header = headerList[idx]
-    //   headersModifies.set(header[0], header[1])
-    // }
-    // if(mimetype) {
-    //   headersModifies.set('content-type', mimetype)
-    // }
-    // if(filename) {
-    //   headersModifies.set('content-disposition', `attachment; filename="${encodeURIComponent(filename)}"`)
-    // }
-
-    // let blockCipher = dataProcessor && dataProcessor.estActif()
-
-    // var response = null
-    // if(blockCipher) {  // size > TAILLE_LIMITE_BLOCKCIPHER) {
-    //   // Download et dechiffrage en stream
-    //   if(DEBUG) console.debug("Dechiffrage mode stream")
-    //   response = new Response(stream, {headers: headersModifies, status})
-    //   await stream.pipeTo(writer)
-    // } else {
-    //   if(DEBUG) console.debug("Creation buffer %d bytes pour cipher/subtle", size)
-    //   throw new Error("fix me ou obsolete?")
-
-    //   // var buffer = new Uint8Array(size)
-    //   // var position = 0
-      
-    //   // const reader = stream.getReader()
-    //   // while(downloadEnCours.annuler !== true) {
-    //   //   const {done, value} = await reader.read()
-    //   //   if(DEBUG) console.debug("TransfertFichiers.worker reader : done=%s, value=%O", done, value)
-    //   //   if(done) break
-    //   //   buffer.set(value, position)
-    //   //   position += value.length
-    //   // }
-
-    //   // if(dataProcessor && dataProcessor.password) {
-    //   //   // On avait un processor, finir le dechiffrage
-    //   //   if(DEBUG) console.debug("Dechiffrer apres buffering")
-    //   //   progressCb(size-1, size, {flag: 'Dechiffrage en cours'})
-    //   //   buffer = await dechiffrer(dataProcessor.password, buffer, {...downloadEnCours})
-    //   //   progressCb(size, size, {flag: 'Mise en cache'})
-    //   // }
-
-    //   // response = new Response(buffer, {headers: headersModifies, status})
-    // }
-
-    // if(downloadEnCours.annuler) throw new Error("Download annule")
-
-    // if(DEBUG) console.debug("Conserver %s dans cache", url)
-    // if(fuuid) {
-    //   pathname = '/' + fuuid
-    // } else if(!pathname) {
-    //   pathname = url
-    //   try { pathname = new URL(url).pathname } catch(err) {
-    //     if(DEBUG) console.debug("Pathname a utiliser pour le cache : %s", pathname)
-    //   }
-    // }
-    // if(DEBUG) console.debug("Fuuid a mettre dans le cache : %s", pathname)
 
     let promiseCache = null
     if(_callbackAjouterChunkIdb) {
@@ -891,12 +829,3 @@ async function streamToDownloadIDB(fuuid, stream, conserverChunkCb) {
       await conserverChunkCb(fuuid, positionBlob, blob)
   }
 }
-
-// comlinkExpose({
-//   fetchAvecProgress,
-//   getEtatCourant,
-//   ajouterDownload,  
-//   setChiffrage,
-//   annulerDownload,
-//   setCallbackDownload,
-// })
