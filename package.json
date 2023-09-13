@@ -1,6 +1,6 @@
 {
   "name": "millegrilles.reactjs",
-  "version": "2023.8.1",
+  "version": "2023.9.0",
   "description": "Composants communs pour MilleGrilles front-end avec ReactJS",
   "author": "dugrema",
   "license": "MIT",
@@ -21,7 +21,7 @@
     "deploy": "gh-pages -d example/build"
   },
   "dependencies": {
-    "@dugrema/millegrilles.utiljs": "github:dugrema/millegrilles.utiljs#2023.8",
+    "@dugrema/millegrilles.utiljs": "github:dugrema/millegrilles.utiljs#2023.9",
     "@reduxjs/toolkit": "^1.9.2",
     "axios": "^1.4.0",
     "base64url": "^3.0.1",
