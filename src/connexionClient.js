@@ -15,7 +15,7 @@ import {
   verifierCertificat,
   verifierMessage as x509VerifierMessage,
 } from './x509Client'
-import { MESSAGE_KINDS } from '@dugrema/millegrilles.utiljs/src/constantes'
+import { KIND_COMMANDE, MESSAGE_KINDS } from '@dugrema/millegrilles.utiljs/src/constantes'
 
 // Re-exporter fonctions de chiffrageClient
 export { formatterMessage, chargerCleMillegrille, signerMessageCleMillegrille, clearCleMillegrille } 
@@ -333,11 +333,13 @@ export async function subscribe(nomEventSocketio, cb, params, opts) {
   params = params || {}
   opts = opts || {}
   try {
-    var resultat = await emitBlocking(nomEventSocketio, params, {...opts, noformat: true})
+    // var resultat = await emitBlocking(nomEventSocketio, params, {...opts, noformat: true})
+    var resultat = await emitBlocking(nomEventSocketio, params, {kind: KIND_COMMANDE, ...opts})
   } catch(err) {
     // Cas special lors de reconnexion a un serveur qui redemarre
     console.warn("Erreur subscribe %s, attendre 5 secondes et ressayer", nomEventSocketio)
-    resultat = await emitBlocking(nomEventSocketio, params, {...opts, noformat: true})
+    // resultat = await emitBlocking(nomEventSocketio, params, {...opts, noformat: true})
+    resultat = await emitBlocking(nomEventSocketio, params, {kind: KIND_COMMANDE, ...opts})
   }
 
   // console.debug("Resultat subscribe %s : %O", nomEventSocketio, resultat)
