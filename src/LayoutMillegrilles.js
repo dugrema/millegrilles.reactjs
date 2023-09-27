@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useCallback } from 'react'
 
 import { useTranslation, initReactI18next } from 'react-i18next'
 
@@ -43,9 +43,19 @@ export function initI18n(instance) {
 
 export function Menu(props) {
 
-    const { brand, labelMenu, etatConnexion, onSelect, children } = props
+    const { workers, brand, labelMenu, etatConnexion, onSelect, children } = props
 
     const expand = props.expand || 'md'
+
+    const reconnecterCb = useCallback(()=>{
+        if(workers && workers.connexion) {
+            console.info("Reconnexion manuelle")
+            workers.connexion.reconnecter()
+                .catch(err=>console.error("Erreur reconnexion %O", err))
+        } else {
+            console.warn("LayoutMillegrilles.Menu workers/connexion non disponible (null)")
+        }
+    }, [workers])
 
     const OverlayDeconnecte = useMemo(()=>{
         if(etatConnexion === true) return () => <span/>
@@ -72,7 +82,7 @@ export function Menu(props) {
 
             <div className="menu-section-droite">
                 <Fade in={!etatConnexion}>
-                    <div id="etatConnexion">
+                    <div id="etatConnexion" onClick={reconnecterCb}>
                         <OverlayTrigger delay={{ show: 250, hide: 400 }} placement="bottom" overlay={OverlayDeconnecte}>
                             <span className="fa-stack fa-lg">
                                 <i className="fa fa-wifi fa-stack-1x"></i>

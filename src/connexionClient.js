@@ -89,8 +89,8 @@ export async function connecter(urlApp, opts) {
     _connecte = true
     onConnect().catch(err=>console.error("connexionClient.onConnect ERROR %O", err))
   })
-  socketOn('disconnect', () => {
-    if(opts.DEBUG) console.debug("Disconnect socket.io")
+  socketOn('disconnect', reason => {
+    if(opts.DEBUG) console.debug("Disconnect socket.io (reason: %O)", reason)
     _connecte = false
     if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(false)
     if(_callbackSetUsager) _callbackSetUsager('')
@@ -228,7 +228,9 @@ export function deconnecter() {
 
 export function reconnecter() {
   if(_socket !== null) {
-    _socket.disconnect()
+    if(_socket && _socket.connected) {
+      _socket.disconnect()
+    }
     _socket.connect()
   }
 }
