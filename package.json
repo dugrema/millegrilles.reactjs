@@ -21,7 +21,7 @@
     "deploy": "gh-pages -d example/build"
   },
   "dependencies": {
-    "@dugrema/millegrilles.utiljs": "git+ssh://git.maple.maceroc.com/git/millegrilles.utiljs#2023.9",
+    "@dugrema/millegrilles.utiljs": "github:dugrema/millegrilles.utiljs#2023.9",
     "@reduxjs/toolkit": "^1.9.6",
     "axios": "^1.5.1",
     "base64url": "^3.0.1",
@@ -51,7 +51,7 @@
     "@babel/compat-data": "~7.19.4",
     "@babel/core": "~7.19.6",
     "@babel/generator": "~7.19.6",
-    "@dugrema/node-forge": "git+ssh://git.maple.maceroc.com/git/forge#ed25519",
+    "@dugrema/node-forge": "github:dugrema/forge#ed25519",
     "multiformats": "^9"
   },
   "devDependencies": {
