@@ -115,15 +115,15 @@ export function getCertificatFormatteur() {
 
 // Charger et conserver information backend de l'usager
 export async function onConnect(infoPromise) {
-  // Pour la premiere connexion, infoPromise est le resultat d'une requete getInfoIdmg.
+  // Pour la premiere connexion, infoPromise est le resultat d'une requete getEtatAuth.
   let info = null
   if(infoPromise) {
-    // console.debug("connexionClient.onConnect Connexion initiale, getInfoIdmg")
+    // console.debug("connexionClient.onConnect Connexion initiale, getEtatAuth")
     _connecteUneFois = true
     info = await infoPromise
   } else {
     // Connexion subsequente, il faut faire une requete emitBlocking pour info session
-    info = await emitBlocking('getInfoIdmg', {}, {noformat: true})
+    info = await emitBlocking('getEtatAuth', {}, {noformat: true})
     // console.debug("Reconnect info recu, marquer connecte : ", info)
     if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(_connecte, {reconnecte: true})
   }
@@ -172,9 +172,9 @@ async function connecterSocketio(url, opts) {
   console.info("connexionClient _socket ouvert : ", _socket)
 
   try {
-    return await emitBlocking('getInfoIdmg', {}, {noformat: true})
+    return await emitBlocking('getEtatAuth', {}, {timeout: 2500, noformat: true})
   } catch(err) {
-    return {ok: false, err: 'getInfoIdmg: '+err}
+    return {ok: false, err: 'getEtatAuth: '+err}
   }
 
 }
