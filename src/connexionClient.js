@@ -25,7 +25,8 @@ const { hacherCertificat: _hacherCertificat } = hachage
 let _socket = null,
     _formatteurMessage = null,
     _connecteUneFois = false,
-    _connexionCourante = null
+    _connexionCourante = null,
+    _connecxionInitialePromise = null
 
 let _callbackSetEtatConnexion,
     _callbackSetUsager,
@@ -117,8 +118,9 @@ export function getCertificatFormatteur() {
 export async function onConnect(infoPromise) {
   // Pour la premiere connexion, infoPromise est le resultat d'une requete getEtatAuth.
   let info = null
+  if(_connecxionInitialePromise) _connecxionInitialePromise.resolve()
   if(infoPromise) {
-    // console.debug("connexionClient.onConnect Connexion initiale, getEtatAuth")
+    console.debug("connexionClient.onConnect Connexion initiale, getEtatAuth")
     _connecteUneFois = true
     info = await infoPromise
   } else {
@@ -171,10 +173,25 @@ async function connecterSocketio(url, opts) {
 
   console.info("connexionClient _socket ouvert : ", _socket)
 
+  let promiseMethods = null
   try {
-    return await emitBlocking('getEtatAuth', {}, {timeout: 2500, noformat: true})
+    await new Promise((resolve, reject) => {
+      if(_connecxionInitialePromise) { _connecxionInitialePromise.reject('reconnecting')}
+      const timeout = setTimeout(()=>reject('timeout'), 15_000)  // Attendre confirmation de connexion max 15 secondes
+      promiseMethods = {resolve, reject, timeout}
+      _connecxionInitialePromise = promiseMethods
+    })
+
+    try {
+      return await emitBlocking('getEtatAuth', {}, {timeout: 2500, noformat: true})
+    } catch(err) {
+      return {ok: false, err: 'getEtatAuth: '+err}
+    }
   } catch(err) {
-    return {ok: false, err: 'getEtatAuth: '+err}
+    console.error("Erreur de connexion : %O", err)
+  } finally {
+    if(promiseMethods && promiseMethods.timeout) clearTimeout(promiseMethods.timeout)
+    _connecxionInitialePromise = null
   }
 
 }
