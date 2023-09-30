@@ -175,6 +175,9 @@ async function connecterSocketio(url, opts) {
 
   let promiseMethods = null
   try {
+    // Attendre la confirmation de connexion pour faire appel getEtatAuth
+    // Permet d'utiliser la reconnexion transparent de session avec le 
+    // cookie de session (mgcookie) de webauth
     await new Promise((resolve, reject) => {
       if(_connecxionInitialePromise) { _connecxionInitialePromise.reject('reconnecting')}
       const timeout = setTimeout(()=>reject('timeout'), 15_000)  // Attendre confirmation de connexion max 15 secondes
