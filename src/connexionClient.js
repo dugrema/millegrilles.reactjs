@@ -429,7 +429,7 @@ export async function unsubscribe(nomEventSocketio, cb, params, opts) {
     params = params || {}
     opts = opts || {}
     socketOff(nomEventSocketio)
-    const resultat = await emitBlocking(nomEventSocketio, params, {...opts, noformat: true})
+    const resultat = await emitBlocking(nomEventSocketio, params, {kind: KIND_COMMANDE, ...opts})
     if(resultat && resultat.ok === true) {
       resultat.routingKeys.forEach(item=>{
         // socketOff(item, cb)
