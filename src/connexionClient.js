@@ -150,12 +150,12 @@ async function connecterSocketio(url, opts) {
 
   if( _socket ) {
     console.debug("SOCKET EXISTANT : %O", _socket)
-    // const precedent = _socket
-    // try {
-    //   precedent.disconnect().catch(err=>console.warning("connecterSocketio Erreur deconnexion socket predecent (1) : %O", err))
-    // } catch(err) {
-    //   console.warning("connecterSocketio Erreur deconnexion socket predecent (2) : %O", err)
-    // }
+    const precedent = _socket
+    try {
+      precedent.disconnect().catch(err=>console.warning("connecterSocketio Erreur deconnexion socket predecent (1) : %O", err))
+    } catch(err) {
+      console.warning("connecterSocketio Erreur deconnexion socket predecent (2) : %O", err)
+    }
   }
 
   const urlInfo = new URL(url)
@@ -163,13 +163,16 @@ async function connecterSocketio(url, opts) {
   const pathSocketio = urlInfo.pathname
 
   if(DEBUG) console.debug("Connecter socket.io sur %s (opts: %O)", url, opts)
-  _socket = openSocket(hostname, {
+  const paramsSocketIo = {
     path: pathSocketio,
     reconnection: false,
-    // reconnection: true,
-    // reconnectionDelay: 2000,
     transports,
-  })
+  }
+  if(opts.reconnectionDelay) {
+    paramsSocketIo.reconnection = true
+    paramsSocketIo.reconnectionDelay = opts.reconnectionDelay
+  }
+  _socket = openSocket(hostname, paramsSocketIo)
 
   console.info("connexionClient _socket ouvert : ", _socket)
 
