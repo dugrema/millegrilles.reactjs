@@ -370,12 +370,12 @@ export async function subscribe(nomEventSocketio, cb, params, opts) {
   opts = opts || {}
   try {
     // var resultat = await emitBlocking(nomEventSocketio, params, {...opts, noformat: true})
-    var resultat = await emitBlocking(nomEventSocketio, params, {kind: KIND_COMMANDE, ...opts})
+    var resultat = await emitBlocking(nomEventSocketio, params, {kind: KIND_COMMANDE, ...opts, ajouterCertificat: true})
   } catch(err) {
     // Cas special lors de reconnexion a un serveur qui redemarre
     console.warn("Erreur subscribe %s, attendre 5 secondes et ressayer", nomEventSocketio)
     // resultat = await emitBlocking(nomEventSocketio, params, {...opts, noformat: true})
-    resultat = await emitBlocking(nomEventSocketio, params, {kind: KIND_COMMANDE, ...opts})
+    resultat = await emitBlocking(nomEventSocketio, params, {kind: KIND_COMMANDE, ...opts, ajouterCertificat: true})
   }
 
   // console.debug("Resultat subscribe %s : %O", nomEventSocketio, resultat)
@@ -432,7 +432,7 @@ export async function unsubscribe(nomEventSocketio, cb, params, opts) {
     params = params || {}
     opts = opts || {}
     socketOff(nomEventSocketio)
-    const resultat = await emitBlocking(nomEventSocketio, params, {kind: KIND_COMMANDE, ...opts})
+    const resultat = await emitBlocking(nomEventSocketio, params, {kind: KIND_COMMANDE, ...opts, ajouterCertificat: true})
     if(resultat && resultat.ok === true) {
       resultat.routingKeys.forEach(item=>{
         // socketOff(item, cb)
