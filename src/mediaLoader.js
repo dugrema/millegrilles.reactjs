@@ -506,10 +506,11 @@ class MediaLoader {
         let cle_secrete = opts.cle_secrete
         if(!cle_secrete) {
             let cle_id = opts.cle_id || fuuid
+            const local = opts.local || false
             if(!cle_id) throw new Error("MediaLoader.processeur Il faut fournir cle_secrete/header, cle_id ou fuuid")
-            // console.debug("Charger cle secrete : ", cle_id)
+            console.debug("Charger cle secrete : %s (opts %O)", cle_id, opts)
 
-            const cle = await this.getCleSecrete(cle_id)
+            const cle = await this.getCleSecrete(cle_id, {local})
             // console.debug("Cle recue : %O", cle)
             cle_secrete = cle.cleSecrete
             if(!header) header = cle.header
