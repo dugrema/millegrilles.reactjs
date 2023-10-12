@@ -5,6 +5,7 @@ import VisibilitySensor from 'react-visibility-sensor'
 import {Thumbnail, ThumbnailHeader, ThumbnailFooter, ThumbnailBoutonContexte} from './Thumbnail'
 import { isTouchEnabled } from './detecterAppareils'
 import { FormatterDate, FormatterDuree } from './Formatters'
+import { estMimetypeVideo } from '@dugrema/millegrilles.utiljs/src/mimetypes.js'
 
 const MIMETYPE_PDF = 'application/pdf'
 
@@ -392,17 +393,6 @@ function FichierItem(props) {
           {thumbnailIcon, thumbnailSrc} = thumbnail
     const thumbnailLoader = dataRow.imageLoader
 
-    // const onContextMenuAction = useCallback(event=>{
-    //     event.stopPropagation()
-    //     if(eventHandlers.onContextMenu) eventHandlers.onContextMenu(event, {localId, fileId, folderId})
-    // }, [eventHandlers, localId, fileId, folderId])
-
-    // const onBoutonContext = useCallback(event=>{
-    //     event.stopPropagation()
-    //     event.preventDefault()
-    //     if(eventHandlers.onContextMenu) eventHandlers.onContextMenu(event, {localId, fileId, folderId})
-    // }, [eventHandlers])
-
     // Convertir data avec rowLoader au besoin
     useEffect(()=>{
         if(data && rowLoader) {
@@ -435,85 +425,6 @@ function FichierItem(props) {
         />
     )
 
-    // return (
-    //     <Row 
-    //         className={classNames.join(' ')}
-    //         {...actions}
-    //         data-idx={idx}
-    //         data-value={value}
-    //     >
-    //         {colonnes.ordreColonnes.map(nomColonne=>{
-    //             const param = paramsColonnes[nomColonne]
-    //             const classNameCol = param.className || ''
-    //             const className = classNameCol || param.className
-    //             const Formatteur = param.formatteur
-    //             const showThumbnail = param.showThumbnail || false
-    //             const showBoutonContexte = param.showBoutonContexte || false
-
-    //             const contenu = dataRow[nomColonne] || ''
-    //             let spanContenu = <span title={contenu}>{contenu}</span>
-    //             if(Formatteur) {
-    //                 spanContenu = <span><Formatteur value={contenu} data={dataRow} /></span>
-    //             }
-
-    //             let thumbnail = ''
-    //             if(showThumbnail) {
-    //                 if(thumbnailSrc || thumbnailLoader) {
-    //                     thumbnail = <Thumbnail src={thumbnailSrc} loader={thumbnailLoader} mini={true} />
-    //                 } else if(thumbnailIcon) {
-    //                     thumbnail = <div className='thumbnailmini'>{thumbnailIcon}</div>
-    //                 } else {
-    //                     thumbnail = <div className='thumbnailmini'></div>
-    //                 }
-    //             }
-    //             let boutonContexte = ''
-    //             if(showBoutonContexte) {
-    //                 if(fichierDesactive) {
-    //                     boutonContexte = <span>X</span>
-    //                 } else {
-    //                     boutonContexte = (
-    //                         <Button 
-    //                             variant="secondary" 
-    //                             size="sm" 
-    //                             onClick={onBoutonContext} 
-    //                             className='lignehover boutoncontexte'
-    //                         >
-    //                             <i className="fa fa-ellipsis-h"/>
-    //                         </Button>
-    //                     )
-    //                 }
-    //             }
-
-    //             const infoDimension = {
-    //                 xs: param.xs,
-    //                 sm: param.sm,
-    //                 md: param.md,
-    //                 lg: param.lg,
-    //                 xl: param.xl,
-    //                 xxl: param.xxl,
-    //             }
-
-    //             if(boutonContexte) {
-    //                 return (
-    //                     <Col key={nomColonne} {...infoDimension} className={className}>
-    //                         {boutonContexte}
-    //                     </Col>
-    //                 )
-    //             }
-
-    //             return (
-    //                 <Col 
-    //                     key={nomColonne} 
-    //                     {...infoDimension} 
-    //                     className={className}
-    //                 >
-    //                     {thumbnail}
-    //                     {spanContenu}
-    //                 </Col>
-    //             )
-    //         })}
-    //     </Row>
-    // )
 }
 
 
@@ -603,64 +514,9 @@ function idMapper(row) {
     return row.localId || row.tuuid || row.fileId || row.folderId
 }
 
-// function ListeFichiersThumbnails(props) {
-//     // const {
-//     //     rows, colonnes, 
-//     //     // onSelectioner, onOuvrir, onContextMenu, touchEnabled, touchBegin, 
-//     //     modeView, suivantCb,
-//     // } = props
-//     const { 
-//         rows, colonnes,
-//         selected, idx, value, data, 
-//         eventHandlers,
-//     } = props
-
-//     if(!rows) return ''  // Ecran n'est pas encore configure
-
-//     let modeSmall = ''
-//     if(modeView === 'thumbnails-small') modeSmall = true
-
-//     const selectionnes = props.selectionne || []
-//     // console.debug("ListeFichierThumbnails selectionnes : %O", selectionnes)
-//     const idMapperFct = colonnes.idMapper || idMapper
-
-//     return (
-//         <div>
-//             {rows.map(row=>{
-//                 const localId = idMapperFct(row)
-//                 const selectionne = selectionnes.includes(localId)
-//                 let classNames = []
-//                 if(selectionne) classNames.push('selectionne')
-//                 return (
-//                     <FichierThumbnail
-//                         key={localId} 
-//                         data={row} 
-//                         colonnes={colonnes}
-//                         onSelectioner={onSelectioner}
-//                         onOuvrir={onOuvrir}
-//                         onContextMenu={onContextMenu}
-//                         selectionne={selectionne}
-//                         touchEnabled={touchEnabled}
-//                         touchBegin={touchBegin}
-//                         className={classNames.join(' ')}
-//                         small={modeSmall}
-//                         />
-//                 )
-//             })}
-            
-//             <BoutonSuivantListe suivantCb={suivantCb} />
-
-//         </div>
-//     )
-// }
-
 function FichierThumbnail(props) {
 
-    // const {data, colonnes, className, onSelectioner, onOuvrir, onContextMenu, touchEnabled, small, touchBegin} = props
     const { selected, idx, value, data, eventHandlers, small } = props
-
-    // const { rowLoader } = colonnes
-    // const [ dataRow, setDataRow ] = useState('')
 
     const { duration } = data
     const thumbnail = data.thumbnail || {},
@@ -668,7 +524,6 @@ function FichierThumbnail(props) {
 
     const thumbnailLoader = useMemo(()=>{
         if(!data) return
-        // return data.imageLoader
         return data.thumbnailLoader
     }, [data])
 
@@ -678,63 +533,9 @@ function FichierThumbnail(props) {
         return classNames.join(' ')
     }, [selected])
     
-
-    // // const thumbnailLoader = small?miniLoader:smallLoader  // small veut dire mini dans le parametre
-    // const [touchEvent, setTouchEvent] = useState('')
-
-    // const onClickAction = useCallback(event=>{
-    //     if(touchEnabled) return  // Rien a faire
-    //     if(onSelectioner) onSelectioner(event, {fileId, folderId})
-    // }, [touchEnabled, touchBegin, onSelectioner, fileId, folderId])
-
-    // const onDoubleClickAction = useCallback(event=>{
-    //     if(touchEnabled) return  // Rien a faire
-    //     event.preventDefault()
-    //     event.stopPropagation()
-    //     if(onOuvrir) onOuvrir(event, {fileId, folderId})
-    // }, [touchEnabled, onOuvrir, fileId, folderId])
-
-    // const onTouchMove = useCallback(event=>{
-    //     setTouchEvent('')
-    // }, [setTouchEvent])
-
-    // const onTouchStart = useCallback(event=>{
-    //     event.preventDefault()
-    //     event.stopPropagation()
-    //     setTouchEvent(event)
-    // }, [setTouchEvent])
-
-    // const onTouchEndAction = useCallback(event=>{
-    //     if(!touchEvent) return  // Deplacement de l'ecran
-    //     if(onOuvrir) onOuvrir(event, {fileId, folderId})
-    //     setTouchEvent('')
-    // }, [onOuvrir, touchEvent, fileId, folderId, setTouchEvent])
-
-    // const onContextMenuAction = useCallback(event=>{
-    //     event.stopPropagation()
-    //     if(onContextMenu) onContextMenu(event, {fileId, folderId})
-    // }, [onContextMenu, fileId, folderId])
-
-    // // Convertir data avec rowLoader au besoin
-    // useEffect(()=>{
-    //     if(data && rowLoader) {
-    //         Promise.resolve(rowLoader(data))
-    //             .then(setDataRow)
-    //             .catch(err=>console.error("Erreur chargement data row %O : %O", data, err))
-    //     } else {
-    //         setDataRow(data)
-    //     }
-    // }, [data, rowLoader, setDataRow])
-    
     return (
         <Thumbnail
             {...eventHandlers}    
-            // onClick={onClickAction}
-            // onDoubleClick={onDoubleClickAction}
-            // onTouchStart={onTouchStart}
-            // onTouchMove={onTouchMove}
-            // onTouchEnd={onTouchEndAction}
-            // onContextMenu={onContextMenuAction}
             src={thumbnailSrc}
             loader={thumbnailLoader}
             placeholder={thumbnailIcon}
@@ -902,9 +703,10 @@ function grouperFichiersRecents(rows) {
         // Identifier type
         let typeFichier
         const mimetype = fichier.mimetype,
-              baseType = mimetype.split('/').shift()
+              baseType = mimetype.split('/').shift(),
+              estVideo = estMimetypeVideo(mimetype)
         if(mimetype === MIMETYPE_PDF) typeFichier = 'document'
-        else if(baseType === 'image' || baseType === 'video') typeFichier = 'media'
+        else if(baseType === 'image' || estVideo) typeFichier = 'media'
         else if(fichier.folderId) typeFichier = 'collection'
         else typeFichier = 'fichier'
 
