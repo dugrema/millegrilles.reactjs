@@ -511,6 +511,9 @@ class MediaLoader {
             console.debug("Charger cle secrete : %s (opts %O)", cle_id, opts)
 
             const cle = await this.getCleSecrete(cle_id, {local})
+            
+            if(!cle) return '/favicon.ico'  // Defaut si cle non disponible
+            
             // console.debug("Cle recue : %O", cle)
             cle_secrete = cle.cleSecrete
             if(!header) header = cle.header
