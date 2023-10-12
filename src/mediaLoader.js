@@ -10,26 +10,26 @@ const CONST_TIMEOUT_THUMBNAIL_BLOB = 90_000,
 
 const FORMATS_VIDEOS = detecterFormatsVideos()
 
-/** Loader/unloader pour blob encode en multibase base64*/
-function blobPromiseLoader(data, mimetype) {
-    data = base64.decode(data)
-    data = new Blob([data], {type: mimetype})
-    let urlBlob = null
-    return {
-        load(setSrc) {
-            if(!urlBlob) urlBlob = URL.createObjectURL(data)
-            if(setSrc) setSrc(urlBlob)
-            return Promise.resolve(urlBlob)
-        },
-        unload() {
-            if(urlBlob) {
-                URL.revokeObjectURL(urlBlob)
-                urlBlob = null
-                return Promise.resolve()
-            }
-        }
-    }
-}
+// /** Loader/unloader pour blob encode en multibase base64*/
+// function blobPromiseLoader(data, mimetype) {
+//     data = base64.decode(data)
+//     data = new Blob([data], {type: mimetype})
+//     let urlBlob = null
+//     return {
+//         load(setSrc) {
+//             if(!urlBlob) urlBlob = URL.createObjectURL(data)
+//             if(setSrc) setSrc(urlBlob)
+//             return Promise.resolve(urlBlob)
+//         },
+//         unload() {
+//             if(urlBlob) {
+//                 URL.revokeObjectURL(urlBlob)
+//                 urlBlob = null
+//                 return Promise.resolve()
+//             }
+//         }
+//     }
+// }
 
 /** Download un un fichier chiffre. Utilise pour afficher un fichier directement (e.g. PDF). */
 function fichierDownloader(processeur, fuuid, opts) {
