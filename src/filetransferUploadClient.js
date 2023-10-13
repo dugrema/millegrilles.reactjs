@@ -426,6 +426,7 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
         // Dispatch pour demarrer upload
         if(updateFichier) await updateFichier(docIdbMaj, {demarrer})
 
+        return etatFinalChiffrage
     } catch(err) {
         if(updateFichier) await updateFichier(docIdb, {err: ''+err})
         throw err
@@ -460,13 +461,16 @@ export async function traiterAcceptedFilesV2(params, ajouterPart, updateFichier,
         }
     }
 
+    const resultatChiffrage = []
+
     // console.debug("traiterAcceptedFilesV2 InfoTaille ", infoTaille)
     let tailleCumulative = infoTaille.positionChiffre || 0,
         positionFichier = infoTaille.positionFichier || 0
     for await (const file of acceptedFiles) {
         // console.debug("traiterAcceptedFilesV2 Traiter file ", file)
         // const debutTraiter = new Date().getTime()
-        await traiterFichier(file, tailleTotale, {...params, tailleCumulative, positionFichier}, fcts)
+        const resultat = await traiterFichier(file, tailleTotale, {...params, tailleCumulative, positionFichier}, fcts)
+        resultatChiffrage.push(resultat)
         // console.debug("traiterAcceptedFilesV2 Temps traiterFichier %d ms", new Date().getTime()-debutTraiter)
         tailleCumulative += file.size
         positionFichier++
@@ -474,6 +478,8 @@ export async function traiterAcceptedFilesV2(params, ajouterPart, updateFichier,
         infoTaille.positionFichier = positionFichier
     }
     // console.debug("Fin infoTaille ", infoTaille)
+
+    return {chiffrage: resultatChiffrage, info: infoTaille}
 }
 
 var _cancelUploadToken = null
