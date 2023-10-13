@@ -357,7 +357,7 @@ async function creerToken(creerTokenJwt, fuuidFichier, fuuidStream, mimetype, op
 
     try {
         const reponse = await creerTokenJwt(commande)
-        console.debug("Reponse tokens JWTs : ", reponse)
+        // console.debug("Reponse tokens JWTs : ", reponse)
         if(reponse.ok === false) throw new Error(`Erreur creation token JWT : ${reponse.err}`)
         if(!reponse.jwt_token) throw new Error("Token JWT absent de la reponse")
         return reponse.jwt_token
@@ -508,7 +508,7 @@ class MediaLoader {
             let cle_id = opts.cle_id || fuuid
             const local = opts.local || false
             if(!cle_id) throw new Error("MediaLoader.processeur Il faut fournir cle_secrete/header, cle_id ou fuuid")
-            console.debug("Charger cle secrete : %s (opts %O)", cle_id, opts)
+            // console.debug("Charger cle secrete : %s (opts %O)", cle_id, opts)
 
             const cle = await this.getCleSecrete(cle_id, {local})
             

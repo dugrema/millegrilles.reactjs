@@ -372,9 +372,11 @@ async function formatterDocIdb(docIdb, infoChiffrage) {
 
 async function traiterFichier(file, tailleTotale, params, fcts) {
     fcts = fcts || {}
+    // console.debug("traiterFichier params %O", params)
     const { signalAnnuler } = fcts    
-    console.debug("Signal annuler : ", signalAnnuler)
-    if(signalAnnuler && await signalAnnuler()) throw new Error("Cancelled")
+    if(signalAnnuler) {
+        if(await signalAnnuler()) throw new Error("Cancelled")
+    }
 
     const now = new Date().getTime()
     const { userId, cuuid, token, skipTransactions } = params
@@ -386,7 +388,7 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
     // Preparer fichier
     const fileMappe = mapAcceptedFile(file)
     fileMappe.transaction.cuuid = cuuid
-    // console.debug("File mappe : ", fileMappe)
+    // console.debug("traiterFichier File mappe : ", fileMappe)
     const fileSize = fileMappe.size
 
     const correlation = '' + uuidv4()
@@ -415,7 +417,9 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
     
     try {
         const paramsConserver = {...params, correlation, tailleTotale}
+        // const debutConserverFichier = new Date().getTime()
         const etatFinalChiffrage = await conserverFichier(file, fileMappe, paramsConserver, fcts)
+        // console.debug("traiterFichier Temps conserver fichier %d ms", new Date().getTime()-debutConserverFichier)
         
         const docIdbMaj = await formatterDocIdb(docIdb, etatFinalChiffrage)
 
@@ -430,31 +434,6 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
     
 }
 
-/**
- * Upload de fichiers (v1 - obsolete).
- * @param {*} acceptedFiles 
- * @param {*} userId 
- * @param {*} cuuid 
- * @param {*} ajouterPart 
- * @param {*} updateFichier 
- * @param {*} setProgres 
- * @param {*} signalAnnuler 
- */
-export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouterPart, updateFichier, setProgres, signalAnnuler) {
-    const params = { userId, cuuid }
-    const fcts = { ajouterPart, updateFichier, setProgres, signalAnnuler }
-
-    // console.debug("Accepted files ", acceptedFiles)
-    let tailleTotale = 0
-    for (const file of acceptedFiles) {
-        tailleTotale += file.size
-    }
-
-    // console.debug("Preparation de %d bytes", tailleTotale)
-    for await (const file of acceptedFiles) {
-        await traiterFichier(file, tailleTotale, params, fcts)
-    }
-}
 
 /**
  * Chiffre et commence l'upload de fichiers selectionnes dans le navigateur.
@@ -469,9 +448,9 @@ export async function traiterAcceptedFiles(acceptedFiles, userId, cuuid, ajouter
  */
 export async function traiterAcceptedFilesV2(params, ajouterPart, updateFichier, setProgres, signalAnnuler) {
     const { acceptedFiles } = params
-    const fcts = { ajouterPart, updateFichier, setProgres, signalAnnuler}
+    const fcts = { ajouterPart, updateFichier, setProgres, signalAnnuler }
 
-    console.debug("Accepted files ", acceptedFiles)
+    // console.debug("traiterAcceptedFilesV2 Accepted files ", acceptedFiles)
     const infoTaille = params.infoTaille || {}
     let tailleTotale = infoTaille.total || 0
     if(tailleTotale === 0) {
@@ -481,11 +460,14 @@ export async function traiterAcceptedFilesV2(params, ajouterPart, updateFichier,
         }
     }
 
-    // console.debug("InfoTaille ", infoTaille)
+    // console.debug("traiterAcceptedFilesV2 InfoTaille ", infoTaille)
     let tailleCumulative = infoTaille.positionChiffre || 0,
         positionFichier = infoTaille.positionFichier || 0
     for await (const file of acceptedFiles) {
+        // console.debug("traiterAcceptedFilesV2 Traiter file ", file)
+        // const debutTraiter = new Date().getTime()
         await traiterFichier(file, tailleTotale, {...params, tailleCumulative, positionFichier}, fcts)
+        // console.debug("traiterAcceptedFilesV2 Temps traiterFichier %d ms", new Date().getTime()-debutTraiter)
         tailleCumulative += file.size
         positionFichier++
         infoTaille.positionChiffre = tailleCumulative
@@ -548,7 +530,7 @@ export async function confirmerUpload(token, correlation, opts) {
     } else {
         var attachements = null, cle = null
     }
-    console.debug("confirmerUpload %s cle : %O, transaction : %O", correlation, cle, transaction)
+    // console.debug("confirmerUpload %s cle : %O, transaction : %O", correlation, cle, transaction)
 
     let hachage = opts.hachage
     if(!hachage) {
