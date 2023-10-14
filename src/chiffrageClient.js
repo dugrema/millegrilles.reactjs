@@ -163,7 +163,7 @@ export async function chiffrerDocument(doc, domaine, certificatsChiffragePem, op
       doc, domaine, certificatMillegrille.pem, identificateurs_document, 
       {...opts, certificats: certificatsListeChiffrage}
     )
-    console.debug("resultat chiffrage : %O", resultat)
+    if(DEBUG) console.debug("resultat chiffrage : %O", resultat)
 
     // Signer la commande de maitre des cles
     if(formatteurMessage) {

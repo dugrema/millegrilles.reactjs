@@ -33,7 +33,7 @@ export function AlertTimeout(props) {
     useEffect(()=>setAfficheStack(false), [value, setAfficheStack])
 
     useEffect(()=>{
-        console.info("Alerts value : %O", value)
+        // console.info("Alerts value : %O", value)
         if(value) {
             if(value.message) {
                 setMessage(value.message)
