@@ -1,5 +1,6 @@
 import path from 'path'
 import axios from 'axios'
+import * as Comlink from 'comlink'
 import { v4 as uuidv4 } from 'uuid'
 import { pki } from '@dugrema/node-forge'
 import { base64 } from 'multiformats/bases/base64'
@@ -287,7 +288,7 @@ async function conserverFichier(file, fileMappe, params, fcts) {
         if(signalAnnuler && await signalAnnuler()) throw new Error("Cancelled")
 
         // Conserver dans idb
-        if(ajouterPart) await ajouterPart(correlation, compteurPosition, chunk)
+        if(ajouterPart) await ajouterPart(correlation, compteurPosition, Comlink.transfer(chunk, [chunk.buffer]))
         compteurPosition += chunk.length
 
         taillePreparee += chunk.length
@@ -413,7 +414,7 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
     }
 
     // console.debug("Update initial docIdb ", docIdb)
-    if(updateFichier) await updateFichier(docIdb, {demarrer: false})
+    if(updateFichier) await updateFichier(Comlink.transfer(docIdb), {demarrer: false})
     
     try {
         const paramsConserver = {...params, correlation, tailleTotale}
@@ -424,11 +425,11 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
         const docIdbMaj = await formatterDocIdb(docIdb, etatFinalChiffrage)
 
         // Dispatch pour demarrer upload
-        if(updateFichier) await updateFichier(docIdbMaj, {demarrer})
+        if(updateFichier) await updateFichier(Comlink.transfer(docIdb), {demarrer})
 
         return etatFinalChiffrage
     } catch(err) {
-        if(updateFichier) await updateFichier(docIdb, {err: ''+err})
+        if(updateFichier) await updateFichier(Comlink.transfer(docIdb), {err: ''+err})
         throw err
     }
 

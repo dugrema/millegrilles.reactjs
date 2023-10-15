@@ -21,14 +21,14 @@
     "deploy": "gh-pages -d example/build"
   },
   "dependencies": {
-    "@dugrema/millegrilles.utiljs": "github:dugrema/millegrilles.utiljs#2023.10",
-    "@reduxjs/toolkit": "^1.9.6",
+    "@dugrema/millegrilles.utiljs": "https://github.com/dugrema/millegrilles.reactjs.git#2023.10",
+    "@reduxjs/toolkit": "^1.9.7",
     "axios": "^1.5.1",
     "base64url": "^3.0.1",
     "bootstrap": "^5.3",
     "comlink": "^4.4.1",
     "font-awesome": "^4.7.0",
-    "hash-wasm": "^4.9.0",
+    "hash-wasm": "^4.10.0",
     "html5-qrcode": "^2.3.8",
     "i18n": "^0.15.1",
     "idb": "^7.1.1",
@@ -40,18 +40,18 @@
     "react": "^18",
     "react-bootstrap": "^2.9",
     "react-dropzone": "^14.2.3",
-    "react-i18next": "^13.2.2",
-    "react-redux": "^8.1.2",
+    "react-i18next": "^13.3.0",
+    "react-redux": "^8.1.3",
     "react-visibility-sensor": "^5.1.1",
     "socket.io-client": "^4.7.2",
-    "webpack": "5.88.2"
+    "webpack": "5.89.0"
   },
   "peerDependencies": {
     "@babel/plugin-syntax-object-rest-spread": "^7.8.3",
     "@babel/compat-data": "~7.19.4",
     "@babel/core": "~7.19.6",
     "@babel/generator": "~7.19.6",
-    "@dugrema/node-forge": "github:dugrema/forge#ed25519",
+    "@dugrema/node-forge": "https://github.com/dugrema/forge#ed25519",
     "multiformats": "^9"
   },
   "devDependencies": {
