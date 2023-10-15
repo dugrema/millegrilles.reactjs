@@ -288,7 +288,8 @@ async function conserverFichier(file, fileMappe, params, fcts) {
         if(signalAnnuler && await signalAnnuler()) throw new Error("Cancelled")
 
         // Conserver dans idb
-        if(ajouterPart) await ajouterPart(correlation, compteurPosition, Comlink.transfer(chunk, [chunk.buffer]))
+        if(ajouterPart) await ajouterPart(correlation, compteurPosition, Comlink.transfer(chunk))
+        // if(ajouterPart) await ajouterPart(correlation, compteurPosition, chunk)
         compteurPosition += chunk.length
 
         taillePreparee += chunk.length

@@ -607,7 +607,7 @@ function ListeFichiersRow(props) {
 
     const { selected, idx, value, data, eventHandlers } = props
 
-    console.debug("ListeFichiersRow proppies : ", props)
+    // console.debug("ListeFichiersRow proppies : ", props)
 
     const colonnes = props.colonnes || {}
     const { rowClassname } = colonnes || {}
