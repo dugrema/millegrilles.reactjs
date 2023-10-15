@@ -158,14 +158,6 @@
   height: 22px;
 }
 
-.thumbnailmini {
-  float: left;
-  margin: 1px;
-  margin-right: 0.5rem;
-  width: 22px;
-  height: 22px;
-}
-
 .thumbnailmini IMG {
   width: 20px;
   height: 20px;
@@ -188,8 +180,15 @@
 }
 
 .thumbnailsmall IMG {
-  width: 80px;
-  height: 80px;
+  /*width: 80px;
+  height: 80px;*/
+  width: 5rem;
+  height: 5rem;
+}
+
+.thumbnailsmall I {
+  padding-top: 0.5rem;
+  font-size: 5rem;
 }
 
 .boutoncontexte {
