@@ -429,7 +429,7 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
 
         return etatFinalChiffrage
     } catch(err) {
-        if(updateFichier) await updateFichier(Comlink.transfer(docIdb), {err: ''+err})
+                if(updateFichier) await updateFichier(Comlink.transfer(docIdb), {err: ''+err})
         throw err
     }
 

@@ -5,16 +5,36 @@ import {
     hacherCertificat, comparerArraybuffers,
     setHacheurs,
 } from '@dugrema/millegrilles.utiljs/src/hachage'
-import { createSHA256, createSHA512, createBLAKE2b, createBLAKE2s } from 'hash-wasm'
+import { createSHA256, createSHA512, createBLAKE2b, createBLAKE2s, blake2s, blake2b } from 'hash-wasm'
+// import _sodium from 'libsodium-wrappers'
 
 // Injecte les methodes de hachage natives avec setHacheurs pour la librairie utiljs
 
-const constructeur = async methode => {
-    const hacheur = await methode()
+const constructeur = async (methode, methodeDigest) => {
+    // const hacheur = await methode()
+    let hacheur = null
     return {
-        update: buffer => hacheur.update(buffer),
+        update: async buffer => {
+            if(!hacheur) hacheur = await methode() // Initialiser le hacheur sur premiere utilisation
+            hacheur.update(buffer)
+        },
         finalize: () => hacheur.digest('binary'),
-        digest: async buffer => { await hacheur.update(buffer); return await hacheur.digest('binary') }
+        digest: async buffer => { 
+            // Tenter d'utiliser la version one-shot pour le digest
+            if(methodeDigest) {
+                const valeur = await methodeDigest(buffer)
+                const valeurBin = Buffer.from(valeur, 'hex')
+                // console.debug("Digest instantane : %O", valeurBin)
+                return valeurBin
+            }
+
+            // One-shot non disponible. Generer le hacheur avec etat (stateful) et retourer le resultat.
+            if(!hacheur) hacheur = await methode()
+            await hacheur.update(buffer)
+            const valeur = await hacheur.digest('binary') 
+            // console.debug("Digest long : %O", valeur)
+            return valeur
+        }
     }
 }
 
@@ -37,23 +57,14 @@ const hacheurs = {
     'sha2-256': () => constructeur(createSHA256),
     'sha512': () => constructeur(createSHA512),
     'sha2-512': () => constructeur(createSHA512),
-    'blake2s256': () => constructeur(createBLAKE2s),
-    'blake2s-256': () => constructeur(createBLAKE2s),
-    'blake2b512': () => constructeur(createBLAKE2b),
-    'blake2b-512': () => constructeur(createBLAKE2b),
+    'blake2s256': () => constructeur(createBLAKE2s, blake2s),
+    'blake2s-256': () => constructeur(createBLAKE2s, blake2s),
+    'blake2b512': () => constructeur(createBLAKE2b, blake2b),
+    'blake2b-512': () => constructeur(createBLAKE2b, blake2b),
 }
 
 // console.debug("Set hacheurs : %O", hacheurs)
 setHacheurs(hacheurs)
-
-// export default {
-//     hacher, verifierHachage, 
-//     Hacheur, VerificateurHachage, 
-//     calculerDigest,
-//     hacherCertificat, comparerArraybuffers,
-//     setHacheurs, 
-//     hacheurs,
-// }
 
 export { 
     hacher, verifierHachage, 
