@@ -21,7 +21,7 @@
     "deploy": "gh-pages -d example/build"
   },
   "dependencies": {
-    "@dugrema/millegrilles.utiljs": "https://github.com/dugrema/millegrilles.reactjs.git#2023.10",
+    "@dugrema/millegrilles.utiljs": "https://github.com/dugrema/millegrilles.utiljs.git#2023.10",
     "@reduxjs/toolkit": "^1.9.7",
     "axios": "^1.5.1",
     "base64url": "^3.0.1",
