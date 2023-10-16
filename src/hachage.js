@@ -29,11 +29,17 @@ const constructeur = async (methode, methodeDigest) => {
             }
 
             // One-shot non disponible. Generer le hacheur avec etat (stateful) et retourer le resultat.
-            if(!hacheur) hacheur = await methode()
+            if(hacheur) await hacheur.init()  // Reset
+            else hacheur = await methode()
+
             await hacheur.update(buffer)
             const valeur = await hacheur.digest('binary') 
             // console.debug("Digest long : %O", valeur)
             return valeur
+        },
+        reset: async () => {
+            if(hacheur) await hacheur.init()
+            else hacheur = await methode()
         }
     }
 }

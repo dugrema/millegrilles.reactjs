@@ -25,6 +25,9 @@ var _callbackEtatUpload = null,
     _domaine = 'GrosFichiers',
     _pathServeur = new URL(self.location.href)
 
+// Hacheur pour le contenu dechiffre
+const _hachageDechiffre = new hachage.Hacheur({hashingCode: 'blake2b-512', DEBUG: false})
+
 _pathServeur.pathname = '/collections/fichiers'
 
 const CONST_1MB = 1024 * 1024
@@ -259,12 +262,13 @@ async function conserverFichier(file, fileMappe, params, fcts) {
     const { correlation } = params
 
     // Preparer chiffrage
-    const hachageDechiffre = new hachage.Hacheur({hashingCode: 'blake2b-512'})
+    // const hachageDechiffre = new hachage.Hacheur({hashingCode: 'blake2b-512'})
     
+    await _hachageDechiffre.reset()
     const transformInst = await preparerTransform()
     const transform = {
         update: async chunk => {
-            await hachageDechiffre.update(chunk)
+            await _hachageDechiffre.update(chunk)
             return await transformInst.cipher.update(chunk)
         },
         finalize: async () => {
@@ -304,7 +308,7 @@ async function conserverFichier(file, fileMappe, params, fcts) {
 
     const etatFinalChiffrage = transform.etatFinal()
     etatFinalChiffrage.secretChiffre = transformInst.secretChiffre
-    etatFinalChiffrage.hachage_original = await hachageDechiffre.finalize()
+    etatFinalChiffrage.hachage_original = await _hachageDechiffre.finalize()
     // console.debug("Etat final chiffrage : ", etatFinalChiffrage)
     return etatFinalChiffrage
 }
@@ -426,11 +430,11 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
         const docIdbMaj = await formatterDocIdb(docIdb, etatFinalChiffrage)
 
         // Dispatch pour demarrer upload
-        if(updateFichier) await updateFichier(Comlink.transfer(docIdb), {demarrer})
+        if(updateFichier) await updateFichier(Comlink.transfer(docIdbMaj), {demarrer})
 
         return etatFinalChiffrage
     } catch(err) {
-                if(updateFichier) await updateFichier(Comlink.transfer(docIdb), {err: ''+err})
+        if(updateFichier) await updateFichier(Comlink.transfer(docIdb), {err: ''+err})
         throw err
     }
 
