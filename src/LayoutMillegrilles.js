@@ -20,6 +20,8 @@ function LayoutMillegrilles(props) {
 
     const { menu, children } = props
 
+    const fluid = props.fluid
+
     return (
         <div className="flexwrapper">
             <div className="applicationlayout">
@@ -27,7 +29,7 @@ function LayoutMillegrilles(props) {
                     {menu}
                 </div>
             </div>
-            <Container className="contenu">
+            <Container className="contenu" fluid={fluid}>
                 {children}            
             </Container>
         </div>
@@ -46,6 +48,7 @@ export function Menu(props) {
     const { workers, brand, labelMenu, etatConnexion, onSelect, children } = props
 
     const expand = props.expand || 'md'
+    const className = props.className
 
     const reconnecterCb = useCallback(()=>{
         if(workers && workers.connexion) {
@@ -63,7 +66,7 @@ export function Menu(props) {
     }, [etatConnexion])
 
     return (
-        <Navbar collapseOnSelect expand={expand}>
+        <Navbar collapseOnSelect expand={expand} className={className}>
            
             {brand}
 

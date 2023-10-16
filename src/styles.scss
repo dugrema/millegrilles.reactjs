@@ -15,6 +15,13 @@ $menu-body-bg: $third-color;
 .header {
     padding-left: 0.5em;
     padding-right: 0.5em;
+
+    /* sticky */
+    position: fixed;
+    top: 0;
+    width: 100%;
+
+    z-index: 100;
 }
 
 .header, .footer {
@@ -26,7 +33,7 @@ DIV.container {
 }
 
 .contenu {
-    padding-top: 0.5rem;
+    padding-top: 2.0rem;
 }
 
 .contenu .titre {

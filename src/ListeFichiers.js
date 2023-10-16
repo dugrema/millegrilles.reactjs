@@ -702,7 +702,7 @@ function ListeFichiersRowMobile(props) {
 
     const { selected, idx, value, data, eventHandlers } = props
 
-    console.debug("ListeFichiersRowMobile proppies ", props)
+    // console.debug("ListeFichiersRowMobile proppies ", props)
 
     const colonnes = props.colonnes || {}
     const { rowClassname } = colonnes || {}
@@ -735,11 +735,11 @@ function ListeFichiersRowMobile(props) {
             data-idx={idx}
             data-value={value}
         >
-            <Col xs={3} md={2}>
+            <Col xs={3} sm={2}>
                 <ThumbnailMobile src={thumbnailSrc} loader={thumbnailLoader} icon={thumbnailIcon} />
             </Col>
 
-            <Col xs={9} md={10}>
+            <Col xs={9} sm={10}>
                 <Row>
                     {ordreColonnes.map(nomColonne=>{
                         const param = paramsColonnes[nomColonne]
@@ -869,7 +869,7 @@ function GroupeJour(props) {
     groupesListe.sort(trierGroupes)
 
     return (
-        <div className='fichierstable'>
+        <Row className='fichierstable'>
             <Row className="listerecent-jour">
                 <Col><FormatterDate value={jour.getTime()/1000} format="yyyy-MM-DD"/></Col>
             </Row>
@@ -888,7 +888,7 @@ function GroupeJour(props) {
                     </div>
                 )
             })}
-        </div>
+        </Row>
     )
 }
 
