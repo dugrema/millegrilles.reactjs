@@ -84,7 +84,7 @@ export async function creerStreamCipherXChacha20Poly1305(opts) {
     }
 
     // Preparer libsodium, hachage (WASM)
-    const hacheur = new Hacheur({hashingCode: digestAlgo})
+    const hacheur = opts.hacheur || new Hacheur({hashingCode: digestAlgo})
     await hacheur.ready
     await _sodium.ready
     const sodium = _sodium

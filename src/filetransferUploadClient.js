@@ -25,8 +25,9 @@ var _callbackEtatUpload = null,
     _domaine = 'GrosFichiers',
     _pathServeur = new URL(self.location.href)
 
-// Hacheur pour le contenu dechiffre
-const _hachageDechiffre = new hachage.Hacheur({hashingCode: 'blake2b-512', DEBUG: false})
+// Hacheurs reutilisables
+const _hachageDechiffre = new hachage.Hacheur({hashingCode: 'blake2b-512', DEBUG: false}),
+      _hachageChiffre = new hachage.Hacheur({hashingCode: 'blake2b-512', DEBUG: false})
 
 _pathServeur.pathname = '/collections/fichiers'
 
@@ -136,7 +137,8 @@ function mapAcceptedFile(file) {
 
 /** Retourne un StreamReader qui applique les transformations requises */
 async function preparerTransform() {
-    return preparerCipher({clePubliqueEd25519: _publicKeyCa})
+    await _hachageChiffre.reset()
+    return preparerCipher({clePubliqueEd25519: _publicKeyCa, hacheur: _hachageChiffre})
 }
 
 async function emettreEtat(flags) {
