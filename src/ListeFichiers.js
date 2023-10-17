@@ -145,11 +145,18 @@ function ListeFichiersMobile(props) {
 
     // Intercepter onClick pour capturer la selection
     const { 
-        modeView, rows, isListeComplete, colonnes, modeSelectionActif, selection, 
+        modeView, rows, isListeComplete, colonnes, modeSelection: modeSelectionActif, selection: selectionActif,
         onContextMenu, onSelect, scrollValue, 
         onScroll, onOpen, onClickEntete,
         suivantCb, capabilities,
     } = props
+
+    // console.debug("ListeFichiersMobile proppies ", props)
+
+    const selection = useMemo(()=>{
+        if(selectionActif) return selectionActif
+        return []
+    }, [selectionActif])
 
     const [idxSelectionShift, setIdxSelectionShift] = useState(0)
     const [touchEvent, setTouchEvent] = useState('')
@@ -169,7 +176,7 @@ function ListeFichiersMobile(props) {
         // console.debug("Selection handler idx:%O, value:%O, ctrl:%s, shift:%s", idx, value, ctrlKey, shiftKey)
 
         // Mode selection - soit touche CTRL (PC) ou toggle sur mobile
-        const modeSelection = ctrlKey || modeSelectionActif
+        const modeSelection = modeSelectionActif || ctrlKey
 
         if(shiftKey) {
             // Retirer selection texte
