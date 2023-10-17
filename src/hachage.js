@@ -3,7 +3,7 @@ import {
     Hacheur, VerificateurHachage, 
     calculerDigest,
     hacherCertificat, comparerArraybuffers,
-    setHacheurs,
+    setHacheurs, decoderHachage,
 } from '@dugrema/millegrilles.utiljs/src/hachage'
 import { createSHA256, createSHA512, createBLAKE2b, createBLAKE2s, blake2s, blake2b } from 'hash-wasm'
 // import _sodium from 'libsodium-wrappers'
@@ -77,6 +77,7 @@ export {
     Hacheur, VerificateurHachage, 
     calculerDigest,
     hacherCertificat, comparerArraybuffers,
+    decoderHachage,
     setHacheurs, 
     hacheurs,
 }
