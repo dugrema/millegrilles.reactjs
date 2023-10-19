@@ -9,12 +9,15 @@ import { estMimetypeVideo } from '@dugrema/millegrilles.utiljs/src/mimetypes.js'
 
 const MIMETYPE_PDF = 'application/pdf'
 
-const TOUCH_ENABLED = isTouchEnabled()  // Detecter touch (appareil mobile)
+// const TOUCH_ENABLED = isTouchEnabled()  // Detecter touch (appareil mobile)
 
 export function ListeFichiers(props) {
+
+    const estMobile = props.estMobile || false
+
     // Selectionner mode de liste (desktop ou mobile) selon presence des evenements touch
-    if(TOUCH_ENABLED) return ListeFichiersMobile(props)
-    return ListeFichiersDesktop(props)
+    if(estMobile) return <ListeFichiersMobile {...props} />
+    return <ListeFichiersDesktop {...props} />
 }
 
 function ListeFichiersDesktop(props) {
@@ -377,6 +380,7 @@ function ListeFichiersItemsDesktop(props) {
                     <FichierItem
                         key={''+localId} 
                         modeView={modeView}
+                        estMobile={false}
                         eventHandlers={eventHandlers}
                         colonnes={colonnes} 
                         data={row}
@@ -442,6 +446,7 @@ function ListeFichiersItemsMobile(props) {
                     <FichierItem
                         key={''+localId} 
                         modeView={modeView}
+                        estMobile={true}
                         eventHandlers={eventHandlers}
                         colonnes={colonnes} 
                         data={row}
@@ -535,6 +540,7 @@ function FichierItem(props) {
     const { 
         selected, idx, value, data,
         eventHandlers, modeView,
+        estMobile,
     } = props
 
     const colonnes = props.colonnes || {}
@@ -553,7 +559,7 @@ function FichierItem(props) {
             case 'thumbnails-small': return FichierThumbnail
             case 'recents': return ListeFichiersRecents
             default:
-                if(TOUCH_ENABLED) return ListeFichiersRowMobile
+                if(estMobile) return ListeFichiersRowMobile
                 return ListeFichiersRow
         }
     }, [modeView])
