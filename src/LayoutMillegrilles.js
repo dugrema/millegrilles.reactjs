@@ -45,7 +45,7 @@ export function initI18n(instance) {
 
 export function Menu(props) {
 
-    const { workers, brand, labelMenu, etatConnexion, onSelect, children } = props
+    const { workers, brand, labelMenu, etatConnexion, onSelect, children, transfer } = props
 
     const expand = props.expand || 'md'
     const className = props.className
@@ -69,6 +69,8 @@ export function Menu(props) {
         <Navbar collapseOnSelect expand={expand} className={className}>
            
             {brand}
+
+            {transfer}
 
             <Navbar.Offcanvas id="responsive-navbar-menu" placement="end">
                 <Offcanvas.Header closeButton>
