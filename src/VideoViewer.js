@@ -30,7 +30,7 @@ function VideoViewer(props) {
     let sources = useMemo(()=>{
         if(!srcVideo) return []
 
-        console.debug("srcVideo ", srcVideo)
+        // console.debug("srcVideo ", srcVideo)
 
         const mimetype = srcVideo.mimetype
         let mimetypeCodec = mimetype
