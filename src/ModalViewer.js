@@ -233,7 +233,7 @@ function ItemViewer(props) {
     }
 }
 
-function ImageCarousel(props) {
+export function ImageCarousel(props) {
     // console.debug("ImageCarousel proppies : %O", props)
 
     const { images, item, onSelect, onClick, setDownloadSrc, showButtons, DEBUG } = props
