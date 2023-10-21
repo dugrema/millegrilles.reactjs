@@ -27,7 +27,8 @@
 .carousel-viewer IMG {
   object-fit: contain;
   max-width: 100%;
-  max-height: calc(100vh - 2rem);
+  /* max-height: calc(100vh - 2rem); */
+  max-height: 100vh;
 }
 
 // .fullscreen-enabled .carousel-viewer IMG {
