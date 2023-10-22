@@ -251,21 +251,8 @@ function videoLoader(getUrl, creerTokenJwt, videos, opts) {
     // console.debug("Formats videos supportes : ", supportMedia)
 
     const fuuidOriginal = fuuid || cle_id
-    // let fuuidStreamSelectionne = null,
-    //     videoSelectionne = null
-
-    // Determiner video a charger
-    // if(videos && (fuuid || cle_id) && fuuidStream) {
-    //     // Ok, video selectionne
-    //     fuuidStreamSelectionne = fuuidMedia
-    //     videoSelectionne = Object.values(item=>item.hachage === fuuidStream).pop()
-    // } else 
     if(fuuid && mimetype) {
-        // Ok, original
-        // fuuidStreamSelectionne = fuuid
-        // videoSelectionne = {
-        //     mimetype: mimetype,
-        // }
+        // Ok
     } else {
         throw new Error('MediaLoader.videoLoader Il faut fournir opts.fuuid/opts.cle_id et opts.mimetype')
     }
