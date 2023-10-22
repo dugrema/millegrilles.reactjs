@@ -108,6 +108,10 @@ export function detecterFormatsVideos() {
     acc[type] = supporte==='probably'?true:false
     return acc
   }, {})
+
+  // Mapper codec hevc (tel que reconnu sur ios)
+  formatsSupportes.hevc = formatsSupportes.hvc1
+
   return formatsSupportes
 }
 
