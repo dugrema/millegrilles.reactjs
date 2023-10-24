@@ -4,6 +4,9 @@ import * as Comlink from 'comlink'
 import { v4 as uuidv4 } from 'uuid'
 import { pki } from '@dugrema/node-forge'
 import { base64 } from 'multiformats/bases/base64'
+import { BlobReader, ZipReader } from '@zip.js/zip.js'
+import { v4 as uuidv4 } from 'uuid'
+import path from 'path'
 
 import { getAcceptedFileReader, streamAsyncIterable } from './stream.js'
 import { chiffrage }  from './chiffrage'
@@ -315,6 +318,10 @@ async function conserverFichier(file, fileMappe, params, fcts) {
     return etatFinalChiffrage
 }
 
+export async function conserverFichierExtern(file, fileMappe, params, ajouterPart, setProgres, signalAnnuler) {
+    return conserverFichier(file, fileMappe, params, {ajouterPart, setProgres, signalAnnuler})
+}
+
 async function formatterDocIdb(docIdb, infoChiffrage) {
     const champsOptionnels = ['iv', 'nonce', 'header', 'tag']
     const paramsChiffrage = champsOptionnels.reduce((acc, champ)=>{
@@ -442,7 +449,6 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
 
     
 }
-
 
 /**
  * Chiffre et commence l'upload de fichiers selectionnes dans le navigateur.
@@ -584,5 +590,82 @@ export async function confirmerUpload(token, correlation, opts) {
     return {
         status: reponse.status, 
         reponse: reponse.data
+    }
+}
+
+export async function parseZipFile(userId, fichier, cuuid) {
+    const zipFileReader = new BlobReader(fichier)
+    const zipReader = new ZipReader(zipFileReader)
+
+    const ETAT_PREPARATION = 1,
+          ETAT_PRET = 2
+
+    for await (const entry of zipReader.getEntriesGenerator()) {
+        console.debug("Zip entry : ", entry)
+        
+        const filename = entry.filename.normalize()
+
+        const pathBase = path.dirname(filename)
+        const nom = path.basename(filename)
+        console.debug("Fichier parent : %s, nom fichier : %s", pathBase, nom)
+
+        if(entry.directory) {
+            console.debug("Mapper directory ", filename)
+        } else {
+            // Mapper fichier
+            let dateFichier = null
+            try {
+                dateFichier = Math.floor(entry.rawLastModDate / 1000)
+            } catch(err) {
+                console.warn("Erreur chargement date fichier : %O", err)
+            }
+        
+            const nom = filename
+            const mimetype = 'todo mapper mimetype' || 'application/octet-stream'
+        
+            const transaction = {
+                nom,  // iOS utilise la forme decomposee (combining)
+                mimetype,
+                taille: entry.uncompressedSize,
+                dateFichier,
+            }
+            
+            const fileMappe = {
+                nom,
+                // file: file.object,
+                size: entry.uncompressedSize,
+                correlation: uuidv4(),
+                transaction,
+            }
+
+            fileMappe.transaction.cuuid = cuuid
+            // console.debug("traiterFichier File mappe : ", fileMappe)
+            const fileSize = fileMappe.size
+        
+            const correlation = '' + uuidv4()
+        
+            const docIdb = {
+                // PK
+                correlation, userId, //token,
+        
+                // Metadata recue
+                nom: fileMappe.nom || correlation,
+                taille: fileSize, //fileMappe.size,
+                mimetype: fileMappe.type || 'application/octet-stream',
+        
+                // Etat initial
+                etat: ETAT_PREPARATION, 
+                positionsCompletees: [],
+                tailleCompletee: 0,
+                dateCreation: new Date().getTime(),
+                retryCount: -1,  // Incremente sur chaque debut d'upload
+                transactionGrosfichiers: fileMappe.transaction,
+                transactionMaitredescles: null,
+            }
+
+            console.debug("Fichier mappe ", docIdb)
+        
+            // workers.transfertFichiers.conserverFichierExtern(file, fileMappe, params, ajouterPart, setProgres, signalAnnuler)
+        }
     }
 }
