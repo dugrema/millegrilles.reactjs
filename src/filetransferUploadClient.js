@@ -530,6 +530,13 @@ export async function partUploader(token, correlation, position, partContent, op
             // console.debug("Resultat upload : ", resultat)
             return {status: resultat.status, data: resultat.data}
       })
+        .catch(err=>{
+            // console.error("partUploader Erreur upload : %O", err)
+            const response = err.response
+            // console.debug("partUploader Erreur response : %O", response)
+            if(response.status === 409) return {status: response.status, data: null}  // Ok, part deja uploade avec succes. Skip
+            throw err
+        })
         .finally( () => _cancelUploadToken = null )
 
     return reponse
