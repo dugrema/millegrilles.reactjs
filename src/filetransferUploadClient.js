@@ -588,7 +588,7 @@ export async function confirmerUpload(token, correlation, opts) {
     }
 }
 
-export async function parseZipFile(userId, fichier, cuuid, updateFichier, ajouterPart) {
+export async function parseZipFile(workers, userId, fichier, cuuid, updateFichier, ajouterPart) {
     const zipFileReader = new BlobReader(fichier)
     const zipReader = new ZipReader(zipFileReader)
 
@@ -601,17 +601,53 @@ export async function parseZipFile(userId, fichier, cuuid, updateFichier, ajoute
     const setProgres = null
     const signalAnnuler = null
 
+    const dictRepertoires = {[cuuid]: {tuuid: cuuid, nom: '.', liste: []}}
+
+    // Charger tous les sous-repertoires existants a partir de la destination
+    const reponseSousRepertoires = await workers.connexion.getSousRepertoires(cuuid)
+    console.debug("Sous repertoires de %s : %O", cuuid, reponseSousRepertoires)
+    const cuuidsRepertoires = reponseSousRepertoires.liste.map(item=>item.tuuid)
+    const repertoiresInconnus = new Set(cuuidsRepertoires)
+    const repertoiresDechiffres = await workers.collectionsDao.getParTuuids(cuuidsRepertoires)
+    repertoiresDechiffres.forEach(item=>repertoiresInconnus.delete(item.tuuid))
+    
+    console.debug("Repertoires dechiffres : %O, inconnus : %O", repertoiresDechiffres, repertoiresInconnus)
+
+    if(repertoiresInconnus.size > 0) {
+        throw new Error('todo - dechiffrer repertoires')
+    }
+
+    for(const rep of repertoiresDechiffres) {
+        dictRepertoires[rep.tuuid] = {tuuid: rep.tuuid, nom: rep.nom, liste: []}
+    }
+    for(const rep of repertoiresDechiffres) {
+        const repNode = dictRepertoires[rep.tuuid]
+        const parent = dictRepertoires[rep.path_cuuids[0]]
+        parent.liste.push(repNode)
+    }
+
+    console.debug("Hierarchie repertoires : ", dictRepertoires[cuuid])
+
+    mapperRepertoireRecursivement(dictRepertoires, '', dictRepertoires[cuuid])
+    const mappingRepertoires = Object.values(dictRepertoires).reduce((acc, item)=>{
+        acc[item.path] = item.tuuid
+        return acc
+    }, {})
+
+    console.debug("Repertoires connus : ", mappingRepertoires)
+
+
     for await (const entry of zipReader.getEntriesGenerator()) {
         console.debug("Zip entry : ", entry)
         
         const filename = entry.filename.normalize()
 
-        const pathBase = path.dirname(filename)
+        const dirName = path.dirname(filename)
         const nom = path.basename(filename)
-        console.debug("Fichier parent : %s, nom fichier : %s", pathBase, nom)
+        console.debug("Repertoire : %s, nom fichier : %s", dirName, nom)
 
         if(entry.directory) {
-            console.debug("Mapper directory ", filename)
+            console.debug("Mapper repertoire ", filename)
         } else {
 
             const extension = path.extname(nom).slice(1)
@@ -641,7 +677,13 @@ export async function parseZipFile(userId, fichier, cuuid, updateFichier, ajoute
                 transaction,
             }
 
-            fileMappe.transaction.cuuid = cuuid
+            let cuuidRepertoire = dirName==='.'?cuuid:mappingRepertoires['./' + dirName]
+            if(cuuidRepertoire) {
+                fileMappe.transaction.cuuid = cuuidRepertoire
+            } else {
+                throw new Error(`Le repertoire ${dirName} n'est pas mappe`)
+            }
+            console.debug("dirname %s mappe au cuuid %s", dirName, cuuidRepertoire)
             // console.debug("traiterFichier File mappe : ", fileMappe)
             const fileSize = fileMappe.size
         
@@ -683,5 +725,14 @@ export async function parseZipFile(userId, fichier, cuuid, updateFichier, ajoute
                 console.error("parseZipFile Erreur conserverFichier ", err)
             }
         }
+    }
+}
+
+function mapperRepertoireRecursivement(dictRepertoires, pathParent, nodeCourant) {
+    const liste = nodeCourant.liste
+    const pathCourant = pathParent?pathParent + '/' + nodeCourant.nom:nodeCourant.nom
+    dictRepertoires[nodeCourant.tuuid].path = pathCourant
+    for(const rep of liste) {
+        mapperRepertoireRecursivement(dictRepertoires, pathCourant, rep)
     }
 }
