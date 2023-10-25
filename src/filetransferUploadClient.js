@@ -701,7 +701,7 @@ export async function parseZipFile(workers, userId, fichier, cuuid, updateFichie
             }
         } else {
 
-            const extension = path.extname(nom).slice(1)
+            const extension = path.extname(nom.toLocaleLowerCase()).slice(1)
             const mimetype = mapExtensions[extension] || 'application/octet-stream'
             console.debug("Trouver mimetype avec extension '%s' : %O", extension, mimetype)
 
