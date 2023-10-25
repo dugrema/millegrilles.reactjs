@@ -5,12 +5,12 @@ import { v4 as uuidv4 } from 'uuid'
 import { pki } from '@dugrema/node-forge'
 import { base64 } from 'multiformats/bases/base64'
 import { BlobReader, ZipReader } from '@zip.js/zip.js'
-import { v4 as uuidv4 } from 'uuid'
-import path from 'path'
 
 import { getAcceptedFileReader, streamAsyncIterable } from './stream.js'
 import { chiffrage }  from './chiffrage'
 import * as hachage from './hachage'
+
+import { getExtMimetypeMap } from '@dugrema/millegrilles.utiljs/src/constantes.js'
 
 const { preparerCipher, preparerCommandeMaitrecles } = chiffrage
 
@@ -267,8 +267,6 @@ async function conserverFichier(file, fileMappe, params, fcts) {
     const { correlation } = params
 
     // Preparer chiffrage
-    // const hachageDechiffre = new hachage.Hacheur({hashingCode: 'blake2b-512'})
-    
     await _hachageDechiffre.reset()
     const transformInst = await preparerTransform()
     const transform = {
@@ -294,7 +292,8 @@ async function conserverFichier(file, fileMappe, params, fcts) {
         taillePreparee = tailleCumulative
 
     for await (const chunk of iterReader) {
-        if(signalAnnuler && await signalAnnuler()) throw new Error("Cancelled")
+        console.debug("conserverFichier chunk ", chunk.length)
+        if(signalAnnuler) if (await signalAnnuler()) throw new Error("Cancelled")
 
         // Conserver dans idb
         if(ajouterPart) await ajouterPart(correlation, compteurPosition, Comlink.transfer(chunk))
@@ -314,12 +313,8 @@ async function conserverFichier(file, fileMappe, params, fcts) {
     const etatFinalChiffrage = transform.etatFinal()
     etatFinalChiffrage.secretChiffre = transformInst.secretChiffre
     etatFinalChiffrage.hachage_original = await _hachageDechiffre.finalize()
-    // console.debug("Etat final chiffrage : ", etatFinalChiffrage)
+    console.debug("Etat final chiffrage : ", etatFinalChiffrage)
     return etatFinalChiffrage
-}
-
-export async function conserverFichierExtern(file, fileMappe, params, ajouterPart, setProgres, signalAnnuler) {
-    return conserverFichier(file, fileMappe, params, {ajouterPart, setProgres, signalAnnuler})
 }
 
 async function formatterDocIdb(docIdb, infoChiffrage) {
@@ -593,12 +588,18 @@ export async function confirmerUpload(token, correlation, opts) {
     }
 }
 
-export async function parseZipFile(userId, fichier, cuuid) {
+export async function parseZipFile(userId, fichier, cuuid, updateFichier, ajouterPart) {
     const zipFileReader = new BlobReader(fichier)
     const zipReader = new ZipReader(zipFileReader)
 
     const ETAT_PREPARATION = 1,
           ETAT_PRET = 2
+
+    const mapExtensions = getExtMimetypeMap()
+    console.debug("Map extensions : ", mapExtensions)
+
+    const setProgres = null
+    const signalAnnuler = null
 
     for await (const entry of zipReader.getEntriesGenerator()) {
         console.debug("Zip entry : ", entry)
@@ -612,6 +613,11 @@ export async function parseZipFile(userId, fichier, cuuid) {
         if(entry.directory) {
             console.debug("Mapper directory ", filename)
         } else {
+
+            const extension = path.extname(nom).slice(1)
+            const mimetype = mapExtensions[extension] || 'application/octet-stream'
+            console.debug("Trouver mimetype avec extension '%s' : %O", extension, mimetype)
+
             // Mapper fichier
             let dateFichier = null
             try {
@@ -619,9 +625,6 @@ export async function parseZipFile(userId, fichier, cuuid) {
             } catch(err) {
                 console.warn("Erreur chargement date fichier : %O", err)
             }
-        
-            const nom = filename
-            const mimetype = 'todo mapper mimetype' || 'application/octet-stream'
         
             const transaction = {
                 nom,  // iOS utilise la forme decomposee (combining)
@@ -651,7 +654,7 @@ export async function parseZipFile(userId, fichier, cuuid) {
                 // Metadata recue
                 nom: fileMappe.nom || correlation,
                 taille: fileSize, //fileMappe.size,
-                mimetype: fileMappe.type || 'application/octet-stream',
+                mimetype,
         
                 // Etat initial
                 etat: ETAT_PREPARATION, 
@@ -665,7 +668,20 @@ export async function parseZipFile(userId, fichier, cuuid) {
 
             console.debug("Fichier mappe ", docIdb)
         
-            // workers.transfertFichiers.conserverFichierExtern(file, fileMappe, params, ajouterPart, setProgres, signalAnnuler)
+            await updateFichier(Comlink.transfer(docIdb), {demarrer: false})
+            const zipFileStream = new TransformStream()
+            entry.getData(zipFileStream.writable)
+            
+            const fileStream = { readable: zipFileStream.readable }
+            console.debug("Filestream readable : ", fileStream)
+
+            const paramsConserver = {correlation, tailleTotale: fileSize}
+
+            try {
+                await conserverFichier(fileStream, fileMappe, paramsConserver, {ajouterPart, setProgres, signalAnnuler})
+            } catch(err) {
+                console.error("parseZipFile Erreur conserverFichier ", err)
+            }
         }
     }
 }

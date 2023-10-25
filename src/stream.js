@@ -9,6 +9,8 @@ export function getAcceptedFileReader(file) {
   // BUG: reader.read() gele au hasard, trouver pourquoi
   const supporteStream = false // supporteFileStream()
 
+  if(file.readable) return file.readable.getReader()
+
   if(supporteStream) {
     try {
       // Tenter d'utiliser le stream pour l'upload
