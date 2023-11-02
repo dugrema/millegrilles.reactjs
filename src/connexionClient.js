@@ -434,9 +434,9 @@ export async function unsubscribe(nomEventSocketio, cb, params, opts) {
     opts = opts || {}
     const DEBUG = params.DEBUG || opts.DEBUG
     socketOff(nomEventSocketio)
-    console.debug("unsubscribe %s (params : %O)", nomEventSocketio, params)
+    if(DEBUG) console.debug("unsubscribe %s (params : %O)", nomEventSocketio, params)
     const resultat = await emitBlocking(nomEventSocketio, params, {kind: KIND_COMMANDE, ...opts, ajouterCertificat: true})
-    console.debug("unsubscribe %s (Resultat : %O)", nomEventSocketio, resultat)
+    if(DEBUG) console.debug("unsubscribe %s (Resultat : %O)", nomEventSocketio, resultat)
     if(resultat && resultat.ok === true) {
       resultat.routingKeys.forEach(item=>{
         if(DEBUG) console.debug("unsubscribe %s Retirer socketOn %s", nomEventSocketio, item)
