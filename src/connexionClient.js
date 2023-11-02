@@ -368,6 +368,7 @@ export async function emit(event, message, opts) {
 export async function subscribe(nomEventSocketio, cb, params, opts) {
   params = params || {}
   opts = opts || {}
+  const DEBUG = params.DEBUG || opts.DEBUG
   try {
     // var resultat = await emitBlocking(nomEventSocketio, params, {...opts, noformat: true})
     var resultat = await emitBlocking(nomEventSocketio, params, {kind: KIND_COMMANDE, ...opts, ajouterCertificat: true})
@@ -381,7 +382,7 @@ export async function subscribe(nomEventSocketio, cb, params, opts) {
   // console.debug("Resultat subscribe %s : %O", nomEventSocketio, resultat)
   if(resultat && resultat.ok === true) {
     resultat.routingKeys.forEach(item=>{
-      // console.debug("subscribe %s Ajouter socketOn %s", nomEventSocketio, item)
+      if(DEBUG) console.debug("subscribe %s Ajouter socketOn %s", nomEventSocketio, item)
       // socketOn(item, cb)  // Note : pas sur pourquoi ca ne fonctionne pas (recoit erreur value)
       socketOn(item, async event => {
         const message = event.message
@@ -416,7 +417,7 @@ export async function subscribe(nomEventSocketio, cb, params, opts) {
       })
     })
   } else {
-    const err = new Error("Erreur subscribe %s", nomEventSocketio)
+    const err = new Error(`Erreur subscribe ${nomEventSocketio}`)
     err.reponse = resultat
     throw err
   }
@@ -431,10 +432,14 @@ export async function unsubscribe(nomEventSocketio, cb, params, opts) {
   try {
     params = params || {}
     opts = opts || {}
+    const DEBUG = params.DEBUG || opts.DEBUG
     socketOff(nomEventSocketio)
+    console.debug("unsubscribe %s (params : %O)", nomEventSocketio, params)
     const resultat = await emitBlocking(nomEventSocketio, params, {kind: KIND_COMMANDE, ...opts, ajouterCertificat: true})
+    console.debug("unsubscribe %s (Resultat : %O)", nomEventSocketio, resultat)
     if(resultat && resultat.ok === true) {
       resultat.routingKeys.forEach(item=>{
+        if(DEBUG) console.debug("unsubscribe %s Retirer socketOn %s", nomEventSocketio, item)
         // socketOff(item, cb)
         if(_socket) {
           //_socket.off(nomEventSocketio, cb)  // voir subscribe(), on ne peut pas retirer par cb
