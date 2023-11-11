@@ -31,6 +31,8 @@ export function AfficherActivationsUsager(props) {
             if(nomUsager === nomUsagerCsr) {
                 csrCb(csr)
             }
+
+            setCsr('')  // Reset
         }
     }, [nomUsager, csr, csrCb, erreurCb])
   
