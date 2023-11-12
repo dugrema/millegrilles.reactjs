@@ -120,7 +120,7 @@ export async function onConnect(infoPromise) {
   let info = null
   if(_connecxionInitialePromise) _connecxionInitialePromise.resolve()
   if(infoPromise) {
-    console.debug("connexionClient.onConnect Connexion initiale, getEtatAuth")
+    // console.debug("connexionClient.onConnect Connexion initiale (getEtatAuth)")
     _connecteUneFois = true
     info = await infoPromise
   } else {
