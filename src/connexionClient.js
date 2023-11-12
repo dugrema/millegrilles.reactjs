@@ -131,7 +131,7 @@ export async function onConnect(infoPromise) {
   }
 
   console.debug("connexionClient.onConnect %O", info)
-  if(_callbackSetUsager && info.nomUsager) {
+  if(_callbackSetUsager && info && info.nomUsager) {
     // console.debug("connexionClient.onConnect setUsager %s", info.nomUsager)
     _callbackSetUsager(info.nomUsager)
       .catch(err=>{
