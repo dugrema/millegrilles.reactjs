@@ -909,14 +909,14 @@ export function MenuContextuel(props) {
     const {show, posX, posY, fermer} = props
     // console.debug("Params contextuel : %O", props)
 
-    const [touchEnabled, setTouchEnabled] = useState(false)
-    useEffect(()=>{
-        setTouchEnabled(isTouchEnabled())
-    }, [setTouchEnabled])
+    // const [touchEnabled, setTouchEnabled] = useState(false)
+    // useEffect(()=>{
+    //     setTouchEnabled(isTouchEnabled())
+    // }, [setTouchEnabled])
 
-    if(touchEnabled) {
-        return <MenuContextuelModal {...props} />
-    }
+    // if(touchEnabled) {
+    //     return <MenuContextuelModal {...props} />
+    // }
 
     return <MenuContextuelRightClick {...props} />
 }
