@@ -118,11 +118,24 @@ function mapAcceptedFile(file) {
         console.warn("Erreur chargement date fichier : %O", err)
     }
 
+    // iOS utilise la forme decomposee (combining). Fix avec normalize()
     const nom = file.name.normalize()
 
+    let mimetype = file.type
+    if(!mimetype || mimetype === 'application/octet-stream') {
+        // Tenter de detecter le mimetype avec l'extension
+        const extension = path.extname(nom.toLocaleLowerCase()).slice(1)
+        if(extension) {
+            const mapExtensions = getExtMimetypeMap()
+            mimetype = mapExtensions[extension]
+        }
+        // Set default au besoin
+        if(!mimetype) mimetype = 'application/octet-stream'
+    }
+
     const transaction = {
-        nom,  // iOS utilise la forme decomposee (combining)
-        mimetype: file.type || 'application/octet-stream',
+        nom,  
+        mimetype,
         taille: file.size,
         dateFichier,
     }
@@ -313,7 +326,7 @@ async function conserverFichier(file, fileMappe, params, fcts) {
     const etatFinalChiffrage = transform.etatFinal()
     etatFinalChiffrage.secretChiffre = transformInst.secretChiffre
     etatFinalChiffrage.hachage_original = await _hachageDechiffre.finalize()
-    console.debug("Etat final chiffrage : ", etatFinalChiffrage)
+    // console.debug("Etat final chiffrage : ", etatFinalChiffrage)
     return etatFinalChiffrage
 }
 
