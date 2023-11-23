@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { proxy } from 'comlink'
 import Modal from 'react-bootstrap/Modal'
 import Badge from 'react-bootstrap/Badge'
@@ -36,67 +36,8 @@ function TransfertModal(props) {
     } = props
     const { transfertFichiers } = workers
 
-    // const [etatDownload, setEtatDownload] = useState({})
-    // const [etatUpload, setEtatUpload] = useState({})
     const [errDownload, setErrDownload] = useState('')
     const [errUpload, setErrUpload] = useState('')
-
-    // // Transferer etat transfert global
-    // useEffect(()=>{
-    //     // console.debug("Transfert update\nDownload : %O\nUpload: %O", etatDownload, etatUpload)
-    //     setEtatTransfert({download: etatDownload, upload: etatUpload})
-    // }, [setEtatTransfert, etatDownload, etatUpload])
-
-    // Importer les evenements d'upload (geres a l'externe du module)
-    // useEffect(()=>{
-    //     if(isEtatUploadExterne && etatUploadExterne) {
-    //         // etatUploadExterne = {nbFichiersPending, pctFichierEnCours, ...flags}
-    //         handleUploadUpdate(transfertFichiers, etatUploadExterne, setEtatUpload)            
-    //     }
-    // }, [isEtatUploadExterne, etatUploadExterne, transfertFichiers, setEtatUpload])
-
-    // Entretien idb/cache de fichiers
-    // useEffect(()=>{
-    //     if(!transfertFichiers) return 
-    //     try {
-    //         // erreurCb(`Transfert fichiers etat : ${transfertFichiers.down_entretienCache !== null}`)
-    //         let intervalId = null
-    //         transfertFichiers.down_entretienCache()
-    //             .then(()=>{
-    //                 intervalId = setInterval(()=>{transfertFichiers.down_entretienCache().catch(erreurCb)}, 300000)
-    //             })
-    //             .catch(erreurCb)
-
-    //         const proxySetEtatDownload = proxy((pending, pct, flags)=>{
-    //             flags = flags || {}
-    //             // console.debug("Set nouvel etat download. pending:%d, pct:%d, flags: %O", pending, pct, flags)
-    //             handleDownloadUpdate(transfertFichiers, {pending, pct, ...flags}, setEtatDownload)
-    //         })
-    //         transfertFichiers.down_setCallbackDownload(proxySetEtatDownload).catch(erreurCb)
-
-    //         // Faire premiere maj
-    //         handleDownloadUpdate(transfertFichiers, {}, setEtatDownload).catch(erreurCb)
-
-    //         // if(!isEtatUploadExterne) {
-    //         //     const proxySetEtatUpload = proxy((nbFichiersPending, pctFichierEnCours, flags)=>{
-    //         //         flags = flags || {}
-    //         //         handleUploadUpdate(transfertFichiers, {nbFichiersPending, pctFichierEnCours, ...flags}, setEtatUpload)
-    //         //     })
-    //         //     transfertFichiers.up_setCallbackUpload(proxySetEtatUpload).catch(erreurCb)
-    //         // } else {
-    //         //     console.info("Hook avec etatUploadExterne")
-    //         // }
-
-    //         return () => {
-    //             if(intervalId) {
-    //                 clearInterval(intervalId)
-    //                 transfertFichiers.down_entretienCache().catch(erreurCb)
-    //             }
-    //         }
-    //     } catch(err) {
-    //         erreurCb(err, 'Erreur chargement transfert modal')
-    //     }
-    // }, [transfertFichiers, isEtatUploadExterne, erreurCb])
 
     return (
         <Modal 
@@ -175,68 +116,6 @@ function TabUpload(props) {
         </div>
     )
 }
-
-// const CACHE_TEMP_NAME = 'fichiersDechiffresTmp'
-
-// async function handleDownloadUpdate(transfertFichiers, params, setEtatDownload) {
-//     const etat = await transfertFichiers.down_getEtatCourant()
-//     const etatComplet = {...params, ...etat}
-//     setEtatDownload(etatComplet)
-
-//     if(params.fuuidReady) {
-//         const infoFichier = etat.downloads.filter(item=>item.fuuid===params.fuuidReady).pop()
-//         try {
-//             // console.debug("InfoFichier download : %O", infoFichier)
-//             downloadCache(params.fuuidReady, {filename: infoFichier.filename})
-//         } catch(err) {
-//             console.error("Erreur download cache : %O", err)
-//             throw err  // Todo : erreurCb
-//         }
-//     }
-// }
-
-// async function handleUploadUpdate(transfertFichiers, params, setEtatUpload) {
-//     // const { nbFichiersPending, pctFichierEnCours } = params
-//     const etat = await transfertFichiers.up_getEtatCourant()
-//     const etatComplet = {...params, ...etat}
-//     setEtatUpload(etatComplet)
-// }
-
-// async function downloadCache(fuuid, opts) {
-//     opts = opts || {}
-//     if(fuuid.currentTarget) fuuid = fuuid.currentTarget.value
-//     // console.debug("Download fichier : %s = %O", fuuid, opts)
-//     const cacheTmp = await caches.open(CACHE_TEMP_NAME)
-//     const cacheFichier = await cacheTmp.match('/'+fuuid)
-//     // console.debug("Cache fichier : %O", cacheFichier)
-//     if(cacheFichier) {
-//         promptSaveFichier(await cacheFichier.blob(), opts)
-//     } else {
-//         console.warn("Fichier '%s' non present dans le cache", fuuid)
-//     }
-// }
-
-// function promptSaveFichier(blob, opts) {
-//     opts = opts || {}
-//     const filename = opts.filename
-//     let objectUrl = null
-//     try {
-//         objectUrl = window.URL.createObjectURL(blob)
-//         const a = document.createElement('a')
-//         a.href = objectUrl
-//         if (filename) a.download = filename
-//         if (opts.newTab) a.target = '_blank'
-//         a.click()
-//     } finally {
-//         if (objectUrl) {
-//             try {
-//                 URL.revokeObjectURL(objectUrl)
-//             } catch (err) {
-//                 console.debug("Erreur revokeObjectURL : %O", err)
-//             }
-//         }
-//     }
-// }
 
 function EtatDownload(props) {
 
@@ -571,25 +450,10 @@ function EtatUpload(props) {
         continuerUploads({tous: true})
     }, [continuerUploads])
 
-    // const ETAT_PREPARATION = 1,
-    // ETAT_PRET = 2,
-    // ETAT_UPLOADING = 3,
-    // ETAT_COMPLETE = 4,
-    // ETAT_ECHEC = 5,
-    // ETAT_CONFIRME = 6,
-    // ETAT_UPLOAD_INCOMPLET = 7
-
     const uploadsPending = uploads.filter(item=>item.etat===ETAT_PRET)
     const uploadsSucces = uploads.filter(item=>[ETAT_COMPLETE, ETAT_CONFIRME].includes(item.etat))
     const uploadsErreur = uploads.filter(item=>[ETAT_ECHEC, ETAT_UPLOAD_INCOMPLET].includes(item.etat))
     const uploadEnCours = uploads.filter(item=>item.etat===ETAT_UPLOADING).pop()
-
-    // const uploadsPending = etat.uploadsPending || []
-    // const uploadsCompletes = etat.uploadsCompletes || []
-    // const uploadEnCours = etat.uploadEnCours || {}
-    // const pctFichierEnCours = uploadEnCours.pctFichierEnCours || ''
-    // const uploadsSucces = uploadsCompletes.filter(item=>item.status===5)
-    // const uploadsErreur = uploadsCompletes.filter(item=>item.status===4)
     
     const uploadActif = (uploadEnCours)?true:false
 
@@ -622,9 +486,11 @@ function EtatUpload(props) {
                 :''
             }
 
-            {uploadsPending.map(item=>{
+            {/* {uploadsPending.map(item=>{
                 return <UploadPending key={item.correlation} value={item} annuler={supprimerUploadAction} />
-            })}
+            })} */}
+
+            <UploadsPending value={uploadsPending} onCancel={supprimerUploadAction} />
             
             <UploadsErreur
                 uploadsErreur={uploadsErreur} 
@@ -641,6 +507,30 @@ function EtatUpload(props) {
     )
 }
 
+function UploadsPending(props) {
+    const { value, onCancel } = props
+
+    const rows = useMemo(()=>{
+        const rows = []
+        let breadcrumbPath = ''
+        for(const item of value) {
+            const bcCurrent = item.breadcrumbPath
+            if(bcCurrent && bcCurrent !== breadcrumbPath) {
+                breadcrumbPath = bcCurrent
+                rows.push(<Row className={styles['modal-liste-transfert-path']}><Col>{bcCurrent}</Col></Row>)
+            }
+            rows.push(<UploadPending key={item.correlation} value={item} annuler={onCancel} />)
+        }
+        return rows
+    }, [value, onCancel])
+
+    return (
+        <div className={styles['modal-liste-transfert']}>
+            {rows}
+        </div>
+    )
+}
+
 function UploadsSucces(props) {
     const { supprimerUploadAction, supprimerTous } = props
     const uploadsSucces = props.uploadsSucces || []
@@ -649,10 +539,27 @@ function UploadsSucces(props) {
 
     const nbUpload = uploadsSucces.length
 
-    if(nbUpload === 0) return ''
+    const rows = useMemo(()=>{
+        if(!uploadsSucces || uploadsSucces.length === 0) return ''
+        
+        const rows = []
+        let breadcrumbPath = ''
+        for(const item of uploadsSucces) {
+            const bcCurrent = item.breadcrumbPath
+            if(bcCurrent && bcCurrent !== breadcrumbPath) {
+                breadcrumbPath = bcCurrent
+                rows.push(<Row key='ligne-1' className={styles['modal-liste-transfert-path']}><Col>{bcCurrent}</Col></Row>)
+            }
+            rows.push(<UploadComplete key={item.correlation} value={item} supprimer={supprimerUploadAction} />)
+        }
+        
+        return rows
+    }, [nbUpload, uploadsSucces, supprimerUploadAction])
+
+    if(!rows) return ''
 
     return (
-        <div>
+        <div className={styles['modal-liste-transfert']}>
             <Row className={styles['modal-row-header']}>
                 <Col xs={6}>
                     Uploads reussis {nbUpload?<Badge>{nbUpload}</Badge>:''}
@@ -674,14 +581,7 @@ function UploadsSucces(props) {
                     </Button>                
                 </Col>
             </Row>
-            {show?
-                nbUpload>0?
-                    uploadsSucces.map(item=>{
-                        return <UploadComplete key={item.correlation} value={item} supprimer={supprimerUploadAction} />
-                    })
-                    :
-                    <p>Aucun upload complete</p>
-            :''}
+            {show?rows:''}
         </div>
     )
 }
@@ -692,10 +592,32 @@ function UploadsErreur(props) {
 
     const nbUpload = uploadsErreur.length
 
-    if(nbUpload === 0) return ''
+    const rows = useMemo(()=>{
+        if(!uploadsErreur || uploadsErreur.length === 0) return ''
+        
+        const rows = []
+        let breadcrumbPath = ''
+        for(const item of uploadsErreur) {
+            const bcCurrent = item.breadcrumbPath
+            if(bcCurrent && bcCurrent !== breadcrumbPath) {
+                breadcrumbPath = bcCurrent
+                rows.push(<Row key='ligne-1' className={styles['modal-liste-transfert-path']}><Col>{bcCurrent}</Col></Row>)
+            }
+            rows.push(
+                <UploadErreur key={item.correlation} 
+                    value={item} 
+                    continuer={handlerContinuerUpload} 
+                    supprimer={supprimerUploadAction} />                
+            )
+        }
+        
+        return rows
+    }, [nbUpload, uploadsErreur, supprimerUploadAction])
+
+    if(!rows) return ''
 
     return (
-        <div>
+        <div className={styles['modal-liste-transfert']}>
             <Row>
                 <Col>
                     <Button disabled={!uploadsErreur} onClick={handlerContinuerTousUploads}>Redemarrer</Button>
@@ -714,15 +636,7 @@ function UploadsErreur(props) {
                     </Button>                
                 </Col>
             </Row>
-            {nbUpload>0?
-                uploadsErreur.map(item=>{
-                        return <UploadErreur 
-                                    key={item.correlation} 
-                                    value={item} 
-                                    continuer={handlerContinuerUpload} 
-                                    supprimer={supprimerUploadAction} />
-                    })
-            :''}
+            {rows}
         </div>
     )
 }
@@ -750,10 +664,11 @@ function UploadPending(props) {
 function UploadEnCours(props) {
     const { value, annuler } = props
     const nom = value.nom || value.correlation
+    const breadcrumbPath = value.breadcrumbPath?value.breadcrumbPath+'/':''
 
     return (
         <Row className={styles['modal-row-encours']}>
-            <Col xs={6} lg={5}>{nom}</Col>
+            <Col xs={8} md={9} lg={10}>{breadcrumbPath} {nom}</Col>
             <Col className={styles['boutons-droite']}>
                 <Button 
                     variant="secondary" 
@@ -773,7 +688,7 @@ function UploadComplete(props) {
 
     return (
         <Row>
-            <Col xs={8}>{nom}</Col>
+            <Col xs={8} md={9} lg={10}>{nom}</Col>
             <Col className={styles['boutons-droite']}>
                 <Button 
                     variant="secondary" 
@@ -802,7 +717,7 @@ function UploadErreur(props) {
     return (
         <div>
             <Row className={styles['modal-row-erreur']}>
-                <Col xs={8} className={styles['modal-nomfichier']}>{nom} <i className="fa fa-cross"/></Col>
+                <Col xs={6} lg={7} className={styles['modal-nomfichier']}>{nom} <i className="fa fa-cross"/></Col>
                 <Col className={styles['boutons-droite']}>
                     <Button 
                         variant="secondary" 

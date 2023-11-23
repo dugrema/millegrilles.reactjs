@@ -518,3 +518,8 @@ BODY {
   }
 
 }
+
+.modal-liste-transfert .modal-liste-transfert-path {
+  padding-top: 1rem;
+  font-weight: bold;
+}
