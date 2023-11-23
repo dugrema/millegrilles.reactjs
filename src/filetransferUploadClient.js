@@ -580,25 +580,55 @@ export async function confirmerUpload(token, correlation, opts) {
     if(transaction) confirmationResultat.transaction = transaction
     // if(cle) confirmationResultat.cle = cle
     const pathConfirmation = _pathServeur.href + path.join('/' + correlation)
-    const reponse = await axios({
-        method: 'POST', 
-        url: pathConfirmation, 
-        data: confirmationResultat,
-        headers: {'x-token-jwt': token}
-    })
+    try {
+        const reponse = await axios({
+            method: 'POST', 
+            url: pathConfirmation, 
+            data: confirmationResultat,
+            headers: {'x-token-jwt': token}
+        })
+        if(reponse.data.ok === false) {
+            const data = reponse.data
+            console.error("Erreur verification fichier : %O", data)
+            const err = new Error("Erreur upload fichier : %s", data.err)
+            err.reponse = data
+            throw err
+        }
+    
+        return {
+            status: reponse.status, 
+            reponse: reponse.data
+        }
+    } catch(err) {
+        const response = err.response
+        if(response) {
+            const { status, data } = response
+            return {
+                status, 
+                reponse: data
+            }
+        } else {
+            throw err
+        }
+    }
+}
 
-    if(reponse.data.ok === false) {
-        const data = reponse.data
-        console.error("Erreur verification fichier : %O", data)
-        const err = new Error("Erreur upload fichier : %s", data.err)
-        err.reponse = data
-        throw err
+export async function supprimerUpload(token, correlation) {
+    const pathConfirmation = _pathServeur.href + path.join('/' + correlation)
+
+    let response
+    try {
+        response = await axios({
+            method: 'DELETE', 
+            url: pathConfirmation, 
+            data: confirmationResultat,
+            headers: {'x-token-jwt': token}
+        })
+    } catch(err) {
+        response = err.response
     }
 
-    return {
-        status: reponse.status, 
-        reponse: reponse.data
-    }
+    return { status: response.status, data: response.data }
 }
 
 export async function parseZipFile(workers, userId, fichier, cuuid, updateFichier, ajouterPart) {
