@@ -272,10 +272,31 @@ function DownloadsErreur(props) {
 
     const nbUpload = downloadsErreur.length
 
-    if(nbUpload === 0) return ''
+    const rows = useMemo(()=>{
+        const rows = []
+        let breadcrumbPath = ''
+        for(const item of downloadsErreur) {
+            const bcCurrent = item.breadcrumbPath
+            if(bcCurrent && bcCurrent !== breadcrumbPath) {
+                breadcrumbPath = bcCurrent
+                rows.push(<Row key='row1' className={styles['modal-liste-transfert-path']}><Col>{bcCurrent}</Col></Row>)
+            }
+            rows.push(
+                <DownloadErreur 
+                    key={item.fuuid} 
+                    value={item} 
+                    supprimerDownloadAction={supprimerDownload} 
+                    retryDownloadAction={retryDownloadAction}
+                />                
+            )
+        }
+        return rows
+    }, [downloadsErreur, supprimerDownload, retryDownloadAction])
+
+    if(!rows) return ''
     
     return (
-        <div>
+        <div className={styles['modal-liste-transfert']}>
             <Row className={styles['modal-row-header']}>
                 <Col xs={6}>
                     Downloads en erreur {nbUpload?<Badge bg="danger">{nbUpload}</Badge>:''}
@@ -289,16 +310,7 @@ function DownloadsErreur(props) {
                     </Button>                
                 </Col>
             </Row>
-            {nbUpload>0?
-                downloadsErreur.map(item=>{
-                        return <DownloadErreur 
-                            key={item.fuuid} 
-                            value={item} 
-                            supprimerDownloadAction={supprimerDownload} 
-                            retryDownloadAction={retryDownloadAction}
-                        />
-                    })
-            :''}
+            {rows}
         </div>
     )
 }
@@ -517,7 +529,7 @@ function UploadsPending(props) {
             const bcCurrent = item.breadcrumbPath
             if(bcCurrent && bcCurrent !== breadcrumbPath) {
                 breadcrumbPath = bcCurrent
-                rows.push(<Row className={styles['modal-liste-transfert-path']}><Col>{bcCurrent}</Col></Row>)
+                rows.push(<Row  key='row1' className={styles['modal-liste-transfert-path']}><Col>{bcCurrent}</Col></Row>)
             }
             rows.push(<UploadPending key={item.correlation} value={item} annuler={onCancel} />)
         }
