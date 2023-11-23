@@ -152,9 +152,11 @@ function EtatDownload(props) {
 
     const retryDownloadAction = useCallback( event => {
         const fuuid = event.currentTarget.value
-        // transfertFichiers.down_retryDownload(fuuid)
+        // workers.transfertFichiers.down_retryDownload(fuuid)
         //     .catch(err=>{console.error("Erreur retry download %O", err)})
-    }, [continuerDownloads])
+        // console.debug("Continuer download ", fuuid)
+        continuerDownloads(fuuid)
+    }, [workers, continuerDownloads])
 
     const downloadsPending = downloads.filter(item=>item.etat===CONST_ETATS_DOWNLOAD.ETAT_PRET)
     const downloadEnCours = downloads.filter(item=>item.etat===CONST_ETATS_DOWNLOAD.ETAT_EN_COURS).pop() || ''
@@ -273,6 +275,7 @@ function DownloadsErreur(props) {
     const nbUpload = downloadsErreur.length
 
     const rows = useMemo(()=>{
+        if(!downloadsErreur || downloadsErreur.length === 0) return null
         const rows = []
         let breadcrumbPath = ''
         for(const item of downloadsErreur) {
@@ -493,14 +496,7 @@ function EtatUpload(props) {
                 </Row>
             }
 
-            {uploadEnCours?
-                <UploadEnCours value={uploadEnCours} annuler={supprimerUploadAction} />
-                :''
-            }
-
-            {/* {uploadsPending.map(item=>{
-                return <UploadPending key={item.correlation} value={item} annuler={supprimerUploadAction} />
-            })} */}
+            <UploadEnCours value={uploadEnCours} annuler={supprimerUploadAction} />
 
             <UploadsPending value={uploadsPending} onCancel={supprimerUploadAction} />
             
@@ -675,6 +671,9 @@ function UploadPending(props) {
 
 function UploadEnCours(props) {
     const { value, annuler } = props
+
+    if(!value) return ''
+
     const nom = value.nom || value.correlation
     const breadcrumbPath = value.breadcrumbPath?value.breadcrumbPath+'/':''
 

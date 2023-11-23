@@ -87,7 +87,7 @@ export async function down_ajouterDownload(fuuid, opts) {
 
     annuler: false,
     status: STATUS_NOUVEAU,
-    dateQueuing: new Date(),
+    dateQueuing: new Date().getTime(),
     dateComplete: '',
   }
 
@@ -687,27 +687,21 @@ export function down_setCertificatCa(certificat) {
 }
 
 export async function down_retryDownload(fuuid) {
-  const [cache, db] = await Promise.all([caches.open(CACHE_TEMP_NAME), ouvrirIdb()])
+  const db = await ouvrirIdb()
 
   const data = await db.transaction(STORE_DOWNLOADS, 'readonly').objectStore(STORE_DOWNLOADS).get(fuuid)
   await db.transaction(STORE_DOWNLOADS, 'readwrite')
     .objectStore(STORE_DOWNLOADS)
     .put({
       ...data, 
-      status: 1, 
+      status: STATUS_NOUVEAU, 
       err: null, 
       annuler: false, 
       complete: false, 
       dateComplete: '', 
-      dateQueuing: new Date(),
+      dateQueuing: new Date().getTime(),
     })
   
-  try {
-    await cache.delete('/' + fuuid)
-  } catch(err) {
-    console.debug("Erreur suppression cache : %O", err)
-  }
-
   // Demarrer download
   traiterDownloads()
 }
