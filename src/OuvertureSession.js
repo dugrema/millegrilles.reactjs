@@ -3,6 +3,7 @@ import axios from 'axios'
 import base64url from 'base64url'
 
 import Button from 'react-bootstrap/Button'
+import Form from 'react-bootstrap/Form'
 import Modal from 'react-bootstrap/Modal'
 
 import { BoutonActif } from './BoutonsActifs'
@@ -18,6 +19,7 @@ function OuvertureSessionModal(props) {
     const [dureeSession, setDureeSession] = useState(window.localStorage.getItem('dureeSession'))
     
     const hideCb = useCallback(()=>setShow(false), [setShow])
+    const onChangeDureeSession = useCallback(event=>setDureeSession(event.currentTarget.value), [setDureeSession])
 
     const annulerCb = useCallback(()=>{
         window.location = '/millegrilles'
@@ -28,7 +30,14 @@ function OuvertureSessionModal(props) {
     }, [usager, setUsagerCopie])
 
     useEffect(()=>{
-        if(etatConnexion) return  // Rien a faire, on est connecte
+        if(show && !etatConnexion) return  // Rien a faire, la fenetre est affichee
+        if(!show && etatConnexion) return  // Rien a faire, la fenetre est cachee
+
+        if(show && etatConnexion) {
+            // Connexion retablie, fermer la fenetre
+            return setShow(false)
+        }
+
         if(etatConnexionOpts.type !== 'TransportError') return // Erreur non geree
 
         if(!usagerCopie) {
@@ -65,9 +74,20 @@ function OuvertureSessionModal(props) {
             <p>La session est expiree.</p>
             <p>Cliquer sur le bouton reconnecter pour poursuivre.</p>
 
-            <p>
-                Duree de la session : {dureeSession} secondes
-            </p>
+            <Form.Group controlId="formDureeSession">
+                <Form.Label>Duree de la session</Form.Label>
+                <Form.Select 
+                    value={dureeSession}
+                    onChange={onChangeDureeSession}>
+                    <option value='3600'>1 heure</option>
+                    <option value='86400'>1 jour</option>
+                    <option value='604800'>1 semaine</option>
+                    <option value='2678400'>1 mois</option>
+                </Form.Select>
+                <Form.Text className="text-muted">
+                    Apres cette periode, l'appareil va reverifier votre identite.
+                </Form.Text>
+            </Form.Group>
 
             <Modal.Footer>
                 <BoutonAuthentifier
