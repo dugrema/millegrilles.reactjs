@@ -91,15 +91,18 @@ export async function connecter(urlApp, opts) {
     onConnect().catch(err=>console.error("connexionClient.onConnect ERROR %O", err))
   })
   socketOn('disconnect', reason => {
-    if(opts.DEBUG) console.debug("Disconnect socket.io (reason: %O)", reason)
+    if(opts.DEBUG) console.debug("connexionClient.disconnect Disconnect socket.io (reason: %O)", reason)
     _connecte = false
-    if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(false)
+    if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(false, {description: 'Deconnecte normalement'})
     if(_callbackSetUsager) _callbackSetUsager('')
   })
   socketOn('connect_error', err => {
-    console.error("connexionClient Erreur socket.io : %O", err)
+    console.error("connexionClient.connect_error Erreur socket.io : %O", err)
+    const { description, context, type } = err
+    if(_callbackSetEtatConnexion) {
+      _callbackSetEtatConnexion(false, {err: ''+err, type})
+    }
     _connecte = false
-    if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(false)
     if(_callbackSetUsager) _callbackSetUsager('')
   })
 
@@ -269,6 +272,7 @@ export async function emitBlocking(event, message, opts) {
         attachements = opts.attachements
 
   if(!event) throw new TypeError('connexionClient.emitBlocking event null')
+  if(!_socket.connected) throw new DeconnecteError("connexionClient.emitBlocking Deconnecte")
   // if(!message) throw new TypeError('connexionClient.emitBlocking message null')
 
   if( message && !message['sig'] && opts.noformat !== true ) {
@@ -352,9 +356,9 @@ export async function emit(event, message, opts) {
   }
 
   if(message) {
-    _socket.emit(event, message)
+    _socket.volatile.emit(event, message)
   } else {
-    _socket.emit(event)
+    _socket.volatile.emit(event)
   }
 }
 
@@ -546,5 +550,11 @@ export async function authentifier(data, opts) {
       if(!noCallback && reponseUpgrade.nomUsager && _callbackSetUsager) _callbackSetUsager(reponseUpgrade.nomUsager)
       
       return reponseUpgrade
+  }
+}
+
+export class DeconnecteError extends Error {
+  constructor (reason) {
+    super(reason)
   }
 }

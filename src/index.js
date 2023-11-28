@@ -66,6 +66,9 @@ export * as landingReact from './landing/landingReact'
 
 export { default as ErrorBoundary } from './ErrorBoundary'
 
+import OuvertureSessionModal from './OuvertureSession'
+export { OuvertureSessionModal }
+
 // import * as ChiffrageClient from './chiffrageClient.js'
 // export { ChiffrageClient }
 
