@@ -25,20 +25,30 @@ function OuvertureSessionModal(props) {
         window.location = '/millegrilles'
     }, [])
 
+    const etatConnexionEffectif = useMemo(()=>{
+        if(!etatConnexionOpts) return etatConnexion
+
+        // Si on recoit etatConnexionOpts.ok === false, la connexion est etablie (websocket) mais session est expiree (https)
+        if(etatConnexionOpts.ok === false) return false
+        
+        // Utiliser etatConnexion directement
+        return etatConnexion
+    }, [etatConnexion, etatConnexionOpts])
+
     useEffect(()=>{
         if(usager) setUsagerCopie({...usager})
     }, [usager, setUsagerCopie])
 
     useEffect(()=>{
-        if(show && !etatConnexion) return  // Rien a faire, la fenetre est affichee
-        if(!show && etatConnexion) return  // Rien a faire, la fenetre est cachee
+        if(show && !etatConnexionEffectif) return  // Rien a faire, la fenetre est affichee
+        if(!show && etatConnexionEffectif) return  // Rien a faire, la fenetre est cachee
 
-        if(show && etatConnexion) {
+        if(show && etatConnexionEffectif) {
             // Connexion retablie, fermer la fenetre
             return setShow(false)
         }
 
-        if(etatConnexionOpts.type !== 'TransportError') return // Erreur non geree
+        if( ! ['TransportError', 'SessionExpiree'].includes(etatConnexionOpts.type)) return // Erreur non geree
 
         if(!usagerCopie) {
             // On ne pourra pas re-authentifier, information usager perdue
@@ -64,7 +74,7 @@ function OuvertureSessionModal(props) {
                 console.error("Erreur verification session : ", err)
             })
 
-    }, [etatConnexion, etatConnexionOpts, usagerCopie, setShow, annulerCb])
+    }, [etatConnexionEffectif, etatConnexionOpts, usagerCopie, setShow, annulerCb])
 
     useEffect(()=>console.debug("OuvertureSessionModal proppies ", props), [props])
 
