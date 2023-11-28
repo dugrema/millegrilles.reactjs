@@ -76,7 +76,7 @@ function OuvertureSessionModal(props) {
 
     }, [etatConnexionEffectif, etatConnexionOpts, usagerCopie, setShow, annulerCb])
 
-    useEffect(()=>console.debug("OuvertureSessionModal proppies ", props), [props])
+    // useEffect(()=>console.debug("OuvertureSessionModal proppies ", props), [props])
 
     return (
         <Modal show={show} onHide={hideCb} backdrop="static" keyboard={false}>
