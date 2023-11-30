@@ -5,6 +5,7 @@ import base64url from 'base64url'
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form'
 import Modal from 'react-bootstrap/Modal'
+import Container from 'react-bootstrap/Container'
 
 import { BoutonActif } from './BoutonsActifs'
 import { hacherMessage } from './formatteurMessage'
@@ -15,6 +16,7 @@ function OuvertureSessionModal(props) {
     const { workers, etatConnexion, etatConnexionOpts, usager } = props
 
     const [show, setShow] = useState(false)
+    const [certificatValide, setCertificatValide] = useState(true)
     const [usagerCopie, setUsagerCopie] = useState()
     const [dureeSession, setDureeSession] = useState(window.localStorage.getItem('dureeSession'))
     
@@ -22,7 +24,7 @@ function OuvertureSessionModal(props) {
     const onChangeDureeSession = useCallback(event=>setDureeSession(event.currentTarget.value), [setDureeSession])
 
     const annulerCb = useCallback(()=>{
-        window.location = '/millegrilles'
+        window.location = '/auth/deconnecter_usager'
     }, [])
 
     const etatConnexionEffectif = useMemo(()=>{
@@ -36,8 +38,17 @@ function OuvertureSessionModal(props) {
     }, [etatConnexion, etatConnexionOpts])
 
     useEffect(()=>{
-        if(usager) setUsagerCopie({...usager})
-    }, [usager, setUsagerCopie])
+        if(usager) {
+            setUsagerCopie({...usager})
+
+            // Verifier l'etat de certificat (ne doit pas etre expire)
+            if(usager.certificat) {
+                verifierCertificat(workers.connexion, usager.certificat, setCertificatValide, setShow)
+                    .catch(err=>console.error("OuvertureSessionModal Erreur validation certificat ", err))
+            }
+        }
+        
+    }, [workers, usager, setUsagerCopie, setCertificatValide])
 
     useEffect(()=>{
         if(show && !etatConnexionEffectif) return  // Rien a faire, la fenetre est affichee
@@ -55,6 +66,12 @@ function OuvertureSessionModal(props) {
             return annulerCb()
         }
 
+        // Verifier l'etat de certificat (ne doit pas etre expire)
+        if(usagerCopie.certificat) {
+            verifierCertificat(workers.connexion, usagerCopie.certificat, setCertificatValide, setShow)
+                .catch(err=>console.error("OuvertureSessionModal Erreur validation certificat ", err))
+        }
+        
         // Verifier si la session est expiree
         const urlVerificationSession = new URL(window.location)
         urlVerificationSession.pathname = '/auth/verifier_usager'
@@ -62,9 +79,9 @@ function OuvertureSessionModal(props) {
             .then(reponse=>{
                 const status = reponse.status
                 if(status === 200) {
-                    console.debug("Session valide (status: %d)", status)
+                    // console.debug("Session valide (status: %d)", status)
                 } else if(status === 401) {
-                    console.debug("Session expiree (status: %d)", status)
+                    // console.debug("Session expiree (status: %d)", status)
                     setShow(true)
                 } else {
                     console.warn("Session etat non gere : %O", status)
@@ -74,47 +91,93 @@ function OuvertureSessionModal(props) {
                 console.error("Erreur verification session : ", err)
             })
 
-    }, [etatConnexionEffectif, etatConnexionOpts, usagerCopie, setShow, annulerCb])
+    }, [workers, etatConnexionEffectif, etatConnexionOpts, usagerCopie, setShow, annulerCb])
 
     // useEffect(()=>console.debug("OuvertureSessionModal proppies ", props), [props])
 
     return (
         <Modal show={show} onHide={hideCb} backdrop="static" keyboard={false}>
-            <Modal.Header>Session expiree</Modal.Header>
-            <p>La session est expiree.</p>
-            <p>Cliquer sur le bouton reconnecter pour poursuivre.</p>
-
-            <Form.Group controlId="formDureeSession">
-                <Form.Label>Duree de la session</Form.Label>
-                <Form.Select 
-                    value={dureeSession}
-                    onChange={onChangeDureeSession}>
-                    <option value='3600'>1 heure</option>
-                    <option value='86400'>1 jour</option>
-                    <option value='604800'>1 semaine</option>
-                    <option value='2678400'>1 mois</option>
-                </Form.Select>
-                <Form.Text className="text-muted">
-                    Apres cette periode, l'appareil va reverifier votre identite.
-                </Form.Text>
-            </Form.Group>
-
-            <Modal.Footer>
-                <BoutonAuthentifier
-                    workers={workers}
-                    usager={usagerCopie}
-                    dureeSession={dureeSession}
-                    onSuccess={hideCb}
-                >
-                    Reconnecter
-                </BoutonAuthentifier>
-                <Button variant="dark" onClick={annulerCb}>Deconnecter</Button>
-            </Modal.Footer>
+            <ContenuModal 
+                workers={workers}
+                certificatValide={certificatValide}
+                usager={usagerCopie}
+                dureeSession={dureeSession}
+                onChangeDureeSession={onChangeDureeSession}
+                onHide={hideCb}
+                annulerCb={annulerCb}
+                />
         </Modal>
     )
 }
 
 export default OuvertureSessionModal
+
+function ContenuModal(props) {
+    const {certificatValide} = props
+    if(certificatValide) return <ContenuModalAuthentifier {...props} />
+    return <ContenuModalCertificatExpire {...props} />
+}
+
+function ContenuModalAuthentifier(props) {
+
+    const {workers, dureeSession, onChangeDureeSession, usager, onHide, annulerCb} = props
+
+    return (
+        <div>
+            <Modal.Header>Session expiree</Modal.Header>
+            
+            <Container>
+                <p>La session est expiree.</p>
+                <p>Cliquer sur le bouton reconnecter pour poursuivre.</p>
+
+                <Form.Group controlId="formDureeSession">
+                    <Form.Label>Duree de la session</Form.Label>
+                    <Form.Select 
+                        value={dureeSession}
+                        onChange={onChangeDureeSession}>
+                        <option value='3600'>1 heure</option>
+                        <option value='86400'>1 jour</option>
+                        <option value='604800'>1 semaine</option>
+                        <option value='2678400'>1 mois</option>
+                    </Form.Select>
+                    <Form.Text className="text-muted">
+                        Apres cette periode, l'appareil va reverifier votre identite.
+                    </Form.Text>
+                </Form.Group>
+            </Container>
+
+            <Modal.Footer>
+                <BoutonAuthentifier
+                    workers={workers}
+                    usager={usager}
+                    dureeSession={dureeSession}
+                    onSuccess={onHide}
+                >
+                    Reconnecter
+                </BoutonAuthentifier>
+                <Button variant="dark" onClick={annulerCb}>Deconnecter</Button>
+            </Modal.Footer>        
+        </div>
+    )
+}
+
+function ContenuModalCertificatExpire(props) {
+    const {annulerCb} = props
+    return (
+        <div>
+            <Modal.Header>Session expiree</Modal.Header>
+            
+            <Container>
+                <p>La session est expiree.</p>
+                <p>Cliquer sur le bouton deconnecter pour poursuivre.</p>
+            </Container>
+
+            <Modal.Footer>
+                <Button variant="dark" onClick={annulerCb}>Deconnecter</Button>
+            </Modal.Footer>        
+        </div>
+    )
+}
 
 function BoutonAuthentifier(props) {
 
@@ -125,13 +188,13 @@ function BoutonAuthentifier(props) {
     const challengeWebauthn = useMemo(()=>{
         if(usagerWebAuth && usagerWebAuth.infoUsager) {
             const challenge = usagerWebAuth.infoUsager.authentication_challenge
-            console.debug("Authentifier.challengeWebauthn ", challenge)
+            // console.debug("Authentifier.challengeWebauthn ", challenge)
             return challenge
         }
     }, [usagerWebAuth])
     
     const onSuccessWebAuth = useCallback(value=>{
-        console.debug("BoutonAuthentifier succes auth : ", value)
+        // console.debug("BoutonAuthentifier succes auth : ", value)
         onSuccess()  // Ferme la fenetre
     }, [onSuccess])
 
@@ -146,7 +209,7 @@ function BoutonAuthentifier(props) {
 
         chargerUsager(nomUsager, fingerprintPk, fingerprintCourant, {genererChallenge: true})
          .then(reponseUsagerWebAuth=>{
-            console.debug("BoutonAuthentifier Reponse usager webauthn : ", reponseUsagerWebAuth)
+            // console.debug("BoutonAuthentifier Reponse usager webauthn : ", reponseUsagerWebAuth)
             setUsagerWebAuth(reponseUsagerWebAuth)
          })
          .catch(erreurCb)
@@ -171,7 +234,7 @@ function BoutonAuthentifierWebauthn(props) {
 
     const { workers, variant, className, usager, challenge, dureeSession, onError, onSuccess } = props
 
-    console.debug("BoutonAuthentifierWebauthn usagerDb %O", usager)
+    // console.debug("BoutonAuthentifierWebauthn usagerDb %O", usager)
 
     const { connexion } = workers
     // const { requete: requeteCsr } = usagerDbLocal
@@ -189,14 +252,14 @@ function BoutonAuthentifierWebauthn(props) {
     }, [setErreur, onError])
 
     const authentifierCb = useCallback( event => {
-        console.debug("BoutonAuthentifierWebauthn.authentifierCb Authentifier nomUsager: %s, reponseChallengeAuthentifier: %O", 
-            nomUsager, reponseChallengeAuthentifier)
+        // console.debug("BoutonAuthentifierWebauthn.authentifierCb Authentifier nomUsager: %s, reponseChallengeAuthentifier: %O", 
+        //     nomUsager, reponseChallengeAuthentifier)
         setErreur(false)  // Reset
         setAttente(true)
         const {demandeCertificat, publicKey} = reponseChallengeAuthentifier
         authentifier(connexion, nomUsager, demandeCertificat, publicKey, {dureeSession})
             .then(reponse=>{
-                console.debug("BoutonAuthentifierWebauthn Reponse authentifier ", reponse)
+                // console.debug("BoutonAuthentifierWebauthn Reponse authentifier ", reponse)
                 onSuccess(reponse)
             })
             .catch(err=>handlerErreur(err, 'BoutonAuthentifierWebauthn.authentifierCb Erreur authentification'))
@@ -207,7 +270,7 @@ function BoutonAuthentifierWebauthn(props) {
         if(!challenge) return
         preparerAuthentification(nomUsager, challenge, requeteCsr)
             .then(resultat=>{
-                console.debug("Reponse preparerAuthentification nomUsager %s, challenge %O, requeteCsr %s : %O", nomUsager, challenge, requeteCsr, resultat)
+                // console.debug("Reponse preparerAuthentification nomUsager %s, challenge %O, requeteCsr %s : %O", nomUsager, challenge, requeteCsr, resultat)
                 setReponseChallengeAuthentifier(resultat)
             })
             .catch(err=>onError(err, 'BoutonAuthentifierWebauthn.authentifierCb Erreur preparation authentification'))
@@ -234,7 +297,7 @@ function BoutonAuthentifierWebauthn(props) {
 export async function preparerAuthentification(nomUsager, challengeWebauthn, requete, opts) {
     opts = opts || {}
     if(!challengeWebauthn) throw new Error("preparerAuthentification challengeWebauthn absent")
-    console.debug("Preparer authentification avec : ", challengeWebauthn)
+    // console.debug("Preparer authentification avec : ", challengeWebauthn)
 
     const challengeReference = challengeWebauthn.publicKey.challenge
     const publicKey = {...challengeWebauthn.publicKey}
@@ -261,7 +324,7 @@ export async function preparerAuthentification(nomUsager, challengeWebauthn, req
         }
         if(opts.activationTierce === true) demandeCertificat.activationTierce = true
         const hachageDemandeCert = await hacherMessage(demandeCertificat, {bytesOnly: true, hashingCode: 'blake2s-256'})
-        console.debug("Hachage demande cert %O = %O, ajouter au challenge existant de : %O", hachageDemandeCert, demandeCertificat, publicKey.challenge)
+        // console.debug("Hachage demande cert %O = %O, ajouter au challenge existant de : %O", hachageDemandeCert, demandeCertificat, publicKey.challenge)
         
         // Concatener le challenge recu (32 bytes) au hachage de la commande
         // Permet de signer la commande de demande de certificat avec webauthn
@@ -272,7 +335,7 @@ export async function preparerAuthentification(nomUsager, challengeWebauthn, req
 
         //challenge[0] = CONST_COMMANDE_SIGNER_CSR
         //challenge.set(hachageDemandeCert, 1)  // Override bytes 1-65 du challenge
-        console.debug("Challenge override pour demander signature certificat : %O", publicKey.challenge)
+        // console.debug("Challenge override pour demander signature certificat : %O", publicKey.challenge)
         // if(props.appendLog) props.appendLog(`Hachage demande cert ${JSON.stringify(hachageDemandeCert)}`)
     } 
     // else if(challenge[0] !== CONST_COMMANDE_AUTH) {
@@ -281,7 +344,7 @@ export async function preparerAuthentification(nomUsager, challengeWebauthn, req
     // }        
 
     const resultat = { publicKey, demandeCertificat, challengeReference }
-    console.debug("Prep publicKey/demandeCertificat : %O", resultat)
+    // console.debug("Prep publicKey/demandeCertificat : %O", resultat)
     
     return resultat
 }
@@ -289,7 +352,7 @@ export async function preparerAuthentification(nomUsager, challengeWebauthn, req
 async function authentifier(connexion, nomUsager, demandeCertificat, publicKey, opts) {
     // N.B. La methode doit etre appelee par la meme thread que l'event pour supporter
     //      TouchID sur iOS.
-    console.debug("Signer challenge : %O (opts: %O)", publicKey, opts)
+    // console.debug("Signer challenge : %O (opts: %O)", publicKey, opts)
     // if(opts.appendLog) opts.appendLog(`Signer challenge`)
 
     opts = opts || {}
@@ -304,9 +367,9 @@ async function authentifier(connexion, nomUsager, demandeCertificat, publicKey, 
     // console.debug("Resultat authentification : %O", resultatAuthentification)
     // // const contenu = JSON.parse(resultatAuthentification.contenu)
 
-    console.debug("Data a soumettre pour reponse webauthn : %O", data)
+    // console.debug("Data a soumettre pour reponse webauthn : %O", data)
     const resultatAuthentification = await axios.post('/auth/authentifier_usager', data)
-    console.debug("Resultat authentification : %O", resultatAuthentification)
+    // console.debug("Resultat authentification : %O", resultatAuthentification)
     const reponse = resultatAuthentification.data
     const contenu = JSON.parse(reponse.contenu)
 
@@ -361,7 +424,7 @@ export async function signerDemandeAuthentification(nomUsager, demandeCertificat
         type: publicKeyCredentialSignee.type,
     }
 
-    console.debug("Reponse serialisable : %O", reponseSerialisable)
+    // console.debug("Reponse serialisable : %O", reponseSerialisable)
 
     data.webauthn = reponseSerialisable
     data.challenge = publicKey.challenge
@@ -377,11 +440,26 @@ async function chargerUsager(nomUsager, fingerprintPk, fingerprintCourant, opts)
         ...opts, 
         fingerprintPkNouveau: fingerprintPk, fingerprintPkCourant: fingerprintCourant
     }
-    console.debug("Charger usager data : %O", data)
+    // console.debug("Charger usager data : %O", data)
     const reponse = await axios({method: 'POST', url: '/auth/get_usager', data, timeout: 20_000})
     const reponseEnveloppe = reponse.data
     const infoUsager = JSON.parse(reponseEnveloppe.contenu)
-    console.debug("chargerUsager Reponse ", infoUsager)
+    // console.debug("chargerUsager Reponse ", infoUsager)
     const authentifie = infoUsager?infoUsager.auth:false
     return {nomUsager, infoUsager, authentifie}
+}
+
+async function verifierCertificat(connexion, certificat, setCertificatValide, setShow) {
+    try {
+        // const dateValidation = new Date(2023, 11, 30, 0, 0, 0)
+        const dateValidation = new Date()
+        const certificatValide = await connexion.validerCertificat(certificat, dateValidation)
+        // console.debug("Resultat validation certificat usager ", certificatValide)
+        setCertificatValide(certificatValide)
+        if(certificatValide === false) setShow(true)  // Afficher modal pour deconnecter
+    } catch(err) {
+        console.error("Erreur validation certificat ", err)
+        setCertificatValide(false)
+        setShow(true)
+    }
 }

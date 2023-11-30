@@ -14,11 +14,12 @@ import {
   init as initX509,
   verifierCertificat,
   verifierMessage as x509VerifierMessage,
+  validerCertificat,
 } from './x509Client'
 import { KIND_COMMANDE, MESSAGE_KINDS } from '@dugrema/millegrilles.utiljs/src/constantes'
 
 // Re-exporter fonctions de chiffrageClient
-export { formatterMessage, chargerCleMillegrille, signerMessageCleMillegrille, clearCleMillegrille } 
+export { validerCertificat, formatterMessage, chargerCleMillegrille, signerMessageCleMillegrille, clearCleMillegrille } 
 
 const { hacherCertificat: _hacherCertificat } = hachage
 
