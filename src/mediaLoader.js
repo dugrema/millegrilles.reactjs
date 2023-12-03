@@ -278,31 +278,34 @@ function videoLoader(getUrl, creerTokenJwt, videos, opts) {
                 selection = selecteursVideo[selecteur]
                 // console.debug("Selecteur %s => %O", selecteur, selection)
 
-                // Filtrer la selection par type de media
-                // Selectionner webp de preference, hvc1 si supporte sinon h264
-                if(selecteur === 'original') {
-                    videoSelectionne = selection[0]
-                } else {
-                    if(!videoSelectionne && supportMedia.hvc1 === true) {
-                        // Note : iOS nomme le codec hvc1, ffmpeg (convertisseur) utilise hevc comme terme
-                        videoSelectionne = selection.filter(item=>item.codec === 'hevc').pop()
-                    }
-                    if(!videoSelectionne && supportMedia.webm === true && supportMedia.vp9 === true) {
-                        videoSelectionne = selection.filter(item=>item.codec === 'vp9').pop()
-                    }
-                    if(!videoSelectionne) {
-                        videoSelectionne = selection.filter(item=>item.codec === 'h264').pop()
+                if(selection) {
+                    // Filtrer la selection par type de media
+                    // Selectionner webp de preference, hvc1 si supporte sinon h264
+                    if(selecteur === 'original') {
+                        videoSelectionne = selection[0]
+                    } else {
+                        if(!videoSelectionne && supportMedia.hvc1 === true) {
+                            // Note : iOS nomme le codec hvc1, ffmpeg (convertisseur) utilise hevc comme terme
+                            videoSelectionne = selection.filter(item=>item.codec === 'hevc').pop()
+                        }
+                        if(!videoSelectionne && supportMedia.webm === true && supportMedia.vp9 === true) {
+                            videoSelectionne = selection.filter(item=>item.codec === 'vp9').pop()
+                        }
+                        if(!videoSelectionne) {
+                            videoSelectionne = selection.filter(item=>item.codec === 'h264').pop()
+                        }
                     }
                 }
-                if(!videoSelectionne) console.warn('Aucun format video disponible pour selecteur ', selecteur)
             }
 
             if(!videoSelectionne) {
+                // console.debug('Aucun format video disponible pour selecteur %s, utiliser original', selecteur)
                 // Utiliser fallback, et si absent utiliser original
                 // if(!selection) selection = selecteursVideo.fallback
                 // if(!selection) selection = selecteursVideo.original
                 // videoSelectionne = selection[0]
-                videoSelectionne = selecteursVideo.original
+                selection = selecteursVideo.original
+                videoSelectionne = selection[0]
             }
 
             // console.debug("videoLoader Video selectionne ", videoSelectionne)
