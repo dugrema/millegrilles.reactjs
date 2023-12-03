@@ -266,6 +266,11 @@ function videoLoader(getUrl, creerTokenJwt, videos, opts) {
             // console.debug("Video load opts %O optsLoader %O, supportMedia %O", opts, optsLoader, supportMedia)
             const { selecteur } = optsLoader
 
+            if(!selecteur) {
+                console.warn("videoLoader.load Selecteur est null")
+                return
+            }
+
             let selection = null
             let videoSelectionne = null
             // Choisir avec selecteur si possible
@@ -276,7 +281,7 @@ function videoLoader(getUrl, creerTokenJwt, videos, opts) {
                 // Filtrer la selection par type de media
                 // Selectionner webp de preference, hvc1 si supporte sinon h264
                 if(selecteur === 'original') {
-                    videoSelectionne = selection.pop()
+                    videoSelectionne = selection[0]
                 } else {
                     if(!videoSelectionne && supportMedia.hvc1 === true) {
                         // Note : iOS nomme le codec hvc1, ffmpeg (convertisseur) utilise hevc comme terme
@@ -294,12 +299,13 @@ function videoLoader(getUrl, creerTokenJwt, videos, opts) {
 
             if(!videoSelectionne) {
                 // Utiliser fallback, et si absent utiliser original
-                if(!selection) selection = selecteursVideo.fallback
-                if(!selection) selection = selecteursVideo.original
-                videoSelectionne = selection[0]
+                // if(!selection) selection = selecteursVideo.fallback
+                // if(!selection) selection = selecteursVideo.original
+                // videoSelectionne = selection[0]
+                videoSelectionne = selecteursVideo.original
             }
 
-            // console.debug("videoLoader Video selectionne ", videoSelectionne)
+            console.debug("videoLoader Video selectionne ", videoSelectionne)
 
             // Creer token JWT et url d'acces
             const fuuidStream = videoSelectionne.fuuid_video,
