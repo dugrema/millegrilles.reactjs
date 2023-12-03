@@ -305,7 +305,7 @@ function videoLoader(getUrl, creerTokenJwt, videos, opts) {
                 videoSelectionne = selecteursVideo.original
             }
 
-            console.debug("videoLoader Video selectionne ", videoSelectionne)
+            // console.debug("videoLoader Video selectionne ", videoSelectionne)
 
             // Creer token JWT et url d'acces
             const fuuidStream = videoSelectionne.fuuid_video,
