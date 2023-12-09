@@ -115,6 +115,17 @@ export function detecterFormatsVideos() {
   return formatsSupportes
 }
 
+export function supporteFormatVideo(typeVideo) {
+  // Exemple typeVideo: 'video/webm; codecs="vp9, vorbis"'
+
+  const video = document.createElement('video')
+
+  const canPlayType = video.canPlayType(typeVideo)
+
+  // Retourne 'probably', 'maybe', ''
+  return canPlayType
+}
+
 export function supporteFileStream() {
   /* Detecte si file.stream() et blob.stream() fonctionnent */
   const blobStream = Blob.prototype.stream?true:false
