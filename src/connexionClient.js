@@ -129,7 +129,7 @@ export async function onConnect(infoPromise) {
     info = await infoPromise
   } else {
     // Connexion subsequente, il faut faire une requete emitBlocking pour info session
-    info = await emitBlocking('getEtatAuth', {}, {noformat: true})
+    info = await emitBlocking('getEtatAuth', {}, {noformat: true, overrideConnecte: true})
     // console.debug("Reconnect info recu, marquer connecte : ", info)
     if(_callbackSetEtatConnexion) _callbackSetEtatConnexion(_connecte, {reconnecte: true})
   }
@@ -270,10 +270,11 @@ export async function emitBlocking(event, message, opts) {
   /* Emet un message et attend la reponse. */
   opts = opts || {}
   const timeoutDelay = opts.timeout || 9000,
-        attachements = opts.attachements
+        attachements = opts.attachements,
+        overrideConnecte = opts.overrideConnecte || false
 
   if(!event) throw new TypeError('connexionClient.emitBlocking event null')
-  if(!_socket.connected) throw new DeconnecteError("connexionClient.emitBlocking Deconnecte")
+  if(!overrideConnecte && !_socket.connected) throw new DeconnecteError("connexionClient.emitBlocking Deconnecte")
   // if(!message) throw new TypeError('connexionClient.emitBlocking message null')
 
   if( message && !message['sig'] && opts.noformat !== true ) {
