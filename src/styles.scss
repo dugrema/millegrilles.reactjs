@@ -98,3 +98,14 @@ button.bouton-actif.echec {
 .dropdown-item {
     background-color: $second-color;
 }
+
+.buttonbar {
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.buttonbar button {
+    margin-left: 0.5rem;
+    margin-right: 0.5rem;
+}
