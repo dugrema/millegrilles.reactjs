@@ -186,7 +186,6 @@ function ScannerCodeCsr(props) {
     )
 }
 
-
 function formatterCode(code, erreurCb) {
     let codeClean = code.replaceAll('-', '')
     if(codeClean.length !== 8) {
@@ -206,8 +205,10 @@ async function verifierCode(workers, code, nomUsager) {
 }
   
 export function getNomUsagerCsr(csrPem) {
+    console.debug("getNomUsagerCsr CSR Pem : %O", csrPem)
     try {
         const csrForge = pki.certificationRequestFromPem(csrPem)
+        console.debug("getNomUsagerCsr CSR forge : ", csrForge)
         const cn = csrForge.subject.getField('CN').value
         return cn
     } catch(err) {
