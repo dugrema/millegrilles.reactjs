@@ -118,6 +118,37 @@ function ContenuModal(props) {
     return <ContenuModalCertificatExpire {...props} />
 }
 
+export function SelectDureeSession(props) {
+
+    const { value, onChange } = props
+
+    const onChangeCb = useCallback(e=>{
+        const valueDuree = e.currentTarget.value
+        const duree = Number.parseInt(valueDuree)
+        if(!isNaN(duree)) {
+            onChange(e)
+            window.localStorage.setItem('dureeSession', valueDuree)
+        }
+    })
+
+    return (
+        <Form.Group controlId="formDureeSession">
+            <Form.Label>Duree de la session</Form.Label>
+            <Form.Select 
+                value={value}
+                onChange={onChangeCb}>
+                <option value='3600'>1 heure</option>
+                <option value='86400'>1 jour</option>
+                <option value='604800'>1 semaine</option>
+                <option value='2678400'>1 mois</option>
+            </Form.Select>
+            <Form.Text className="text-muted">
+                Apres cette periode, l'appareil va reverifier votre identite.
+            </Form.Text>
+        </Form.Group>
+    )
+}
+
 function ContenuModalAuthentifier(props) {
 
     const {workers, dureeSession, onChangeDureeSession, usager, onHide, annulerCb} = props
@@ -130,7 +161,9 @@ function ContenuModalAuthentifier(props) {
                 <p>La session est expiree.</p>
                 <p>Cliquer sur le bouton reconnecter pour poursuivre.</p>
 
-                <Form.Group controlId="formDureeSession">
+                <SelectDureeSession value={dureeSession} onChange={onChangeDureeSession} />
+
+                {/* <Form.Group controlId="formDureeSession">
                     <Form.Label>Duree de la session</Form.Label>
                     <Form.Select 
                         value={dureeSession}
@@ -143,7 +176,7 @@ function ContenuModalAuthentifier(props) {
                     <Form.Text className="text-muted">
                         Apres cette periode, l'appareil va reverifier votre identite.
                     </Form.Text>
-                </Form.Group>
+                </Form.Group> */}
             </Container>
 
             <Modal.Footer>
