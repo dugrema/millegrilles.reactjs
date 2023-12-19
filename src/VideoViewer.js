@@ -3,15 +3,12 @@ import React, {useEffect, useState, useMemo, useCallback, useRef} from 'react'
 
 function VideoViewer(props) {
     const {
-        // src, 
         poster,
-        // videos,
-        // selecteur,
-        // selecteurs,
         srcVideo,
         className,
         timeStamp,
         jumpToTimeStamp,
+
         // Evenements
         onTimeUpdate, onProgress, onPlay, onError, onWaiting, onCanPlay, onAbort, onEmptied,
     } = props
