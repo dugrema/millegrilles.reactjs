@@ -149,21 +149,29 @@ function thumbnailLoader(processeur, images, opts) {
                 const blobPret = await Promise.any(promises)
                 if(optsLoad.setFirst) optsLoad.setFirst(blobPret)
             } catch(err) {
-                console.warn("thumbnailLoader Erreur chargement images ", err)
+                if(err.response) {
+                    console.warn("thumbnailLoader Erreur chargement images (HTTP: %s)", err.response.status)
+                } else {
+                    console.warn("thumbnailLoader Erreur chargement images ", err)
+                }
             }
 
             try {
                 if(smallPromise) return await smallPromise
             } catch(err) {
-                console.warn("thumbnailLoader Erreur chargement small ", err)
+                if(err.response) {
+                    console.warn("thumbnailLoader Erreur chargement small (HTTP: %s)", err.response.status)
+                } else {
+                    console.warn("thumbnailLoader Erreur chargement small ", err)
+                }
             }
 
             // Fallback sur thumbnail
             return await thumbPromise
         },
         unload: async () => {
-            if(thumbLoader) thumbLoader.unload().catch(err=>console.warn("thumbnailLoader Erreur unload thumbnail ", err))
-            if(smallLoader) smallLoader.unload().catch(err=>console.warn("thumbnailLoader Erreur unload small ", err))
+            if(thumbLoader) Promise.resolve(thumbLoader.unload()).catch(err=>console.warn("thumbnailLoader Erreur unload thumbnail ", err))
+            if(smallLoader) Promise.resolve(smallLoader.unload()).catch(err=>console.warn("thumbnailLoader Erreur unload small ", err))
         }
     }
 
