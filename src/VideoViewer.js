@@ -14,7 +14,7 @@ function VideoViewer(props) {
     } = props
 
     const width = props.width || '100%',
-          height = props.height || '100%'  //,
+          height = props.height || ''  //,
           // codecVideo = props.codecVideo || '',
           // mimetype = props.mimetype || ''
           
