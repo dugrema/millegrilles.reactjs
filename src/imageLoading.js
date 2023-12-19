@@ -89,7 +89,7 @@ async function reloadFichier(getFichierChiffre, fuuid, mimetype, opts) {
 // Genere un loader concurrentiel qui affiche le premier de mini/small et tente
 // d'afficher small lorsqu'il est pret
 export function fileResourceLoader(getFichierChiffre, fichierFuuid, mimetype, opts) {
-    // console.debug("!!! fileResourceLoader : %s mimetype %s", fichierFuuid, mimetype)
+    // console.debug("!!! fileResourceLoader : %s mimetype %s, opts", fichierFuuid, mimetype, opts)
     opts = opts || {}
     const { thumbnail, cles, ref_hachage_bytes, header, format } = opts
 
@@ -124,15 +124,18 @@ export function fileResourceLoader(getFichierChiffre, fichierFuuid, mimetype, op
 
             // Charger le premier blob qui est pret
             try {
-                const blobPret = await Promise.any([filePromise, miniPromise])
-                if(setFirst) setFirst(blobPret)
+                let blobPret = null
+                try {
+                    blobPret = await Promise.any([filePromise, miniPromise])
+                    if(setFirst) setFirst(blobPret)
+                } catch(err) {
+                    console.warn("fileResourceLoader.load Erreur chargement image, tenter fallback", err)
+                }
 
                 // Attendre que le blob de l'image complete soit pret, puis afficher
                 // Note : aucun effet si le premier blob pret etait l'image
                 try {
-                    const blobFichier = await filePromise
-                    if(setSrc) setSrc(blobFichier)
-                    return blobFichier
+                    blobPret = await filePromise
                 } catch(err) {
                     if(err && err.response && err.response.status === 404) {
                         console.warn("Fichier %s inconnu (404)", fichierFuuid)
@@ -147,8 +150,15 @@ export function fileResourceLoader(getFichierChiffre, fichierFuuid, mimetype, op
                     }
                 }
 
-                return blobPret
-    
+                if(!blobPret) {
+                    // Tenter recovery
+                    blobPret = await miniPromise
+                }
+
+                if(blobPret) {
+                    if(setSrc) setSrc(blobPret)
+                    return blobPret
+                }
             } catch(err) {
                 // Aucune image n'a charge
                 console.error("Erreur chargement image %O", err)
@@ -457,12 +467,14 @@ export function audioResourceLoader(fuuid, opts) {
     return loaderOriginal
 }
 
-function blobLoader(data, mimetype) {
+export function blobLoader(data, mimetype) {
     data = base64.decode(data)
     data = new Blob([data], {type: mimetype})
     let urlBlob = null
     return {
-        load(setSrc) {
+        load(opts) {
+            opts = opts || {}
+            const { setSrc } = opts
             if(!urlBlob) urlBlob = URL.createObjectURL(data)
             if(setSrc) setSrc(urlBlob)
             return Promise.resolve(urlBlob)

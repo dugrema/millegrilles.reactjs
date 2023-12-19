@@ -4,6 +4,7 @@ import axios from 'axios'
 import { chiffrage } from './chiffrage'
 
 import { detecterFormatsVideos } from './detecterAppareils'
+import { blobLoader } from './imageLoading'
 
 const CONST_TIMEOUT_THUMBNAIL_BLOB = 90_000,
       CONST_TIMEOUT_DOWNLOAD = 300_000
@@ -112,7 +113,11 @@ function thumbnailLoader(processeur, images, opts) {
         const { data, data_chiffre, header, mimetype } = thumb
         const parametres = {...opts, data, data_chiffre, header, mimetype}
         // console.debug("thumbnailLoader Parametres thumb ", parametres)
-        thumbLoader = fichierDownloader(processeur, null, parametres)
+        if(data && mimetype) {
+            thumbLoader = blobLoader(data, mimetype)
+        } else {
+            thumbLoader = fichierDownloader(processeur, null, parametres)
+        }
     }
     if(small) {
         const { hachage: fuuid, header, mimetype } = small
