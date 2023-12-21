@@ -585,7 +585,8 @@ export async function confirmerUpload(token, correlation, opts) {
             method: 'POST', 
             url: pathConfirmation, 
             data: confirmationResultat,
-            headers: {'x-token-jwt': token}
+            headers: {'x-token-jwt': token},
+            timeout: 30_000,
         })
         if(reponse.data.ok === false) {
             const data = reponse.data
@@ -600,6 +601,9 @@ export async function confirmerUpload(token, correlation, opts) {
             reponse: reponse.data
         }
     } catch(err) {
+        if(err.code) {
+            return { errcode: err.code, err: ''+err }
+        }
         const response = err.response
         if(response) {
             const { status, data } = response
