@@ -144,7 +144,10 @@ export async function* streamAsyncIterable(reader, opts) {
                   if(bufferOutput.length === positionBufferOutput) {
                     // On yield le buffer d'output (plein)
                     // console.debug("Yield buffer output : %O", bufferOutput)
-                    yield bufferOutput
+                    const bufferOutputCopie = new Uint8Array(batchSize)
+                    // Copier le buffer pour retourner le contenu
+                    bufferOutputCopie.set(bufferOutput)
+                    yield bufferOutputCopie
                     positionBufferOutput = 0
                   }
                 }
@@ -154,7 +157,10 @@ export async function* streamAsyncIterable(reader, opts) {
             // console.debug("streamAsyncIterable Done, traitement final de %s bytes", positionBufferOutput)
             if(positionBufferOutput > 0) {
                 // console.debug("streamAsyncIterable yield final")
-                yield bufferOutput.slice(0, positionBufferOutput)
+                const bufferOutputCopie = new Uint8Array(positionBufferOutput)
+                bufferOutputCopie.set(bufferOutput.slice(0, positionBufferOutput))
+                // yield bufferOutput.slice(0, positionBufferOutput)
+                yield bufferOutputCopie
             }
             // Invocation finale
             // console.debug("streamAsyncIterable Termine apres yield")

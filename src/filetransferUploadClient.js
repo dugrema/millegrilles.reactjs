@@ -318,8 +318,8 @@ async function conserverFichier(file, fileMappe, params, fcts) {
         if(signalAnnuler) if (await signalAnnuler()) throw new Error("Cancelled")
 
         // Conserver dans idb
-        // if(ajouterPart) await ajouterPart(correlation, compteurPosition, Comlink.transfer(chunk))
-        if(ajouterPart) await ajouterPart(correlation, compteurPosition, chunk)
+        if(ajouterPart) await ajouterPart(correlation, compteurPosition, Comlink.transfer(chunk))
+        // if(ajouterPart) await ajouterPart(correlation, compteurPosition, chunk)
         compteurPosition += chunk.length
 
         taillePreparee += chunk.length
@@ -449,9 +449,9 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
 
     try {
         const paramsConserver = {...params, correlation, tailleTotale}
-        // const debutConserverFichier = new Date().getTime()
+        const debutConserverFichier = new Date().getTime()
         const etatFinalChiffrage = await conserverFichier(file, fileMappe, paramsConserver, fcts)
-        // console.debug("traiterFichier Temps conserver fichier %d ms", new Date().getTime()-debutConserverFichier)
+        console.debug("traiterFichier Temps conserver fichier %d ms", new Date().getTime()-debutConserverFichier)
 
         const docIdbMaj = await formatterDocIdb(docIdb, etatFinalChiffrage)
 
