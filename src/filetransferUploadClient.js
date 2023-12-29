@@ -77,7 +77,7 @@ export function up_setPathServeur(pathServeur) {
     }
     console.info("Path serveur : ", _pathServeur.href)
 }
-    
+
 export function up_getEtatCourant() {
 
     const loadedCourant = _uploadEnCours?_uploadEnCours.position:0
@@ -134,12 +134,12 @@ function mapAcceptedFile(file) {
     }
 
     const transaction = {
-        nom,  
+        nom,
         mimetype,
         taille: file.size,
         dateFichier,
     }
-    
+
     const infoUpload = {
         nom,
         file: file.object,
@@ -179,8 +179,8 @@ async function emettreEtat(flags) {
         }
 
         _callbackEtatUpload(
-            _uploadsPending.length, 
-            pctFichierEnCours, 
+            _uploadsPending.length,
+            pctFichierEnCours,
             flags,
         )
     }
@@ -236,7 +236,7 @@ export function up_retryErreur(opts) {
     opts = opts || {}
     const correlation = opts.correlation
     const correlationsRetry = []
-    
+
     let critere = null
     if(correlation) {
         // console.debug("Retry correlation %s", correlation)
@@ -255,9 +255,9 @@ export function up_retryErreur(opts) {
         .forEach(item=>{
             correlationsRetry.push(item.correlation)
             const updatedItem = {
-                ...item, 
-                complete: false, 
-                status: 1, position: 0, 
+                ...item,
+                complete: false,
+                status: 1, position: 0,
                 batchLoaded: 0, pctBatchProgres: 0,
             }
             // console.debug("Resoumettre %O", updatedItem)
@@ -293,7 +293,7 @@ async function conserverFichier(file, fileMappe, params, fcts) {
         },
         etatFinal: transformInst.cipher.etatFinal,
     }
-        
+
     // console.debug("traiterAcceptedFiles Transform : ", transformInst)
 
     const batchSize = getUploadBatchSize(size)
@@ -309,8 +309,8 @@ async function conserverFichier(file, fileMappe, params, fcts) {
         if(signalAnnuler) if (await signalAnnuler()) throw new Error("Cancelled")
 
         // Conserver dans idb
-        if(ajouterPart) await ajouterPart(correlation, compteurPosition, Comlink.transfer(chunk))
-        // if(ajouterPart) await ajouterPart(correlation, compteurPosition, chunk)
+        // if(ajouterPart) await ajouterPart(correlation, compteurPosition, Comlink.transfer(chunk))
+        if(ajouterPart) await ajouterPart(correlation, compteurPosition, chunk)
         compteurPosition += chunk.length
 
         taillePreparee += chunk.length
@@ -367,11 +367,11 @@ async function formatterDocIdb(docIdb, infoChiffrage) {
         const certificats = _certificats.map(item=>item[0])  // Conserver les certificats maitredescles (pas chaine)
 
         docIdb.transactionMaitredescles = await preparerCommandeMaitrecles(
-            certificats, 
-            secretKey, 
-            _domaine, 
-            hachage_bytes, 
-            identificateurs_document, 
+            certificats,
+            secretKey,
+            _domaine,
+            hachage_bytes,
+            identificateurs_document,
             {...paramsChiffrage, DEBUG: false}
         )
         docIdb.transactionMaitredescles.cles[_fingerprintCa] = infoChiffrage.secretChiffre
@@ -389,14 +389,14 @@ async function formatterDocIdb(docIdb, infoChiffrage) {
     docIdb.etat = ETAT_PRET
     // docIdb.taille = compteurPosition
     if(docIdb.taille !== infoChiffrage.taille) docIdb.taille_chiffree = infoChiffrage.taille
-    
+
     return docIdb
 }
 
 async function traiterFichier(file, tailleTotale, params, fcts) {
     fcts = fcts || {}
     // console.debug("traiterFichier params %O", params)
-    const { signalAnnuler } = fcts    
+    const { signalAnnuler } = fcts
     if(signalAnnuler) {
         if(await signalAnnuler()) throw new Error("Cancelled")
     }
@@ -426,7 +426,7 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
         mimetype: fileMappe.type || 'application/octet-stream',
 
         // Etat initial
-        etat: ETAT_PREPARATION, 
+        etat: ETAT_PREPARATION,
         positionsCompletees: [],
         tailleCompletee: 0,
         dateCreation: now,
@@ -437,13 +437,13 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
 
     // console.debug("Update initial docIdb ", docIdb)
     if(updateFichier) await updateFichier(Comlink.transfer(docIdb), {demarrer: false})
-    
+
     try {
         const paramsConserver = {...params, correlation, tailleTotale}
         // const debutConserverFichier = new Date().getTime()
         const etatFinalChiffrage = await conserverFichier(file, fileMappe, paramsConserver, fcts)
         // console.debug("traiterFichier Temps conserver fichier %d ms", new Date().getTime()-debutConserverFichier)
-        
+
         const docIdbMaj = await formatterDocIdb(docIdb, etatFinalChiffrage)
 
         // Dispatch pour demarrer upload
@@ -455,19 +455,19 @@ async function traiterFichier(file, tailleTotale, params, fcts) {
         throw err
     }
 
-    
+
 }
 
 /**
  * Chiffre et commence l'upload de fichiers selectionnes dans le navigateur.
- * 
+ *
  * Note : les fonctions (e.g. ajouterPart) ne peuvent pas etre combinees dans un Object a cause de comlink
- * 
- * @param {*} params acceptedFiles, batchId, userId, cuuid, 
- * @param {*} ajouterPart 
- * @param {*} updateFichier 
- * @param {*} setProgres 
- * @param {*} signalAnnuler 
+ *
+ * @param {*} params acceptedFiles, batchId, userId, cuuid,
+ * @param {*} ajouterPart
+ * @param {*} updateFichier
+ * @param {*} setProgres
+ * @param {*} signalAnnuler
  */
 export async function traiterAcceptedFilesV2(params, ajouterPart, updateFichier, setProgres, signalAnnuler) {
     const { acceptedFiles } = params
@@ -522,8 +522,8 @@ export async function partUploader(token, correlation, position, partContent, op
 
     // console.debug("Cancel token source : ", cancelTokenSource)
 
-    const headers = { 
-        'content-type': 'application/data', 
+    const headers = {
+        'content-type': 'application/data',
         'x-token-jwt': token,
     }
     if(hachagePart) {
@@ -582,8 +582,8 @@ export async function confirmerUpload(token, correlation, opts) {
     const pathConfirmation = _pathServeur.href + path.join('/' + correlation)
     try {
         const reponse = await axios({
-            method: 'POST', 
-            url: pathConfirmation, 
+            method: 'POST',
+            url: pathConfirmation,
             data: confirmationResultat,
             headers: {'x-token-jwt': token},
             timeout: 30_000,
@@ -595,9 +595,9 @@ export async function confirmerUpload(token, correlation, opts) {
             err.reponse = data
             throw err
         }
-    
+
         return {
-            status: reponse.status, 
+            status: reponse.status,
             reponse: reponse.data
         }
     } catch(err) {
@@ -608,7 +608,7 @@ export async function confirmerUpload(token, correlation, opts) {
         if(response) {
             const { status, data } = response
             return {
-                status, 
+                status,
                 reponse: data
             }
         } else {
@@ -623,8 +623,8 @@ export async function supprimerUpload(token, correlation) {
     let response
     try {
         response = await axios({
-            method: 'DELETE', 
-            url: pathConfirmation, 
+            method: 'DELETE',
+            url: pathConfirmation,
             data: confirmationResultat,
             headers: {'x-token-jwt': token}
         })
@@ -663,7 +663,7 @@ export async function parseZipFile(workers, userId, fichier, cuuid, updateFichie
     repertoiresDechiffres.forEach(item=>{
         if(item) repertoiresInconnus.delete(item.tuuid)
     })
-    
+
     console.debug("Repertoires dechiffres : %O, inconnus : %O", repertoiresDechiffres, repertoiresInconnus)
 
     if(repertoiresInconnus.size > 0) {
@@ -705,7 +705,7 @@ export async function parseZipFile(workers, userId, fichier, cuuid, updateFichie
 
     for await (const entry of zipReader.getEntriesGenerator()) {
         console.debug("Zip entry : ", entry)
-        
+
         const filename = entry.filename.normalize()
 
         const dirName = path.dirname(filename)
@@ -732,7 +732,7 @@ export async function parseZipFile(workers, userId, fichier, cuuid, updateFichie
                 const {doc: metadataChiffre, commandeMaitrecles} = await workers.chiffrage.chiffrerDocument(
                     metadataDechiffre, 'GrosFichiers', certificatsChiffrage, {identificateurs_document, userId, DEBUG: false})
                 console.debug("creerCollection metadataChiffre %O, commande Maitre des cles : %O", metadataChiffre, commandeMaitrecles)
-        
+
                 const opts = { cuuid: parentCuuid }
                 // throw new Error('TODO creer repertoire')
                 const reponseCreation = await workers.connexion.creerCollection(metadataChiffre, commandeMaitrecles, opts)
@@ -759,14 +759,14 @@ export async function parseZipFile(workers, userId, fichier, cuuid, updateFichie
             } catch(err) {
                 console.warn("Erreur chargement date fichier : %O", err)
             }
-        
+
             const transaction = {
                 nom,  // iOS utilise la forme decomposee (combining)
                 mimetype,
                 taille: entry.uncompressedSize,
                 dateFichier,
             }
-            
+
             const fileMappe = {
                 nom,
                 // file: file.object,
@@ -784,22 +784,22 @@ export async function parseZipFile(workers, userId, fichier, cuuid, updateFichie
             console.debug("dirname %s mappe au cuuid %s", dirName, cuuidRepertoire)
             // console.debug("traiterFichier File mappe : ", fileMappe)
             const fileSize = fileMappe.size
-        
+
             const correlation = '' + uuidv4()
 
             const dateCreation = Math.floor(new Date().getTime() / 1000)
-        
+
             const docIdb = {
                 // PK
                 correlation, userId, //token,
-        
+
                 // Metadata recue
                 nom: fileMappe.nom || correlation,
                 taille: fileSize, //fileMappe.size,
                 mimetype,
-        
+
                 // Etat initial
-                etat: ETAT_PREPARATION, 
+                etat: ETAT_PREPARATION,
                 positionsCompletees: [],
                 tailleCompletee: 0,
                 dateCreation,
@@ -809,11 +809,11 @@ export async function parseZipFile(workers, userId, fichier, cuuid, updateFichie
             }
 
             console.debug("Fichier mappe ", docIdb)
-        
+
             await updateFichier(Comlink.transfer(docIdb), {demarrer: false})
             const zipFileStream = new TransformStream()
             entry.getData(zipFileStream.writable)
-            
+
             const fileStream = { readable: zipFileStream.readable }
             console.debug("Filestream readable : ", fileStream)
 
