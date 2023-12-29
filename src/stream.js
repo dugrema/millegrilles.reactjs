@@ -56,9 +56,9 @@ function sliceReader(file, opts) {
   return {read, releaseLock}
 }
 
-/** 
+/**
  * opts : {
- *    batchSize, 
+ *    batchSize,
  *    transform(value)->value
  * }
  */
@@ -114,7 +114,10 @@ export async function* streamAsyncIterable(reader, opts) {
               if(bufferOutput.length === positionBufferOutput) {
                 // On yield le buffer d'output (plein)
                 // console.debug("Yield buffer output : %O", bufferOutput)
-                yield bufferOutput
+                const bufferOutputCopie = new Uint8Array(batchSize)
+                // Copier le buffer pour retourner le contenu
+                bufferOutputCopie.set(bufferOutput)
+                yield bufferOutputCopie
                 positionBufferOutput = 0
               }
             }
@@ -129,7 +132,7 @@ export async function* streamAsyncIterable(reader, opts) {
               // console.debug("OutputBlock finalize ", outputBlockFinalize)
               if(outputBlockFinalize) {
                 const outputBlock = outputBlockFinalize.ciphertext || outputBlockFinalize
-    
+
                 // console.debug("Ajout ciphertext ", outputBlock)
                 let positionOutputBlock = 0  // Position dans le chunk traite
                 while(outputBlock && positionOutputBlock < outputBlock.length) {
