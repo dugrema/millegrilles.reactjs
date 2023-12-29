@@ -18,7 +18,9 @@ const { preparerCipher, preparerCommandeMaitrecles } = chiffrage
 // Structure uploads : {file: AcceptedFile, status=1, }
 var _uploadsPending = [],
     _uploadEnCours = null,
-    _uploadsCompletes = []
+    _uploadsCompletes = [],
+    _lockHachageChiffre = false,
+    _lockHachageDechiffre = false
 
 // Callback etat : (nbFichiersPending, pctFichierEnCours, {encours: uuid, complete: uuid})
 var _callbackEtatUpload = null,
@@ -153,8 +155,15 @@ function mapAcceptedFile(file) {
 
 /** Retourne un StreamReader qui applique les transformations requises */
 async function preparerTransform() {
+  if(_lockHachageChiffre) throw new Error("Hacheur global chiffre locked")
+  try {
+    _lockHachageChiffre = true
     await _hachageChiffre.reset()
     return preparerCipher({clePubliqueEd25519: _publicKeyCa, hacheur: _hachageChiffre})
+  } finally {
+    await _hachageChiffre.reset()
+    _lockHachageChiffre = false
+  }
 }
 
 async function emettreEtat(flags) {
