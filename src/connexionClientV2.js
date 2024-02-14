@@ -395,9 +395,9 @@ async function unsubscribe(connexion, nomEventSocketio, cb, params, opts) {
             resultat.routingKeys.forEach(item=>{
                 if(DEBUG) console.debug("unsubscribe %s Retirer socketOn %s", nomEventSocketio, item)
                 // socketOff(item, cb)
-                if(this.socket) {
+                if(connexion.socket) {
                     //_socket.off(nomEventSocketio, cb)  // voir subscribe(), on ne peut pas retirer par cb
-                    this.socket.removeAllListeners(item)
+                    connexion.socket.removeAllListeners(item)
                 }
             })
         }
