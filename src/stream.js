@@ -1,4 +1,20 @@
-// const { supporteFileStream } = require('./detecterAppareils')
+export function getAcceptedFileStream(file) {
+  if(file.readable) return file.readable
+  // Tenter d'utiliser le stream pour l'upload
+  return file.stream()
+}
+
+export async function* streamAsyncReaderIterable(reader, opts) {
+  try {
+    while(true) {
+      const resultatLecture = await reader.read()
+      if(resultatLecture.value) yield resultatLecture.value
+      if(resultatLecture.done) break  // Done
+    }
+  } finally {
+    reader.releaseLock()
+  }
+}
 
 /** Genere un reader pour le fichier (acceptedFile) */
 export function getAcceptedFileReader(file) {
@@ -25,12 +41,6 @@ export function getAcceptedFileReader(file) {
 
   // reader.read retourne : {done, value}
   return sliceReader(file)
-}
-
-export function getAcceptedFileStream(file) {
-  if(file.readable) return file.readable
-  // Tenter d'utiliser le stream pour l'upload
-  return file.stream()
 }
 
 /** Simulacre de reader qui utilise plusieurs appels a blob.slice */
@@ -62,133 +72,122 @@ function sliceReader(file, opts) {
   return {read, releaseLock}
 }
 
-export async function* streamAsyncReaderIterable(reader, opts) {
-  try {
-    while(true) {
-      const resultatLecture = await reader.read()
-      if(resultatLecture.value) yield resultatLecture.value
-      if(resultatLecture.done) break  // Done
-    }
-  } finally {
-    reader.releaseLock()
-  }
-}
+//OBSOLETE
+// /**
+//  * opts : {
+//  *    batchSize,
+//  *    transform(value)->value
+//  * }
+//  */
+// export async function* streamAsyncIterable(reader, opts) {
+//   opts = opts || {}
+//   const batchSize = opts.batchSize || 1 * 1024 * 1024,
+//         transformBufferSize = opts.transformBufferSize || 64 * 1024
+//   const transform = opts.transform
+//   const transformBufferEffectiveSize = Math.min(transformBufferSize, batchSize)
+//   try {
+//     let done, positionLecture = 0, positionBufferOutput = 0
+//     const bufferOutput = new Uint8Array(batchSize)
+//     const transformUpdate = transform?(transform.update || transform):null
+//     const transformFinalize = transform?transform.finalize:null
+//     // console.debug("Transform update : ", transformUpdate)
+//     // console.debug("Transform finalize : ", transformFinalize)
+//     while (true) {
+//         // console.debug("streamAsyncIterable Call reader.read")
+//         let bufferInput = null
+//         try {
+//           const resultatLecture = await reader.read(transformBufferEffectiveSize)
+//           if(resultatLecture.value) bufferInput = Buffer.from(resultatLecture.value)
+//           done = resultatLecture.done
+//           positionLecture = 0
+//         } catch(err) {
+//           console.error("streamAsyncIterable Erreur reader.read() : %O", err)
+//           throw err
+//         }
 
-/**
- * opts : {
- *    batchSize,
- *    transform(value)->value
- * }
- */
-export async function* streamAsyncIterable(reader, opts) {
-  opts = opts || {}
-  const batchSize = opts.batchSize || 1 * 1024 * 1024,
-        transformBufferSize = opts.transformBufferSize || 64 * 1024
-  const transform = opts.transform
-  const transformBufferEffectiveSize = Math.min(transformBufferSize, batchSize)
-  try {
-    let done, positionLecture = 0, positionBufferOutput = 0
-    const bufferOutput = new Uint8Array(batchSize)
-    const transformUpdate = transform?(transform.update || transform):null
-    const transformFinalize = transform?transform.finalize:null
-    // console.debug("Transform update : ", transformUpdate)
-    // console.debug("Transform finalize : ", transformFinalize)
-    while (true) {
-        // console.debug("streamAsyncIterable Call reader.read")
-        let bufferInput = null
-        try {
-          const resultatLecture = await reader.read(transformBufferEffectiveSize)
-          if(resultatLecture.value) bufferInput = Buffer.from(resultatLecture.value)
-          done = resultatLecture.done
-          positionLecture = 0
-        } catch(err) {
-          console.error("streamAsyncIterable Erreur reader.read() : %O", err)
-          throw err
-        }
+//         // console.debug("streamAsyncIterable Lecture (done?%s) len %s value %O", done, bufferInput?bufferInput.length:'NA', bufferInput)
+//         if(bufferInput) {
+//           while(positionLecture < bufferInput.length) {
+//             let outputBlock = null  // Chunk d'output
+//             if(transformUpdate) {
+//                 const tailleBlockChiffrage = Math.min(bufferInput.length - positionLecture, transformBufferEffectiveSize)
+//                 // console.debug("Chiffrage block taille (position: %d) %d, buffer input %d", positionLecture, tailleBlockChiffrage, bufferInput.length)
+//                 outputBlock = await transformUpdate(bufferInput.slice(positionLecture, tailleBlockChiffrage))
+//                 positionLecture += tailleBlockChiffrage
+//                 // console.debug("Chiffrage block complete (position rendu : %d) output block len", positionLecture, outputBlock?outputBlock.length:0)
+//             } else {
+//                 outputBlock = bufferInput
+//                 positionLecture += bufferInput.length
+//             }
 
-        // console.debug("streamAsyncIterable Lecture (done?%s) len %s value %O", done, bufferInput?bufferInput.length:'NA', bufferInput)
-        if(bufferInput) {
-          while(positionLecture < bufferInput.length) {
-            let outputBlock = null  // Chunk d'output
-            if(transformUpdate) {
-                const tailleBlockChiffrage = Math.min(bufferInput.length - positionLecture, transformBufferEffectiveSize)
-                // console.debug("Chiffrage block taille (position: %d) %d, buffer input %d", positionLecture, tailleBlockChiffrage, bufferInput.length)
-                outputBlock = await transformUpdate(bufferInput.slice(positionLecture, tailleBlockChiffrage))
-                positionLecture += tailleBlockChiffrage
-                // console.debug("Chiffrage block complete (position rendu : %d) output block len", positionLecture, outputBlock?outputBlock.length:0)
-            } else {
-                outputBlock = bufferInput
-                positionLecture += bufferInput.length
-            }
+//             // Ecrire output
+//             let positionOutputBlock = 0  // Position dans le chunk traite
+//             while(outputBlock && positionOutputBlock < outputBlock.length) {
+//               const tailleBlockEcriture = Math.min(bufferOutput.length - positionBufferOutput, outputBlock.length)
+//               bufferOutput.set(outputBlock.slice(positionOutputBlock, tailleBlockEcriture), positionBufferOutput)
+//               positionBufferOutput += tailleBlockEcriture
+//               positionOutputBlock += tailleBlockEcriture
+//               // console.debug("Ecriture output, bufferOutput len %d, position ecriture %d", bufferOutput.length, positionBufferOutput)
+//               if(bufferOutput.length === positionBufferOutput) {
+//                 // On yield le buffer d'output (plein)
+//                 // console.debug("Yield buffer output : %O", bufferOutput)
+//                 const bufferOutputCopie = new Uint8Array(batchSize)
+//                 // Copier le buffer pour retourner le contenu
+//                 bufferOutputCopie.set(bufferOutput)
+//                 yield bufferOutputCopie
+//                 positionBufferOutput = 0
+//               }
+//             }
+//           }
+//         }
 
-            // Ecrire output
-            let positionOutputBlock = 0  // Position dans le chunk traite
-            while(outputBlock && positionOutputBlock < outputBlock.length) {
-              const tailleBlockEcriture = Math.min(bufferOutput.length - positionBufferOutput, outputBlock.length)
-              bufferOutput.set(outputBlock.slice(positionOutputBlock, tailleBlockEcriture), positionBufferOutput)
-              positionBufferOutput += tailleBlockEcriture
-              positionOutputBlock += tailleBlockEcriture
-              // console.debug("Ecriture output, bufferOutput len %d, position ecriture %d", bufferOutput.length, positionBufferOutput)
-              if(bufferOutput.length === positionBufferOutput) {
-                // On yield le buffer d'output (plein)
-                // console.debug("Yield buffer output : %O", bufferOutput)
-                const bufferOutputCopie = new Uint8Array(batchSize)
-                // Copier le buffer pour retourner le contenu
-                bufferOutputCopie.set(bufferOutput)
-                yield bufferOutputCopie
-                positionBufferOutput = 0
-              }
-            }
-          }
-        }
+//         if(done) {
+//             if(transformFinalize) {
+//               // Dernier block
+//               // console.debug("Dernier block lu, finalizing transform")
+//               const outputBlockFinalize = await transformFinalize()
+//               // console.debug("OutputBlock finalize ", outputBlockFinalize)
+//               if(outputBlockFinalize) {
+//                 const outputBlock = outputBlockFinalize.ciphertext || outputBlockFinalize
 
-        if(done) {
-            if(transformFinalize) {
-              // Dernier block
-              // console.debug("Dernier block lu, finalizing transform")
-              const outputBlockFinalize = await transformFinalize()
-              // console.debug("OutputBlock finalize ", outputBlockFinalize)
-              if(outputBlockFinalize) {
-                const outputBlock = outputBlockFinalize.ciphertext || outputBlockFinalize
+//                 // console.debug("Ajout ciphertext ", outputBlock)
+//                 let positionOutputBlock = 0  // Position dans le chunk traite
+//                 while(outputBlock && positionOutputBlock < outputBlock.length) {
+//                   const tailleBlockEcriture = Math.min(bufferOutput.length - positionBufferOutput, outputBlock.length)
+//                   bufferOutput.set(outputBlock.slice(positionOutputBlock, tailleBlockEcriture), positionBufferOutput)
+//                   positionBufferOutput += tailleBlockEcriture
+//                   positionOutputBlock += tailleBlockEcriture
+//                   // console.debug("Ecriture output, bufferOutput len %d, position ecriture %d", bufferOutput.length, positionBufferOutput)
+//                   if(bufferOutput.length === positionBufferOutput) {
+//                     // On yield le buffer d'output (plein)
+//                     // console.debug("Yield buffer output : %O", bufferOutput)
+//                     const bufferOutputCopie = new Uint8Array(batchSize)
+//                     // Copier le buffer pour retourner le contenu
+//                     bufferOutputCopie.set(bufferOutput)
+//                     yield bufferOutputCopie
+//                     positionBufferOutput = 0
+//                   }
+//                 }
+//               }
+//             }
 
-                // console.debug("Ajout ciphertext ", outputBlock)
-                let positionOutputBlock = 0  // Position dans le chunk traite
-                while(outputBlock && positionOutputBlock < outputBlock.length) {
-                  const tailleBlockEcriture = Math.min(bufferOutput.length - positionBufferOutput, outputBlock.length)
-                  bufferOutput.set(outputBlock.slice(positionOutputBlock, tailleBlockEcriture), positionBufferOutput)
-                  positionBufferOutput += tailleBlockEcriture
-                  positionOutputBlock += tailleBlockEcriture
-                  // console.debug("Ecriture output, bufferOutput len %d, position ecriture %d", bufferOutput.length, positionBufferOutput)
-                  if(bufferOutput.length === positionBufferOutput) {
-                    // On yield le buffer d'output (plein)
-                    // console.debug("Yield buffer output : %O", bufferOutput)
-                    const bufferOutputCopie = new Uint8Array(batchSize)
-                    // Copier le buffer pour retourner le contenu
-                    bufferOutputCopie.set(bufferOutput)
-                    yield bufferOutputCopie
-                    positionBufferOutput = 0
-                  }
-                }
-              }
-            }
-
-            // console.debug("streamAsyncIterable Done, traitement final de %s bytes", positionBufferOutput)
-            if(positionBufferOutput > 0) {
-                // console.debug("streamAsyncIterable yield final")
-                const bufferOutputCopie = new Uint8Array(positionBufferOutput)
-                bufferOutputCopie.set(bufferOutput.slice(0, positionBufferOutput))
-                // yield bufferOutput.slice(0, positionBufferOutput)
-                yield bufferOutputCopie
-            }
-            // Invocation finale
-            // console.debug("streamAsyncIterable Termine apres yield")
-            return
-        }
-    }
-  } finally {
-    reader.releaseLock()
-  }
-}
+//             // console.debug("streamAsyncIterable Done, traitement final de %s bytes", positionBufferOutput)
+//             if(positionBufferOutput > 0) {
+//                 // console.debug("streamAsyncIterable yield final")
+//                 const bufferOutputCopie = new Uint8Array(positionBufferOutput)
+//                 bufferOutputCopie.set(bufferOutput.slice(0, positionBufferOutput))
+//                 // yield bufferOutput.slice(0, positionBufferOutput)
+//                 yield bufferOutputCopie
+//             }
+//             // Invocation finale
+//             // console.debug("streamAsyncIterable Termine apres yield")
+//             return
+//         }
+//     }
+//   } finally {
+//     reader.releaseLock()
+//   }
+// }
 
 /**
  * Genere un transform stream qui appelle transformer.update sur chaque chunk et appelle transformer.flush a la fin.
@@ -219,7 +218,6 @@ export function createTransformStreamCallback(transformer) {
 
       if(transformer.flush) {
         const value = await transformer.flush()
-        console.debug("Flush value : ", value)
         const chunk = value.ciphertext || value.message
         if(chunk && chunk.length > 0) {
           controller.enqueue(chunk)
@@ -278,5 +276,3 @@ export function createTransformBatch(batchSize) {
     }
   }, queuingStrategy)
 }
-
-// module.exports = {getAcceptedFileReader, streamAsyncIterable}
