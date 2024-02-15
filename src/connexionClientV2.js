@@ -144,6 +144,39 @@ class ConnexionSocketio {
         return verifierReponse(reponse, opts)
     }
 
+    /**
+     * Methode principale pour emettre un message vers le serveur. Attend une confirmation/reponse.
+     * Le message tranmis est signe localement (sauf si inhibe) et la signature de la reponse est verifiee.
+     * @param {*} eventName 
+     * @param {*} args 
+     * @param {*} opts 
+     * @returns 
+     */
+    async emit(eventName, args, opts) {
+        opts = opts || {}
+        if(!this.socket) throw new Error('pas configure')
+        if(!eventName) throw new TypeError('connexionClient.emitWithAck event null')
+
+        const timeoutDelay = opts.timeout || 9000,
+              attachements = opts.attachements,
+              overrideConnecte = opts.overrideConnecte || false
+
+        if(!overrideConnecte && !this.socket.connected) throw new DeconnecteError("connexionClient.emitWithAck Deconnecte")
+
+        let message = await signerMessage(this.formatteurMessage, args, opts)
+        if(attachements) {
+            message = {...message, ...attachements}
+        }
+
+        if(message) {
+            await this.socket.volatile.emit(eventName, message)
+        } else {
+            await this.socket.volatile.emit(eventName)
+        }
+
+        return true
+    }
+
     async authentifier(data, opts) {
         return authentifier(this, data, opts)
     }
@@ -474,7 +507,7 @@ const exports = {
     configurer: (url, setEtatConnexion, callbackSetUsager, callbackFormatteurMessage, opts) => connexion.configurer(url, setEtatConnexion, callbackSetUsager, callbackFormatteurMessage, opts),
     connecter: () => connexion.connecter(),
     deconnecter: () => connexion.deconnecter,
-    emit: () => {throw new Error("fix me")},
+    emit: (eventName, args, opts) => connexion.emit(eventName, args, opts),
     emitWithAck: (eventName, args, opts) => connexion.emitWithAck(eventName, args, opts),
     authentifier: (data, opts) => connexion.authentifier(data, opts),
     subscribe: (nomEventSocketio, cb, params, opts) => connexion.subscribe(nomEventSocketio, cb, params, opts),
