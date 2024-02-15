@@ -3,7 +3,7 @@ import { FormatteurMessageEd25519 } from '@dugrema/millegrilles.utiljs/src/forma
 import { extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
 import { initialiserFormatteurMessage as initialiserFormatteurMessageChiffrage } from './chiffrageClient'
   
-import {init as initX509, verifierCertificat, verifierMessage as x509VerifierMessage} from './x509Client'
+import {init as initX509, verifierCertificat, verifierMessage as x509VerifierMessage, validerCertificat} from './x509Client'
 
 import * as hachage from './hachage'  // Wiring hachage pour utiljs
 import './chiffrage'
@@ -468,6 +468,7 @@ async function getCertificatsMaitredescles(connexion) {
   
 const connexion = new ConnexionSocketio()
 const exports = {
+    // Connexion au serveur
     initialiserCertificateStore: caCert => connexion.initialiserCertificateStore(caCert),
     initialiserFormatteurMessage: (certificatPem, clePriveeSign, opts) => connexion.initialiserFormatteurMessage(certificatPem, clePriveeSign, opts),
     configurer: (url, setEtatConnexion, callbackSetUsager, callbackFormatteurMessage, opts) => connexion.configurer(url, setEtatConnexion, callbackSetUsager, callbackFormatteurMessage, opts),
@@ -476,9 +477,12 @@ const exports = {
     emit: () => {throw new Error("fix me")},
     emitWithAck: (eventName, args, opts) => connexion.emitWithAck(eventName, args, opts),
     authentifier: (data, opts) => connexion.authentifier(data, opts),
-    getCertificatsMaitredescles: () => getCertificatsMaitredescles(connexion),
     subscribe: (nomEventSocketio, cb, params, opts) => connexion.subscribe(nomEventSocketio, cb, params, opts),
     unsubscribe: (nomEventSocketio, cb, params, opts) => connexion.unsubscribe(nomEventSocketio, cb, params, opts),
+
+    // Fonctions additionnelles de support (cache, session, etc)
+    getCertificatsMaitredescles: () => getCertificatsMaitredescles(connexion),
+    validerCertificat,
 }
 
 export default exports
