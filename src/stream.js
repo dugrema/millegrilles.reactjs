@@ -27,6 +27,12 @@ export function getAcceptedFileReader(file) {
   return sliceReader(file)
 }
 
+export function getAcceptedFileStream(file) {
+  if(file.readable) return file.readable
+  // Tenter d'utiliser le stream pour l'upload
+  return file.stream()
+}
+
 /** Simulacre de reader qui utilise plusieurs appels a blob.slice */
 function sliceReader(file, opts) {
   opts = opts || {}
@@ -54,6 +60,18 @@ function sliceReader(file, opts) {
   const releaseLock = () => {return}
 
   return {read, releaseLock}
+}
+
+export async function* streamAsyncReaderIterable(reader, opts) {
+  try {
+    while(true) {
+      const resultatLecture = await reader.read()
+      if(resultatLecture.value) yield resultatLecture.value
+      if(resultatLecture.done) break  // Done
+    }
+  } finally {
+    reader.releaseLock()
+  }
 }
 
 /**
@@ -170,6 +188,95 @@ export async function* streamAsyncIterable(reader, opts) {
   } finally {
     reader.releaseLock()
   }
+}
+
+/**
+ * Genere un transform stream qui appelle transformer.update sur chaque chunk et appelle transformer.flush a la fin.
+ * Les fonctions update et flush peuvent retourner des promises.
+ * @param {*} transformer 
+ * @returns 
+ */
+export function createTransformStreamCallback(transformer) {
+  // Demander un high watermark de 10 buffers de 64kb (64kb est la taille du buffer de chiffrage)
+  const queuingStrategy = new ByteLengthQueuingStrategy({ highWaterMark: 1024 * 64 * 10 });
+
+  if(!transformer || !transformer.transform) throw new Error('transformer sans .transform')
+
+  return new TransformStream({
+    async transform(chunk, controller) {
+      if(!chunk || chunk.length === 0) return controller.error("Aucun contenu")
+
+      try {
+        const sousBlockOutput = await transformer.transform(chunk)
+        if(sousBlockOutput) controller.enqueue(sousBlockOutput)
+      } catch(err) {
+        controller.error(err)
+      }
+
+    },
+    async flush(controller) {
+      // console.debug("createTransformStreamCallback Close stream (transformer: %O, controller: %O)", transformer, controller)
+
+      if(transformer.flush) {
+        const value = await transformer.flush()
+        console.debug("Flush value : ", value)
+        const chunk = value.ciphertext || value.message
+        if(chunk && chunk.length > 0) {
+          controller.enqueue(chunk)
+        }
+      }
+
+      return controller.terminate()
+    }
+  }, queuingStrategy)
+}
+
+/**
+ * Generer un transformer qui fait un enqueue lorsque le buffer de taille batchSize est plein.
+ * Retourne un buffer partiel uniquement lors du flush final.
+ * @param {*} batchSize 
+ * @returns 
+ */
+export function createTransformBatch(batchSize) {
+  if(!batchSize) return new Error("batchSize invalide")
+
+  const queuingStrategy = new ByteLengthQueuingStrategy({ highWaterMark: 2 * batchSize });
+
+  const buffer = new Uint8Array(batchSize)
+  let position = 0
+
+  return new TransformStream({
+    transform(chunk, controller) {
+      if(!chunk || chunk.length === 0) return controller.error("Aucun contenu")
+
+      while(chunk.length > 0) {
+        let nextPosition = position + chunk.length
+
+        if(nextPosition < batchSize) {
+          buffer.set(chunk, position)
+          position = nextPosition
+          break  // Done
+        } else {
+          // Slice chunk
+          const disponible = batchSize - position
+          buffer.set(chunk.slice(0, disponible), position)
+  
+          // Remettre le reste de la chunk dans le buffer
+          chunk = chunk.slice(disponible)
+  
+          // Copier buffer et enqeuue
+          const copieBuffer = new Uint8Array(batchSize)
+          copieBuffer.set(buffer)
+          controller.enqueue(copieBuffer)
+          position = 0
+        }
+      }
+    },
+    flush(controller) {
+      if(position > 0) controller.enqueue(buffer.slice(0, position))
+      controller.terminate()
+    }
+  }, queuingStrategy)
 }
 
 // module.exports = {getAcceptedFileReader, streamAsyncIterable}
