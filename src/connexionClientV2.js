@@ -14,7 +14,8 @@ const CONST_TRANSPORTS = ['websocket', 'polling']
 
 class ConnexionSocketio {
     
-    constructor() {
+    constructor(opts) {
+        opts = opts || {}
         // Parametres de connexion
         this.urlServer = null
         this.params = null
@@ -26,7 +27,7 @@ class ConnexionSocketio {
         this.formatteurMessage = null
 
         // Debug
-        this.DEBUG = true
+        this.DEBUG = opts.DEBUG || false
 
         // Callbacks
         this.setEtatConnexion = null
