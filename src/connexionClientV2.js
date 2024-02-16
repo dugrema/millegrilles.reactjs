@@ -1,12 +1,13 @@
 import { io } from 'socket.io-client'
 import { FormatteurMessageEd25519 } from '@dugrema/millegrilles.utiljs/src/formatteurMessage'
 import { extraireExtensionsMillegrille } from '@dugrema/millegrilles.utiljs/src/forgecommon.js'
-import { initialiserFormatteurMessage as initialiserFormatteurMessageChiffrage } from './chiffrageClient'
   
 import {init as initX509, verifierCertificat, verifierMessage as x509VerifierMessage, validerCertificat} from './x509Client'
 
 import * as hachage from './hachage'  // Wiring hachage pour utiljs
 import './chiffrage'
+
+import { initialiserFormatteurMessage as initialiserFormatteurMessageChiffrage } from './chiffrageClient'
 
 import { KIND_COMMANDE, MESSAGE_KINDS } from '@dugrema/millegrilles.utiljs/src/constantes'
 
