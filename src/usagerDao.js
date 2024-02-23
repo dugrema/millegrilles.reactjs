@@ -95,3 +95,9 @@ export async function clearClesDechiffrees(...args) {
     await _ready
     return _dao.clearClesDechiffrees(...args)
 }
+
+export async function clearCertificatUsager(...args) {
+    if(_ready === false) throw new Error("usagerDao pas initialise")
+    await _ready
+    return _dao.clearCertificatUsager(...args)
+}

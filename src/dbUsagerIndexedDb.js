@@ -209,3 +209,24 @@ export async function clearClesDechiffrees(opts) {
   const store = db.transaction(STORE_CLES_DECHIFFREES, 'readwrite').store
   await store.clear()
 }
+
+export async function clearCertificatUsager(nomUsager, opts) {
+  opts = opts || {}
+  const db = await ouvrirDB(opts)
+  let usager = await lireUsager(db, nomUsager)
+  if(!usager) usager = {}
+  const updateUsager = {
+    ...usager, 
+    fingerprintPk: undefined, 
+    clePriveePem: undefined,
+    certificat: undefined,
+    requete: null,
+  }
+  // console.debug("Update usager %s: %O", nomUsager, updateUsager)
+  const tx = db.transaction(STORE_USAGERS, 'readwrite')
+  const store = tx.objectStore(STORE_USAGERS)
+  await Promise.all([
+    store.put(updateUsager),
+    tx.done
+  ])
+}
