@@ -53,6 +53,7 @@ class ConnexionSocketio {
      */
     configurer(url, setEtatConnexion, callbackSetUsager, callbackFormatteurMessage, opts) {
         opts = opts || {}
+        this.DEBUG = this.DEBUG || opts.DEBUG || false
         this.setEtatConnexion = setEtatConnexion
         this.callbackSetUsager = callbackSetUsager
         this.callbackFormatteurMessage = callbackFormatteurMessage
@@ -96,11 +97,22 @@ class ConnexionSocketio {
     connecter() {
         if(!this.socket) throw new Error('pas configure')
         if(this.socket.connected) return true
+
         return new Promise((resolve, reject)=>{
+            // Workaround si aucun callback
+            const timeoutConnexion = setTimeout(()=>{
+                if(this.socket.connected) return resolve(true)
+                else reject('Timeout')
+            }, 5_000)
+
             const handlerCallback = err => {
+                clearTimeout(timeoutConnexion)
                 if(err) return reject(err)
                 resolve(true)
             }
+
+            this.socket.on('connect', err => handlerCallback(err))
+
             this.socket.connect(handlerCallback)
         })
     }
@@ -215,26 +227,26 @@ class ConnexionSocketio {
     }
 
     onConnect() {
-        if(this.DEBUG) console.debug("Connecte")
+        if(this.DEBUG) console.debug("connexionClientV2 Connecte")
         onConnectHandler(this).catch(err=>{console.error("Erreur handling onConnect ", err)})
     }
 
     onReconnectAttempt() {
-        if(this.DEBUG) console.debug("Tentative de reconnexion")
+        if(this.DEBUG) console.debug("connexionClientV2 Tentative de reconnexion")
     }
 
     onReconnect() {
-        if(this.DEBUG) console.debug("Reconnecte")
+        if(this.DEBUG) console.debug("connexionClientV2 Reconnecte")
     }
 
     onDisconnect(reason) {
-        if(this.DEBUG) console.debug("ConnexionSocketio.onDisconnect Disconnect socket.io (reason: %O)", reason)
+        if(this.DEBUG) console.debug("connexionClientV2.onDisconnect Disconnect socket.io (reason: %O)", reason)
         if(this.setEtatConnexion) this.setEtatConnexion(false, {description: 'Deconnecte normalement'})
         if(this.callbackSetUsager) this.callbackSetUsager('')
     }
 
     onConnectError(err) {
-        console.error("ConnexionSocketio.onConnectError Erreur socket.io : %O", err)
+        console.error("connexionClientV2.onConnectError Erreur socket.io : %O", err)
         const { description, context, type } = err
         if(this.setEtatConnexion) {
           this.setEtatConnexion(false, {err: ''+err, type})
@@ -248,7 +260,7 @@ async function signerMessage(formatteurMessage, message, opts) {
     if( message && !message['sig'] && opts.noformat !== true ) {
         const kind = message.kind || opts.kind
         if(kind) {
-            if(!formatteurMessage) throw new Error("connexionClient.signerMessage Formatteur de message non initialise")
+            if(!formatteurMessage) throw new Error("connexionClientV2.signerMessage Formatteur de message non initialise")
             message = await formatteurMessage.formatterMessage(kind, message, opts)
             // console.debug("connexionClient.emitBlocking Message signe ", message)
         } else {
