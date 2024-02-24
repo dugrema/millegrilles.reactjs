@@ -316,6 +316,9 @@ async function onConnectHandler(connexion, opts) {
     if(connexion.callbackSetUsager && info && info.nomUsager) {
         // console.debug("connexionClient.onConnect setUsager %s", info.nomUsager)
         await connexion.callbackSetUsager(info.nomUsager)
+    } else {
+        // Indiquer qu'il n'y a pas de session usager
+        await connexion.callbackSetUsager(false)
     }
 }
 
@@ -520,7 +523,7 @@ const exports = {
     initialiserFormatteurMessage: (certificatPem, clePriveeSign, opts) => connexion.initialiserFormatteurMessage(certificatPem, clePriveeSign, opts),
     configurer: (url, setEtatConnexion, callbackSetUsager, callbackFormatteurMessage, opts) => connexion.configurer(url, setEtatConnexion, callbackSetUsager, callbackFormatteurMessage, opts),
     connecter: () => connexion.connecter(),
-    deconnecter: () => connexion.deconnecter,
+    deconnecter: () => connexion.deconnecter(),
     emit: (eventName, args, opts) => connexion.emit(eventName, args, opts),
     emitWithAck: (eventName, args, opts) => connexion.emitWithAck(eventName, args, opts),
     authentifier: (data, opts) => connexion.authentifier(data, opts),
@@ -530,6 +533,7 @@ const exports = {
     // Fonctions additionnelles de support (cache, session, etc)
     getCertificatsMaitredescles: () => getCertificatsMaitredescles(connexion),
     validerCertificat,
+    verifierMessage: x509VerifierMessage,
 }
 
 export default exports
