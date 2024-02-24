@@ -7,7 +7,7 @@ import {init as initX509, verifierCertificat, verifierMessage as x509VerifierMes
 import * as hachage from './hachage'  // Wiring hachage pour utiljs
 import './chiffrage'
 
-import { initialiserFormatteurMessage as initialiserFormatteurMessageChiffrage } from './chiffrageClient'
+import { initialiserFormatteurMessage as initialiserFormatteurMessageChiffrage, clearInfoSecrete } from './chiffrageClient'
 
 import { KIND_COMMANDE, MESSAGE_KINDS } from '@dugrema/millegrilles.utiljs/src/constantes'
 
@@ -92,6 +92,11 @@ class ConnexionSocketio {
       
         if(this.DEBUG) console.debug("connexionClient.initialiserFormatteurMessage ready")
         if(this.callbackFormatteurMessage) this.callbackFormatteurMessage(true)
+    }
+
+    clearFormatteurMessage() {
+        this.formatteurMessage = null
+        clearInfoSecrete()
     }
 
     connecter() {
@@ -201,6 +206,10 @@ class ConnexionSocketio {
 
     unsubscribe(nomEventSocketio, cb, params, opts) {
         return unsubscribe(this, nomEventSocketio, cb, params, opts)
+    }
+
+    formatterMessage(kind, message, opts) {
+        return this.formatteurMessage.formatterMessage(kind, message, opts)
     }
 
     socketOn(eventName, callback) {
@@ -521,6 +530,7 @@ const exports = {
     // Connexion au serveur
     initialiserCertificateStore: caCert => connexion.initialiserCertificateStore(caCert),
     initialiserFormatteurMessage: (certificatPem, clePriveeSign, opts) => connexion.initialiserFormatteurMessage(certificatPem, clePriveeSign, opts),
+    clearFormatteurMessage: () => connexion.clearFormatteurMessage(),
     configurer: (url, setEtatConnexion, callbackSetUsager, callbackFormatteurMessage, opts) => connexion.configurer(url, setEtatConnexion, callbackSetUsager, callbackFormatteurMessage, opts),
     connecter: () => connexion.connecter(),
     deconnecter: () => connexion.deconnecter(),
@@ -534,6 +544,7 @@ const exports = {
     getCertificatsMaitredescles: () => getCertificatsMaitredescles(connexion),
     validerCertificat,
     verifierMessage: x509VerifierMessage,
+    formatterMessage: (kind, message, opts) => connexion.formatterMessage(kind, message, opts),
 }
 
 export default exports
