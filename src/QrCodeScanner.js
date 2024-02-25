@@ -13,6 +13,7 @@ const CONST_QRCODE_REGION_ID = 'qrcoderegionid'
 function QrCodeScanner(props) {
 
   const { onScan, onError } = props
+  const variant = props.variant || 'primary'
 
   const qrbox = props.qrbox || 250,
         fps = props.fps || 10
@@ -20,11 +21,14 @@ function QrCodeScanner(props) {
   return (
     <ErrorBoundary>
       <Html5QrcodeModal 
+          variant={variant}
           fps={fps}
           qrbox={qrbox}
           disableFlip={false}
           qrCodeSuccessCallback={onScan} 
-          onError={onError} />
+          onError={onError}>
+        {props.children}
+      </Html5QrcodeModal>
     </ErrorBoundary>
   )
 
@@ -56,8 +60,7 @@ export const WRAP_CERTIFICATE = [
 
 function Html5QrcodeModal(props) {
 
-  const { qrCodeSuccessCallback, onError } = props
-  const label = props.label || 'Scan'
+  const { variant, qrCodeSuccessCallback, onError } = props
 
   const [running, setRunning] = useState(false)
   const [entered, setEntered] = useState(false)
@@ -87,7 +90,9 @@ function Html5QrcodeModal(props) {
 
   return (
       <div>
-          <BoutonActif onClick={handlerStart} etat={etatBouton} disabled={!!running}>{label}</BoutonActif>
+          <BoutonActif variant={variant} onClick={handlerStart} etat={etatBouton} disabled={!!running}>
+            {props.children}
+          </BoutonActif>
           <Modal show={running} fullscreen={true} onEntered={handlerEntered} onHide={handlerStop}>
               <Modal.Header closeButton>Scanner QR</Modal.Header>
               <Html5QrcodeRunner {...props} 
