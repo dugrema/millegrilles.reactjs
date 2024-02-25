@@ -54,6 +54,9 @@ export * as usagerDao from './usagerDao'
 export * from './Alerts'
 export * from './CleMillegrille'
 
+import QrCodeScanner from './QrCodeScanner'
+export { QrCodeScanner }
+
 export { AfficherActivationsUsager } from './ActivationCodeUsager'
 
 export { default as LayoutMillegrilles, Menu, DropDownLanguage, ModalInfo, initI18n } from './LayoutMillegrilles'
