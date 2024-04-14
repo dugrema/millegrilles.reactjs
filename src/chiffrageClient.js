@@ -186,6 +186,40 @@ export function dechiffrerDocument(ciphertext, messageCle, opts) {
   // return _dechiffrerDocument(ciphertext, messageCle, _clePrivee, opts)
 }
 
+export async function dechiffrerMessage(message) {
+  // Wrapper pour dechiffrer un message, insere la cle privee locale
+  let contenu = message.contenu
+  if(typeof(contenu) === 'string') {
+    // Decoder en base64
+    contenu = base64.decode('m'+contenu)
+  }
+  // console.debug("Formatteur Messages : %O", formatteurMessage)
+  const fingerprint = formatteurMessage.fingerprint
+  const dechiffrage = message.dechiffrage
+  const cleChiffree = base64.decode(dechiffrage.cles[fingerprint])
+  const nonce = dechiffrage.nonce || dechiffrage.header
+  const verification = dechiffrage.tag || dechiffrage.hachage
+  const format = dechiffrage.format
+
+  // console.debug("Contenu : %O, cle chiffree %O, nonce %s, verification %s, format %s", 
+  //   contenu, cleChiffree, nonce, verification, format)
+
+  const cleDechiffree = await ed25519Utils.dechiffrerCle(cleChiffree, _clePrivee)
+  // console.debug("Cle dechiffree %O", cleDechiffree)
+
+  contenu = await chiffrage.dechiffrer(cleDechiffree, contenu, {format, header: nonce})
+  // console.debug("Contenu dechiffre\n", contenu)
+
+  // Decompresser (gzip)
+  contenu = new TextDecoder().decode(pako.ungzip(contenu))
+  // console.debug("Contenu decompresse\n%s", contenu)
+
+  contenu = JSON.parse(contenu)
+  // console.debug("Contenu parsed %O", contenu)
+
+  return contenu
+}
+
 export async function chargerCleMillegrille(clePrivee) {
   // console.debug("Charger cle millegrille : %O", clePrivee)
   if( ! _cleMillegrille ) {

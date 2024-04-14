@@ -7,7 +7,7 @@ import {init as initX509, verifierCertificat, verifierMessage as x509VerifierMes
 import * as hachage from './hachage'  // Wiring hachage pour utiljs
 import './chiffrage'
 
-import { initialiserFormatteurMessage as initialiserFormatteurMessageChiffrage, clearInfoSecrete } from './chiffrageClient'
+import { initialiserFormatteurMessage as initialiserFormatteurMessageChiffrage, clearInfoSecrete, dechiffrerMessage } from './chiffrageClient'
 
 import { KIND_COMMANDE, MESSAGE_KINDS } from '@dugrema/millegrilles.utiljs/src/constantes'
 
@@ -39,7 +39,7 @@ class ConnexionSocketio {
     initialiserCertificateStore(caCert) {
         return initX509(caCert)
     }
-      
+
     /**
      * Configure la connexion avec url et autres parametres.
      * Inclue les fonctions callbacks pour retourner de l'information a l'application
@@ -160,6 +160,7 @@ class ConnexionSocketio {
 
         const reponse = await request
         if(reponse && reponse.err) throw new Error(reponse.err)  // Erreur cote serveur
+
         return verifierReponse(reponse, opts)
     }
 
@@ -293,7 +294,12 @@ async function verifierReponse(reponse, opts) {
         if(resultat === true) {
             // Parse le contenu, conserver original
             let contenu = reponse
-            if(reponse.contenu) {
+            if(reponse.kind === 6) {
+                console.warn("Reponse chiffree %O", reponse)
+                const contenuParsed = await dechiffrerMessage(reponse)
+                contenu = contenuParsed
+                contenu['__original'] = reponse
+        } else if(reponse.contenu) {
                 contenu = JSON.parse(reponse.contenu)
                 contenu['__original'] = reponse
             }
