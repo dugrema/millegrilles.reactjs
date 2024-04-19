@@ -326,9 +326,9 @@ export class NonSupporteError extends Error {}
 
 const streamXchacha20poly1305Algorithm = {
     encrypt: encryptStreamXChacha20Poly1305,
-    decrypt: (key, data, opts) => decryptStreamXChacha20Poly1305(key, opts.header, data),
+    decrypt: (key, data, opts) => decryptStreamXChacha20Poly1305(key, opts.nonce || opts.header, data),
     getCipher: creerStreamCipherXChacha20Poly1305,
-    getDecipher: (key, opts) => creerStreamDecipherXChacha20Poly1305(key, opts.header),
+    getDecipher: (key, opts) => creerStreamDecipherXChacha20Poly1305(key, opts.nonce || opts.header),
     messageSize: MESSAGE_SIZE,
     stream: true,
 }

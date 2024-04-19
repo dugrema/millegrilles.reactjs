@@ -295,7 +295,7 @@ async function verifierReponse(reponse, opts) {
             // Parse le contenu, conserver original
             let contenu = reponse
             if(reponse.kind === 6) {
-                console.warn("Reponse chiffree %O", reponse)
+                // console.info("Reponse chiffree %O", reponse)
                 const contenuParsed = await dechiffrerMessage(reponse)
                 contenu = contenuParsed
                 contenu['__original'] = reponse
