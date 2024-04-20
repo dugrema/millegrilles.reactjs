@@ -564,7 +564,8 @@ class MediaLoader {
         } else if(opts.cle_id) {
             // OK
         } else {
-            throw new Error("MediaLoader.thumbnailLoader Il faut fournir cle_secrete ou cle_id")
+            // Ok, le cle_id peut provenir directement de l'image
+            // throw new Error("MediaLoader.thumbnailLoader Il faut fournir cle_secrete ou cle_id")
         }
 
         if(Object.keys(images) === 0) throw new Error('MediaLoader.thumbnailLoader Dict images est vide')
@@ -577,14 +578,14 @@ class MediaLoader {
         opts = opts || {}
         if(!images) throw new Error("MediaLoader.imageLoader Aucunes images fournies")
 
-        // if(opts.cle_secrete) {
-        //     // OK
-        // } else if(opts.cle_id) {
-        //     // OK
-        // } else {
-        //     // OK, la cle peut etre fournie directement dans l'image
-        //     // throw new Error("MediaLoader.imageLoader Il faut fournir cle_secrete ou cle_id")
-        // }
+        if(opts.cle_secrete) {
+            // OK
+        } else if(opts.cle_id) {
+            // OK
+        } else {
+            // OK, la cle peut etre fournie directement dans l'image
+            throw new Error("MediaLoader.imageLoader Il faut fournir cle_secrete ou cle_id")
+        }
 
         if(Object.keys(images) === 0) throw new Error('MediaLoader.imageLoader Dict images est vide')
 
