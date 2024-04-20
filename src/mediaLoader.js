@@ -110,8 +110,9 @@ function thumbnailLoader(processeur, images, opts) {
     // Preparer loaders en reutilisant fichierDownloader -> {load, unload}
     let thumbLoader = null, smallLoader = null
     if(thumb) {
-        const { data, data_chiffre, header, mimetype } = thumb
-        const parametres = {...opts, data, data_chiffre, header, mimetype}
+        const { data, data_chiffre, header, mimetype, nonce } = thumb
+        const cle_id = thumb.cle_id || opts.cle_id
+        const parametres = {...opts, data, data_chiffre, header, mimetype, cle_id, nonce}
         // console.debug("thumbnailLoader Parametres thumb ", parametres)
         if(data && mimetype) {
             thumbLoader = blobLoader(data, mimetype)
@@ -120,9 +121,10 @@ function thumbnailLoader(processeur, images, opts) {
         }
     }
     if(small) {
-        const { hachage: fuuid, header, mimetype } = small
-        const parametres = {...opts, header, mimetype}
-        // console.debug("thumbnailLoader Parametres small %s : %O ", fuuid, parametres)
+        const { hachage: fuuid, header, mimetype, nonce } = small
+        const cle_id = small.cle_id || opts.cle_id
+        const parametres = {...opts, header, mimetype, cle_id, nonce}
+        // console.debug("smallLoader Parametres small %s : %O ", fuuid, parametres)
         smallLoader = fichierDownloader(processeur, fuuid, parametres)
     }
 
@@ -198,8 +200,8 @@ function imageLoader(processeur, images, opts) {
         
         // console.debug("Image max : %O", imageMax)
         if(imageMax) {
-            const { hachage: fuuid, header, mimetype } = imageMax
-            const parametres = {...opts, header, mimetype}
+            const { hachage: fuuid, header, nonce, mimetype } = imageMax
+            const parametres = {...opts, header, mimetype, nonce}
             imageLoader = fichierDownloader(processeur, fuuid, parametres)
         }
     }
@@ -495,9 +497,10 @@ class MediaLoader {
         opts = opts || {}
         const { fuuid, data_chiffre, mimetype } = opts
 
-        let data = opts.data,
-            header = opts.header
-
+        let data = opts.data
+        let nonce = opts.header
+        if(opts.nonce) nonce = 'm' + opts.nonce  // Ajouter 'm' multibase au nonce
+        
         if(data) {
             // On a le data direct (e.g. thumbnail)
             const dataAb = base64.decode(data)
@@ -516,7 +519,10 @@ class MediaLoader {
         if(!cle_secrete) {
             let cle_id = opts.cle_id || fuuid
             const local = opts.local || false
-            if(!cle_id) throw new Error("MediaLoader.processeur Il faut fournir cle_secrete/header, cle_id ou fuuid")
+            if(!cle_id) {
+                console.warn("MediaLoader.processeur cle_id manquant Params : ", opts)
+                throw new Error("MediaLoader.processeur Il faut fournir cle_secrete/header, cle_id ou fuuid")
+            }
             // console.debug("Charger cle secrete : %s (opts %O)", cle_id, opts)
 
             const cle = await this.getCleSecrete(cle_id, {local})
@@ -525,16 +531,17 @@ class MediaLoader {
             
             // console.debug("Cle recue : %O", cle)
             cle_secrete = cle.cleSecrete
-            if(!header) header = cle.header
-        } else if(header) {  
+            if(!nonce) nonce = cle.nonce || cle.header
+        } else if(nonce) {  
             // On a cle secrete et header - OK
         } else {
-            throw new Error("MediaLoader.processeur Il faut fournir cle_secrete/header, cle_id ou fuuid")
+            console.warn("MediaLoader.processeur nonce manquant Params : ", opts)
+            throw new Error("MediaLoader.processeur Il faut fournir cle_secrete/nonce/header, cle_id ou fuuid")
         }
 
         // console.debug("processeur Dechiffrer data %O, cle_secrete: %O, header: %O, mimetype: %O", data, cle_secrete, header, mimetype)
 
-        return this.dechiffrer(data, cle_secrete, header, mimetype)
+        return this.dechiffrer(data, cle_secrete, nonce, mimetype)
     }
 
     /**
@@ -570,13 +577,14 @@ class MediaLoader {
         opts = opts || {}
         if(!images) throw new Error("MediaLoader.imageLoader Aucunes images fournies")
 
-        if(opts.cle_secrete) {
-            // OK
-        } else if(opts.cle_id) {
-            // OK
-        } else {
-            throw new Error("MediaLoader.imageLoader Il faut fournir cle_secrete ou cle_id")
-        }
+        // if(opts.cle_secrete) {
+        //     // OK
+        // } else if(opts.cle_id) {
+        //     // OK
+        // } else {
+        //     // OK, la cle peut etre fournie directement dans l'image
+        //     // throw new Error("MediaLoader.imageLoader Il faut fournir cle_secrete ou cle_id")
+        // }
 
         if(Object.keys(images) === 0) throw new Error('MediaLoader.imageLoader Dict images est vide')
 
