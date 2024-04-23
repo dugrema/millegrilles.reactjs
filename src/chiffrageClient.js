@@ -8,6 +8,7 @@ import { chiffrage } from './chiffrage'
 import * as ed25519Utils from '@dugrema/millegrilles.utiljs/src/chiffrage.ed25519'
 import { MESSAGE_KINDS } from '@dugrema/millegrilles.utiljs/src/constantes'
 import pako from 'pako'
+import { SignatureDomaines } from '@dugrema/millegrilles.utiljs/src/maitredescles'
 
 export {chiffrage}
 
@@ -331,11 +332,20 @@ export async function rechiffrerAvecCleMillegrille(
           const signature = cle.signature
           const cleBase64 = 'm'+signature.ca
           const cleDechiffree = await ed25519Utils.dechiffrerCle(cleBase64, _cleMillegrille)
-          if(DEBUG) console.debug("Cle dechiffree : %O", cleDechiffree)
+          if(DEBUG) console.debug("rechiffrerAvecCleMillegrille Cle dechiffree : %O", cleDechiffree)
 
           // Verifier la signature si approprie
           if(signature.version === 0) { /* Rien a faire*/ }
-          else throw new Error("TODO - verifier signature domaines")
+          else {
+            const signatureVerification = new SignatureDomaines(signature.domaines)
+            Object.assign(signatureVerification, signature)
+            try {
+              await signatureVerification.verifierSecrete(cleDechiffree)
+            } catch(err) {
+              console.warn("rechiffrerAvecCleMillegrille Cle %s invalide, rejetee : %O", cle.cle_id, err)
+              continue
+            }
+          }
 
           const cleDechiffreeBase64 = base64.encode(cleDechiffree).slice(1)  // Encoder base64 nopad, retirer 'm' multibase
           const cleComplete = {...cle, cle_secrete: cleDechiffreeBase64}
@@ -357,19 +367,21 @@ export async function rechiffrerAvecCleMillegrille(
 
       console.debug("Contenu dict a chiffrer : ", contenuDict)
 
-      let messageBytes = JSON.stringify(contenuDict)
-      console.debug("Message JSON taille %d\n%s", messageBytes.length, messageBytes)
-      messageBytes = pako.deflate(new TextEncoder().encode(messageBytes), {gzip: true})
-      console.debug("Message gzip taille %d", messageBytes.length)
+      // let messageBytes = JSON.stringify(contenuDict)
+      // console.debug("Message JSON taille %d\n%s", messageBytes.length, messageBytes)
+      // messageBytes = pako.deflate(new TextEncoder().encode(messageBytes), {gzip: true})
+      // console.debug("Message gzip taille %d", messageBytes.length)
 
-      const documentChiffre = await chiffrerDocument(
-        messageBytes, 'MaitreDesCles', pemRechiffrage, 
-        {retourSecret: true, nojson: true, type: 'binary'}
-      )
+      // const documentChiffre = await chiffrerDocument(
+      //   messageBytes, 'MaitreDesCles', pemRechiffrage, 
+      //   {retourSecret: true, nojson: true, type: 'binary'}
+      // )
+      const documentChiffre = await chiffrerChampsV2(
+        contenuDict, 'MaitreDesCles', pemRechiffrage, {gzip: true, retourSecret: true, DEBUG: false})
       console.debug("Contenu chiffre : ", documentChiffre)
 
-      const contenu = documentChiffre.doc.data_chiffre.slice(1),
-            dechiffrage = { header: documentChiffre.doc.header, format: documentChiffre.doc.format, cles: {}},
+      const contenu = documentChiffre.doc.data_chiffre,
+            dechiffrage = { nonce: 'm' + documentChiffre.doc.nonce, format: documentChiffre.doc.format, cles: {}},
             cleSecrete = documentChiffre.cleSecrete
 
       // Rechiffrer cle secrete pour tous les maitres des cles
