@@ -531,7 +531,10 @@ class MediaLoader {
             
             // console.debug("Cle recue : %O", cle)
             cle_secrete = cle.cleSecrete
-            if(!nonce) nonce = cle.nonce || cle.header
+            if(!nonce) {
+                nonce = cle.header
+                if(cle.nonce) nonce = 'm' + cle.nonce
+            }
         } else if(nonce) {  
             // On a cle secrete et header - OK
         } else {
