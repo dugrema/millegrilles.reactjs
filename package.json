@@ -1,6 +1,6 @@
 {
   "name": "millegrilles.reactjs",
-  "version": "2024.4.0",
+  "version": "2024.3.1",
   "description": "Composants communs pour MilleGrilles front-end avec ReactJS",
   "author": "dugrema",
   "license": "MIT",
@@ -21,10 +21,10 @@
     "deploy": "gh-pages -d example/build"
   },
   "dependencies": {
-    "@dugrema/millegrilles.utiljs": "https://github.com/dugrema/millegrilles.utiljs.git#2024.4",
+    "@dugrema/millegrilles.utiljs": "https://github.com/dugrema/millegrilles.utiljs.git#2024.3",
     "@react-hooks-hub/use-media-query": "^1.1.7",
     "@reduxjs/toolkit": "^2.2.3",
-    "@zip.js/zip.js": "^2.7.43",
+    "@zip.js/zip.js": "^2.7.41",
     "axios": "^1.6.8",
     "base64url": "^3.0.1",
     "bootstrap": "^5.3",
@@ -39,10 +39,10 @@
     "moment-timezone": "^0.5.45",
     "multibase": "^4.0.6",
     "pako": "^2.1.0",
-    "react": "18.2.0",
+    "react": "^18",
     "react-bootstrap": "^2.10",
     "react-dropzone": "^14.2.3",
-    "react-i18next": "^14.1.1",
+    "react-i18next": "^14.1.0",
     "react-redux": "^9.1.1",
     "react-visibility-sensor": "^5.1.1",
     "socket.io-client": "^4.7.5",
@@ -62,7 +62,7 @@
     "microbundle-crl": "^0.13.11",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.2.5",
-    "react-dom": "18.2.0",
+    "react-dom": "^18",
     "react-full-screen": "^1.1.1",
     "react-scripts": "^5"
   },
