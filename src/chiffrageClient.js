@@ -247,7 +247,7 @@ export async function dechiffrerMessage(message) {
   const fingerprint = formatteurMessage.fingerprint
   const dechiffrage = message.dechiffrage
   const cleChiffree = base64.decode(dechiffrage.cles[fingerprint])
-  const nonce = dechiffrage.nonce || dechiffrage.header
+  const nonce = dechiffrage.nonce || (dechiffrage.header?dechiffrage.header.slice(1):null)
   const verification = dechiffrage.tag || dechiffrage.hachage
   const format = dechiffrage.format
 
@@ -257,7 +257,7 @@ export async function dechiffrerMessage(message) {
   const cleDechiffree = await ed25519Utils.dechiffrerCle(cleChiffree, _clePrivee)
   // console.debug("Cle dechiffree %O", cleDechiffree)
 
-  contenu = await chiffrage.dechiffrer(cleDechiffree, contenu, {format, header: nonce})
+  contenu = await chiffrage.dechiffrer(cleDechiffree, contenu, {format, header: 'm'+nonce})
   // console.debug("Contenu dechiffre\n", contenu)
 
   // Decompresser (gzip)
