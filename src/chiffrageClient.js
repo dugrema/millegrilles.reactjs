@@ -246,7 +246,7 @@ export async function dechiffrerMessage(message) {
   // console.debug("Formatteur Messages : %O", formatteurMessage)
   const fingerprint = formatteurMessage.fingerprint
   const dechiffrage = message.dechiffrage
-  const cleChiffree = base64.decode(dechiffrage.cles[fingerprint])
+  const cleChiffree = base64.decode('m' + dechiffrage.cles[fingerprint])
   const nonce = dechiffrage.nonce || (dechiffrage.header?dechiffrage.header.slice(1):null)
   const verification = dechiffrage.tag || dechiffrage.hachage
   const format = dechiffrage.format
