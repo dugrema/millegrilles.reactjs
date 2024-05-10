@@ -367,21 +367,12 @@ export async function rechiffrerAvecCleMillegrille(
 
       console.debug("Contenu dict a chiffrer : ", contenuDict)
 
-      // let messageBytes = JSON.stringify(contenuDict)
-      // console.debug("Message JSON taille %d\n%s", messageBytes.length, messageBytes)
-      // messageBytes = pako.deflate(new TextEncoder().encode(messageBytes), {gzip: true})
-      // console.debug("Message gzip taille %d", messageBytes.length)
-
-      // const documentChiffre = await chiffrerDocument(
-      //   messageBytes, 'MaitreDesCles', pemRechiffrage, 
-      //   {retourSecret: true, nojson: true, type: 'binary'}
-      // )
       const documentChiffre = await chiffrerChampsV2(
         contenuDict, 'MaitreDesCles', pemRechiffrage, {gzip: true, retourSecret: true, DEBUG: false})
       console.debug("Contenu chiffre : ", documentChiffre)
 
       const contenu = documentChiffre.doc.data_chiffre,
-            dechiffrage = { nonce: 'm' + documentChiffre.doc.nonce, format: documentChiffre.doc.format, cles: {}},
+            dechiffrage = { nonce: documentChiffre.doc.nonce, format: documentChiffre.doc.format, cles: {}},
             cleSecrete = documentChiffre.cleSecrete
 
       // Rechiffrer cle secrete pour tous les maitres des cles
@@ -391,7 +382,7 @@ export async function rechiffrerAvecCleMillegrille(
         const fingerprintMaitredescles = await _hacherCertificat(forgeCert)
     
         const cleChiffree = await ed25519Utils.chiffrerCle(cleSecrete, publicKey)
-        dechiffrage.cles[fingerprintMaitredescles] = cleChiffree
+        dechiffrage.cles[fingerprintMaitredescles] = cleChiffree.slice(1)  // Retirer marqueur multibase
       }
     
       if(DEBUG) console.debug("Cle rechiffree %d bytes dechiffrage: %O", contenu.length, dechiffrage)
@@ -407,6 +398,11 @@ export async function rechiffrerAvecCleMillegrille(
         .finally(()=>{
           setNombreClesRechiffrees(nombreClesRechiffrees)
           setNombreErreurs(nombreErreurs)
+        })
+
+        // Throttle pour traiter les cles
+        await new Promise(resolve=>{
+          setTimeout(resolve, 500)
         })
 
     } catch(err) {
