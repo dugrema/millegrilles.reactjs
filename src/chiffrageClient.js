@@ -75,7 +75,7 @@ export function verifierCertificat(certificat, opts) {
   return resultat?true:false
 }
 
-export function formatterMessage(message, domaineAction, opts) {
+export async function formatterMessage(message, domaineAction, opts) {
   opts = opts || {}
   opts.attacherCertificat = true  // Toujours attacher le certificat
   const kind = opts.kind
@@ -83,7 +83,13 @@ export function formatterMessage(message, domaineAction, opts) {
   /* Expose formatterMessage du formatteur de messages */
   if(opts.DEBUG) console.debug("Formatter domaine=%s, message : %O (opts: %O)", domaineAction, message, opts)
 
-  return formatteurMessage.formatterMessage(kind, message, {...opts, domaine: domaineAction})
+  let messageSigne = await formatteurMessage.formatterMessage(kind, message, {...opts, domaine: domaineAction})
+
+  if(opts.inclureCa) {
+    messageSigne.millegrille = certificatMillegrille.pem
+  }
+
+  return messageSigne;
 }
 
 export function signerMessageCleMillegrille(message, opts) {
