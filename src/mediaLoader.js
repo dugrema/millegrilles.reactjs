@@ -472,6 +472,7 @@ class MediaLoader {
             responseType: 'arraybuffer',
             timeout: CONST_TIMEOUT_DOWNLOAD,
             progress,
+            withCredentials: true,
             // signal,  // Bug sur dev - react useEffect() calle 2 fois
         })
 
